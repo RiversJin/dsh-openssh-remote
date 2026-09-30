@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>dsh-remote — make any SSH machine a real DSH workspace</title>
+<meta name="description" content="Remote-work assistant for DeepSeek Harness (DSH): connect SSH (key or password), pick a remote workspace, operate with rw_* tools, and SFTP-mirror it into a real local DSH workspace."/>
+<meta property="og:title" content="dsh-remote — make any SSH machine a real DSH workspace"/>
+<meta property="og:description" content="Multi-machine SSH registry, remote workspace picker, 20 rw_* tools, conflict-aware mirror sync, port forwarding."/>
+<meta property="og:image" content="https://flymysql.github.io/dsh-remote/cover.png"/>
+<meta name="theme-color" content="#07070b"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#07070b; --panel:rgba(255,255,255,.035); --line:rgba(255,255,255,.10);
+    --fg:#e8e8ef; --mut:#9a9aad; --dim:#6d6d80;
+    --purple:#7a3ef3; --blue:#2283f6; --ok:#4caf7d; --warn:#e6c07b;
+  }
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg); color:var(--fg); -webkit-font-smoothing:antialiased;
+    font-family:Inter,"Noto Sans","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    line-height:1.65; overflow-x:hidden;
+  }
+  a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+  /* ── hero ─────────────────────────────────────────── */
+  .hero{position:relative;padding:88px 0 64px;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(760px 460px at 86% 4%, rgba(122,62,243,.30), transparent 62%),
+      radial-gradient(560px 380px at 4% 88%, rgba(34,131,246,.16), transparent 60%);
+  }
+  .hero .grid-bg{position:absolute;inset:0;pointer-events:none;opacity:.5;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:48px 48px;
+    mask-image:linear-gradient(115deg,#000,rgba(0,0,0,.3) 55%,transparent 88%);
+  }
+  .hero-in{position:relative}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:600;
+    letter-spacing:.16em;text-transform:uppercase;color:#b9a6ff;margin-bottom:18px}
+  .eyebrow::before{content:"";width:26px;height:2px;background:linear-gradient(90deg,var(--purple),var(--blue))}
+  h1{font-size:clamp(34px,5.4vw,58px);line-height:1.08;letter-spacing:-.02em;font-weight:800;margin-bottom:16px}
+  h1 .grad{background:linear-gradient(96deg,#b9a6ff,#7a3ef3 42%,#2283f6);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{font-size:clamp(15px,1.7vw,18px);color:var(--mut);max-width:660px;margin-bottom:8px}
+  .lede.zh{font-size:14px;color:var(--dim);max-width:660px;margin-bottom:26px}
+  .cta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:22px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:9px;
+    font-size:14px;font-weight:600;text-decoration:none;border:1px solid var(--line);
+    background:var(--panel);transition:.16s transform,.16s border-color,.16s background}
+  .btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.24)}
+  .btn.primary{background:linear-gradient(96deg,rgba(122,62,243,.9),rgba(34,131,246,.85));
+    border-color:transparent;color:#fff}
+  .install{display:inline-flex;align-items:center;gap:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:13.5px;padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:rgba(0,0,0,.35);
+    cursor:pointer;transition:.16s border-color}
+  .install:hover{border-color:rgba(185,166,255,.5)}
+  .install .dollar{color:var(--dim)}
+  .install .copy{color:var(--dim);font-size:11px}
+  .install.copied .copy{color:var(--ok)}
+  .hero-stats{display:flex;flex-wrap:wrap;gap:26px;font-size:13px;color:var(--dim);
+    border-top:1px solid var(--line);padding-top:20px;margin-top:26px}
+  .hero-stats b{display:block;font-size:20px;color:var(--fg);font-weight:700;letter-spacing:-.01em}
+  .hero-stats a{text-decoration:none}
+  .hero-stats a:hover b{color:#b9a6ff}
+
+  /* ── sections ─────────────────────────────────────── */
+  section{padding:60px 0;border-top:1px solid var(--line)}
+  h2{font-size:clamp(22px,2.8vw,30px);letter-spacing:-.015em;font-weight:700;margin-bottom:8px}
+  h2 .zh{font-size:14px;color:var(--dim);font-weight:400;margin-left:10px}
+  .sub{color:var(--mut);max-width:700px;margin-bottom:30px;font-size:15px}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;transition:.18s border-color,.18s transform}
+  .card:hover{border-color:rgba(185,166,255,.36);transform:translateY(-2px)}
+  .card .ic{font-size:20px;margin-bottom:10px;display:block}
+  .card h3{font-size:15px;margin-bottom:7px;font-weight:650}
+  .card p{font-size:13.2px;color:var(--mut);line-height:1.6}
+  .card code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:rgba(255,255,255,.07);
+    padding:1.5px 5px;border-radius:4px;color:#cbbcff}
+
+  .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+  figure{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  figure img{width:100%;display:block;border-bottom:1px solid var(--line)}
+  figcaption{padding:12px 16px;font-size:13px;color:var(--mut)}
+  figcaption b{color:var(--fg);font-weight:600}
+
+  pre{background:rgba(0,0,0,.42);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;overflow-x:auto;font-size:13px;line-height:1.75;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#d8d8e6}
+  pre .c{color:var(--dim)}
+  pre .k{color:#b9a6ff}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+  td code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#cbbcff}
+  .tool-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:7px;margin-top:14px}
+  .tool-list code{font-family:ui-monospace,Menlo,monospace;font-size:12.2px;background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;padding:5px 9px;color:#cbbcff}
+
+  .note{border-left:2px solid var(--purple);padding:12px 16px;background:rgba(122,62,243,.07);
+    border-radius:0 9px 9px 0;font-size:13.4px;color:var(--mut);margin-top:18px}
+  .note b{color:var(--fg)}
+
+  footer{padding:36px 0 56px;border-top:1px solid var(--line);color:var(--dim);font-size:13px;
+    display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center}
+  footer a{text-decoration:none}
+  footer a:hover{color:#b9a6ff}
+  .flinks{display:flex;flex-wrap:wrap;gap:16px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="grid-bg"></div>
+  <div class="wrap hero-in">
+    <div class="eyebrow">DeepSeek Harness plugin</div>
+    <h1>Make any SSH machine<br/>a real <span class="grad">DSH workspace</span></h1>
+    <p class="lede">
+      Manage several SSH machines, pick a remote directory, and let the agent work there directly —
+      listing files, reading code, running builds and commands over the remote host, and keeping that
+      directory mirrored into a real local workspace.
+    </p>
+    <p class="lede zh">
+      连上任意 SSH 机器，把远程目录当成真正的 DSH 工作区：20 个 <code>rw_*</code> 工具、冲突感知的镜像同步、端口转发。
+    </p>
+
+    <div class="cta">
+      <a class="btn primary" href="#install">Get started</a>
+      <a class="btn" href="https://github.com/flymysql/dsh-remote">GitHub ↗</a>
+      <a class="btn" href="https://www.npmjs.com/package/dsh-remote">npm ↗</a>
+      <a class="btn" href="./stats/">用法统计 ↗</a>
+    </div>
+
+    <div class="install" id="install-cmd" title="click to copy">
+      <span><span class="dollar">$</span> dsh plugin --profile web add dsh-remote</span>
+      <span class="copy" id="copy-label">copy</span>
+    </div>
+
+    <div class="hero-stats" id="hero-stats">
+      <a href="https://www.npmjs.com/package/dsh-remote"><b id="v-version">—</b>latest version</a>
+      <a href="https://www.npmjs.com/package/dsh-remote"><b id="v-week">—</b>downloads / week</a>
+      <a href="https://github.com/flymysql/dsh-remote"><b id="v-stars">—</b>GitHub stars</a>
+      <a href="./stats/"><b id="v-dau">—</b>daily active installs</a>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <h2>What it does <span class="zh">能力</span></h2>
+    <p class="sub">The harness Web UI intentionally binds <code>127.0.0.1</code>. This plugin goes the other way: <b>you connect out</b> to the machines you maintain — through the normal DSH workspace and agent file flows, with no changes to the harness core.</p>
+    <div class="cards">
+      <div class="card"><span class="ic">🖧</span><h3>Multi-machine registry</h3>
+        <p>Add, edit, and switch between many SSH hosts. Password, private key, SSH agent, keyboard-interactive, and jump hosts via <code>ProxyJump</code>.</p></div>
+      <div class="card"><span class="ic">🗂️</span><h3>Remote workspace picker</h3>
+        <p>Pick a local <i>or</i> remote workspace from the native modal. Remote paths autocomplete over SFTP with per-keystroke latency kept in the tens of milliseconds.</p></div>
+      <div class="card"><span class="ic">🛠️</span><h3>20 <code>rw_*</code> tools</h3>
+        <p>read / write / edit / append / mkdir / remove / move / stat / exec / search / upload / download / sync / push / forward and more — all as first-class agent tools.</p></div>
+      <div class="card"><span class="ic">🔄</span><h3>Conflict-aware mirror</h3>
+        <p>A three-way SFTP sync keeps the remote tree mirrored locally, so <code>@</code> file references, read tools, and the sidebar editor all just work.</p></div>
+      <div class="card"><span class="ic">🔐</span><h3>Credentials stay local</h3>
+        <p>Passwords in the OS keychain when available, TOFU host-key verification, a command audit log, and keys never leave your machine.</p></div>
+      <div class="card"><span class="ic">♻️</span><h3>Self-updating</h3>
+        <p>Checks npm on load, and since 0.8.24 hot-swaps its own host half — an update takes effect without restarting the harness.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="tools">
+  <div class="wrap">
+    <h2>The tool surface <span class="zh">工具面</span></h2>
+    <p class="sub">Every capability is a normal agent tool, so the model uses it the same way it uses local file tools.</p>
+    <div class="tool-list">
+      <code>rw_info</code><code>rw_connect</code><code>rw_workspace</code><code>rw_list</code>
+      <code>rw_read</code><code>rw_write</code><code>rw_edit</code><code>rw_append</code>
+      <code>rw_mkdir</code><code>rw_remove</code><code>rw_move</code><code>rw_stat</code>
+      <code>rw_exec</code><code>rw_search</code><code>rw_download</code><code>rw_upload</code>
+      <code>rw_sync</code><code>rw_push</code><code>rw_forward</code><code>rw_disconnect</code>
+    </div>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="wrap">
+    <h2>Screenshots <span class="zh">界面</span></h2>
+    <p class="sub">The native "Add workspace" flow and the multi-machine settings panel.</p>
+    <div class="shots">
+      <figure>
+        <img src="./ui-picker-panel.png" alt="Remote workspace picker" loading="lazy"/>
+        <figcaption><b>Workspace picker</b> — the native modal gains a <b>远程 (remote)</b> tab; browse and autocomplete remote directories.</figcaption>
+      </figure>
+      <figure>
+        <img src="./ui-settings-panel.png" alt="Multi-machine SSH registry" loading="lazy"/>
+        <figcaption><b>Settings → 远程工作区</b> — multi-machine SSH registry with add / edit / delete / set-current.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install <span class="zh">安装</span></h2>
+    <p class="sub">Requires DeepSeek Harness. The plugin is a normal profile bundle.</p>
+<pre><span class="c"># 1. add it to the web profile</span>
+<span class="k">dsh</span> plugin --profile web add dsh-remote
+
+<span class="c"># 2. start the harness (or restart it once)</span>
+<span class="k">dsh</span> web
+
+<span class="c"># update later</span>
+<span class="k">dsh</span> plugin --profile web add dsh-remote@latest</pre>
+
+    <div class="note">
+      <b>Upgrading an old install?</b> Versions before <b>0.8.24</b> cannot hot-swap themselves —
+      the first hop to 0.8.24+ needs <b>one restart</b>. After that, updates apply without restarting.
+    </div>
+
+    <h2 style="margin-top:44px;font-size:19px">Configuration <span class="zh">配置</span></h2>
+    <table>
+      <thead><tr><th>Field</th><th>Default</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>host</code></td><td><code>''</code></td><td>Remote SSH host; empty starts disconnected.</td></tr>
+        <tr><td><code>updateMode</code></td><td><code>manual</code></td><td><code>manual</code> | <code>auto</code> | <code>off</code> — self-update behaviour.</td></tr>
+        <tr><td><code>updateAutoReload</code></td><td><code>true</code></td><td>Hot-swap the host half after an update lands.</td></tr>
+        <tr><td><code>updateCheckIntervalMs</code></td><td><code>6h</code></td><td>How often <code>auto</code> mode checks npm.</td></tr>
+        <tr><td><code>auditLog</code></td><td><code>false</code></td><td>Record every remote command to a local audit log.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="privacy">
+  <div class="wrap">
+    <h2>Telemetry &amp; privacy <span class="zh">数据采集</span></h2>
+    <p class="sub">Since 0.8.25 the plugin sends <b>one anonymous heartbeat per launch</b> (at most once every 6 hours) so real usage can be measured — something npm download counts and GitHub clones cannot answer.</p>
+    <table>
+      <thead><tr><th></th><th></th></tr></thead>
+      <tbody>
+        <tr><td><b>Sent</b></td><td><code>idHash</code> (HMAC pseudonym), <code>version</code>, <code>platform</code>, <code>arch</code>, <code>node</code> — exactly five fields.</td></tr>
+        <tr><td><b>Never sent</b></td><td>Hostnames, usernames, paths, IPs, SSH hosts/ports/keys, your machine list, conversation content, anything from your remote sessions.</td></tr>
+        <tr><td><b>Identity</b></td><td>A random UUID in <code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code>. The original never leaves your machine — only its HMAC is transmitted, so it cannot be correlated or reversed.</td></tr>
+      </tbody>
+    </table>
+    <p class="sub" style="margin-top:18px;margin-bottom:0">
+      The heartbeat is fire-and-forget: it never blocks loading and any failure is swallowed silently.
+      See the <a href="./stats/" style="color:#b9a6ff">live usage stats</a> and the
+      <a href="https://github.com/flymysql/dsh-remote/blob/main/README.md#data-collection--telemetry" style="color:#b9a6ff">full policy</a>.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;width:100%">
+    <span>MIT licensed · maintained by <a href="https://github.com/flymysql">@flymysql</a></span>
+    <span class="flinks">
+      <a href="https://github.com/flymysql/dsh-remote">GitHub</a>
+      <a href="https://www.npmjs.com/package/dsh-remote">npm</a>
+      <a href="./stats/">Stats</a>
+      <a href="https://github.com/flymysql/dsh-remote/issues">Issues</a>
+      <a href="https://gitpull.cn">Blog</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+// ── copy the install command ─────────────────────────────────────────────
+const cmd = document.getElementById('install-cmd')
+cmd.addEventListener('click', async () => {
+  const text = 'dsh plugin --profile web add dsh-remote'
+  try {
+    await navigator.clipboard.writeText(text)
+    cmd.classList.add('copied')
+    document.getElementById('copy-label').textContent = 'copied!'
+    setTimeout(() => {
+      cmd.classList.remove('copied')
+      document.getElementById('copy-label').textContent = 'copy'
+    }, 1600)
+  } catch { /* clipboard blocked; the text is selectable anyway */ }
+})
+
+// ── live numbers ─────────────────────────────────────────────────────────
+// Prefer the CI-refreshed snapshot (same origin, always available); fall back to
+// npm directly, which sends CORS headers and needs no key.
+const set = (id, v) => { const el = document.getElementById(id); if (el && v !== null && v !== undefined) el.textContent = v }
+const fmt = (n) => (n === null || n === undefined) ? '—' : Number(n).toLocaleString('en-US')
+
+async function loadNumbers () {
+  // baseline from npm + registry (public, no key, CORS-enabled)
+  try {
+    const [latest, week] = await Promise.all([
+      fetch('https://registry.npmjs.org/dsh-remote/latest').then(r => r.json()).catch(() => null),
+      fetch('https://api.npmjs.org/downloads/point/last-week/dsh-remote').then(r => r.json()).catch(() => null),
+    ])
+    set('v-version', latest?.version ?? '—')
+    set('v-week', week ? fmt(week.downloads) : '—')
+  } catch { /* leave the dashes */ }
+
+  // snapshot fills in what the public APIs cannot tell us
+  try {
+    const snap = await fetch('./data/stats.json', { cache: 'no-cache' }).then(r => r.json())
+    const daily = snap?.heartbeat?.daily || []
+    // the last bucket is *today so far*; show the latest completed day instead
+    const completed = daily.slice(0, -1).reverse().find(d => (d.dau || 0) > 0) || daily[daily.length - 2]
+    set('v-dau', completed ? fmt(completed.dau) : '0')
+    set('v-stars', fmt(snap?.repo?.stars))
+    if (!snap?.repo?.stars) {
+      // snapshot had no token-limited repo data; ask GitHub directly (60/h anon)
+      fetch('https://api.github.com/repos/flymysql/dsh-remote')
+        .then(r => r.ok ? r.json() : null).then(d => set('v-stars', fmt(d?.stargazers_count))).catch(() => {})
+    }
+  } catch { /* dashboards still usable without it */ }
+}
+loadNumbers()
+</script>
+</body>
+</html>

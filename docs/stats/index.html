@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>dsh-remote — usage stats</title>
+<meta name="description" content="Daily / weekly / monthly active installs for the dsh-remote DeepSeek Harness plugin, measured from anonymous heartbeats."/>
+<meta name="theme-color" content="#07070b"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#07070b; --panel:rgba(255,255,255,.035); --line:rgba(255,255,255,.10);
+    --fg:#e8e8ef; --mut:#9a9aad; --dim:#6d6d80;
+    --purple:#7a3ef3; --blue:#2283f6; --ok:#4caf7d; --warn:#e6c07b; --bad:#e06c75;
+  }
+  body{background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased;
+    font-family:Inter,"Noto Sans","PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.6}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  a{color:inherit}
+  header{padding:30px 0 8px}
+  .top{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between}
+  h1{font-size:24px;font-weight:750;letter-spacing:-.015em}
+  h1 span{color:var(--dim);font-weight:400;font-size:15px;margin-left:8px}
+  .back{font-size:13px;color:var(--mut);text-decoration:none}
+  .back:hover{color:#b9a6ff}
+  .stamp{font-size:12px;color:var(--dim);margin-top:4px}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:24px 0 8px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .kpi .lab{font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.09em;font-weight:600}
+  .kpi .val{font-size:30px;font-weight:750;letter-spacing:-.02em;margin-top:6px;line-height:1.1}
+  .kpi .hint{font-size:11.5px;color:var(--dim);margin-top:4px}
+  .kpi.hi .val{background:linear-gradient(96deg,#b9a6ff,#7a3ef3);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  section{margin-top:34px}
+  h2{font-size:16px;font-weight:650;margin-bottom:4px}
+  h2 span{color:var(--dim);font-weight:400;font-size:13px;margin-left:6px}
+  .sub{font-size:13px;color:var(--mut);margin-bottom:14px}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .chart{width:100%;height:auto;display:block;overflow:visible}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--mut);margin-top:12px}
+  .swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
+
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+  td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+  code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#cbbcff}
+  .bar{height:7px;border-radius:4px;background:linear-gradient(90deg,var(--purple),var(--blue));min-width:2px}
+  .empty{color:var(--dim);font-size:13px;padding:10px 0}
+
+  .caveat{border-left:2px solid var(--warn);background:rgba(230,192,123,.07);
+    border-radius:0 9px 9px 0;padding:14px 16px;font-size:13.2px;color:var(--mut);margin-top:14px}
+  .caveat b{color:var(--fg)}
+  .caveat ul{margin:8px 0 0 18px}
+  .caveat li{margin-bottom:5px}
+  footer{margin:44px 0 48px;padding-top:20px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--dim);display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
+  footer a{text-decoration:none}footer a:hover{color:#b9a6ff}
+  .warnbox{border-left:2px solid var(--bad);background:rgba(224,108,117,.08);border-radius:0 9px 9px 0;
+    padding:12px 16px;font-size:13px;color:var(--mut);margin-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="top">
+    <div>
+      <h1>dsh-remote usage<span>实时统计 / usage stats</span></h1>
+      <div class="stamp" id="stamp">loading…</div>
+    </div>
+    <a class="back" href="../">← plugin home</a>
+  </div>
+</header>
+
+<div class="kpis">
+  <div class="kpi hi"><div class="lab">DAU</div><div class="val" id="k-dau">—</div><div class="hint" id="k-dau-hint">latest full day</div></div>
+  <div class="kpi"><div class="lab">WAU · 7d</div><div class="val" id="k-wau">—</div><div class="hint">unique installs</div></div>
+  <div class="kpi"><div class="lab">MAU · 30d</div><div class="val" id="k-mau">—</div><div class="hint">unique installs</div></div>
+  <div class="kpi"><div class="lab">Installs</div><div class="val" id="k-inst">—</div><div class="hint">ever reported</div></div>
+</div>
+
+<section>
+  <h2>Daily active installs<span>日活</span></h2>
+  <p class="sub">One heartbeat per install per day, de-duplicated by pseudonymous ID. The last bar is <b>today, still incomplete</b>.</p>
+  <div class="box"><div id="chart-dau"></div></div>
+</section>
+
+<section>
+  <h2>npm downloads<span>下载量（对照口径）</span></h2>
+  <p class="sub">Release-driven, not usage-driven — kept here as a sanity check against the heartbeat numbers.</p>
+  <div class="box">
+    <div id="chart-npm"></div>
+    <div class="legend">
+      <span><i class="swatch" style="background:linear-gradient(90deg,#7a3ef3,#2283f6)"></i>downloads</span>
+      <span><i class="swatch" style="background:var(--dim)"></i>flagged gap day (npm reported 0)</span>
+    </div>
+    <div id="npm-summary" class="legend"></div>
+  </div>
+</section>
+
+<section>
+  <h2>Distribution<span>分布</span></h2>
+  <div class="cols">
+    <div class="box">
+      <h2 style="font-size:14px;margin-bottom:10px">Version <span>在跑版本</span></h2>
+      <div id="ver-list"></div>
+    </div>
+    <div class="box">
+      <h2 style="font-size:14px;margin-bottom:10px">Platform <span>平台</span></h2>
+      <div id="plat-list"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>How to read these numbers<span>口径说明</span></h2>
+  <div class="caveat">
+    <b>These are "installs that have upgraded", not all users.</b> Heartbeats only come from versions
+    that contain the reporter (0.8.25+). Until everyone upgrades, DAU/WAU/MAU systematically
+    <b>under-count</b> — so treat them as a floor and cross-check against npm downloads.
+    <ul>
+      <li><b>Deduplication</b> — one install reports at most once every 6 hours; a row is written per install per day, and a repeated report the same day only increments a counter. Deleting <code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code> makes an install look new.</li>
+      <li><b>Time zone</b> — days are bucketed in <code>Asia/Shanghai</code>, so a "day" is not UTC.</li>
+      <li><b>npm gaps</b> — npm's daily endpoint returns 0 for some days across <em>all</em> packages (verified against control packages), i.e. a reporting gap rather than zero usage. Those days are flagged instead of being drawn as real zeros.</li>
+      <li><b>Privacy</b> — only <code>idHash</code> (an HMAC pseudonym), version, platform, arch and node version are transmitted. The raw install ID never leaves the machine.</li>
+    </ul>
+  </div>
+  <div id="load-error"></div>
+</section>
+
+<footer>
+  <span>Generated from anonymous heartbeat data · MIT licensed</span>
+  <span>
+    <a href="../">home</a> ·
+    <a href="https://github.com/flymysql/dsh-remote">GitHub</a> ·
+    <a href="https://www.npmjs.com/package/dsh-remote">npm</a>
+  </span>
+</footer>
+
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id)
+const fmt = (n) => (n === null || n === undefined || Number.isNaN(n)) ? '—' : Number(n).toLocaleString('en-US')
+const short = (n) => {
+  if (n === null || n === undefined) return '—'
+  const v = Number(n)
+  if (v >= 1e6) return (v / 1e6).toFixed(1).replace(/\.0$/, '') + 'M'
+  if (v >= 1e4) return (v / 1e3).toFixed(1).replace(/\.0$/, '') + 'k'
+  if (v >= 1e3) return (v / 1e3).toFixed(1).replace(/\.0$/, '') + 'k'
+  return String(v)
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+
+/**
+ * Minimal SVG bar chart — no chart library, because this repo is deliberately
+ * zero-build and a dashboard is not worth a dependency tree.
+ */
+function barChart (el, rows, opts = {}) {
+  const { height = 170, gradId = 'gbar' } = opts
+  if (!rows.length) { el.innerHTML = '<div class="empty">no data yet</div>'; return }
+
+  const W = 1000, H = height, padB = 26, padT = 14
+  const max = Math.max(1, ...rows.map(r => r.value || 0))
+  const bw = W / rows.length
+  const inner = H - padB - padT
+
+  const bars = rows.map((r, i) => {
+    const h = Math.max((r.value || 0) === 0 ? 0 : 2, ((r.value || 0) / max) * inner)
+    const x = i * bw + bw * 0.16
+    const w = bw * 0.68
+    const y = padT + (inner - h)
+    const flagged = r.flagged
+    // A gap day and "today so far" get distinct fills so neither is misread:
+    // the first is missing data, the second is an incomplete day.
+    const fill = flagged ? 'rgba(109,109,128,.42)'
+      : (r.partial ? 'rgba(122,62,243,.42)' : `url(#${gradId})`)
+    return `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}"
+              rx="2" fill="${fill}"><title>${esc(r.label)}: ${esc(r.value ?? 0)}${flagged ? ' (npm reporting gap)' : ''}${r.partial ? ' (today, incomplete)' : ''}</title></rect>`
+  }).join('')
+
+  // x labels: show about 6 evenly spaced dates
+  const step = Math.max(1, Math.ceil(rows.length / 6))
+  const labels = rows.map((r, i) => (i % step === 0 || i === rows.length - 1)
+    ? `<text x="${(i * bw + bw / 2).toFixed(1)}" y="${H - 8}" fill="#6d6d80" font-size="11" text-anchor="middle">${esc((r.label || '').slice(5))}</text>`
+    : '').join('')
+
+  const gridY = [0, 0.5, 1].map(f => {
+    const y = padT + inner - f * inner
+    return `<line x1="0" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+            <text x="0" y="${(y - 4).toFixed(1)}" fill="#6d6d80" font-size="10">${short(Math.round(max * f))}</text>`
+  }).join('')
+
+  el.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img">
+    <defs><linearGradient id="${gradId}" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7a3ef3"/><stop offset="1" stop-color="#2283f6"/>
+    </linearGradient></defs>
+    ${gridY}${bars}${labels}
+  </svg>`
+}
+
+/** Horizontal distribution list with proportional bars. */
+function distList (el, rows, keyName, label) {
+  if (!rows || !rows.length) { el.innerHTML = `<div class="empty">no data yet</div>`; return }
+  const max = Math.max(1, ...rows.map(r => r.n || 0))
+  const total = rows.reduce((s, r) => s + (r.n || 0), 0)
+  el.innerHTML = `<table><thead><tr><th>${esc(label)}</th><th class="r">installs</th><th class="r">share</th></tr></thead><tbody>${
+    rows.map(r => {
+      const pct = total ? Math.round((r.n / total) * 100) : 0
+      return `<tr><td><code>${esc(r[keyName])}</code></td><td class="r">${fmt(r.n)}</td>
+        <td class="r" style="width:46%"><div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+          <div class="bar" style="width:${Math.max(2, (r.n / max) * 100)}%"></div><span style="color:var(--dim);font-size:12px">${pct}%</span>
+        </div></td></tr>`
+    }).join('')
+  }</tbody></table>`
+}
+
+async function main () {
+  let snap
+  try {
+    snap = await fetch('../data/stats.json', { cache: 'no-cache' }).then(r => r.json())
+  } catch (e) {
+    $('load-error').innerHTML = '<div class="warnbox">Could not load <code>data/stats.json</code> — the snapshot may not have been generated yet. Run <code>node scripts/snapshot-stats.mjs</code> (CI does this on a schedule).</div>'
+    $('stamp').textContent = 'snapshot unavailable'
+    return
+  }
+
+  const hb = snap.heartbeat
+  const generated = snap.generatedAt ? new Date(snap.generatedAt) : null
+  $('stamp').textContent = generated
+    ? `snapshot ${generated.toLocaleString()} · heartbeats in Asia/Shanghai`
+    : 'snapshot present'
+
+  if (snap.heartbeatError) {
+    $('load-error').innerHTML = `<div class="warnbox">Heartbeat stats unavailable: <code>${esc(snap.heartbeatError)}</code></div>`
+  }
+
+  const daily = (hb && hb.daily) || []
+  const todayKey = hb?.generatedAt ? new Date(hb.generatedAt).toLocaleDateString('en-CA', { timeZone: hb.tz || 'Asia/Shanghai' }) : ''
+
+  // completed-day DAU: the last bucket is today-so-far and must not be read as a drop
+  const completed = daily.slice().reverse().find(d => d.day !== todayKey) 
+  const inst = hb?.installs ?? null
+  $('k-dau').textContent = fmt(completed?.dau ?? 0)
+  $('k-dau-hint').textContent = completed ? `on ${completed.day}` : 'latest full day'
+  $('k-wau').textContent = fmt(hb?.wau ?? 0)
+  $('k-mau').textContent = fmt(hb?.mau ?? 0)
+  $('k-inst').textContent = fmt(inst ?? 0)
+
+  barChart($('chart-dau'), daily.map(d => ({
+    label: d.day, value: d.dau || 0, partial: d.day === todayKey,
+  })), { gradId: 'gdau' })
+
+  // npm chart with gap days flagged
+  const npmDaily = (snap.npm && snap.npm.daily) || []
+  const zeroDays = new Set((snap.npm && snap.npm.zeroDays) || [])
+  barChart($('chart-npm'), npmDaily.map(d => ({
+    label: d.day, value: d.downloads || 0, flagged: zeroDays.has(d.day),
+  })), { height: 150, gradId: 'gnpm' })
+
+  const gaps = zeroDays.size
+  $('npm-summary').innerHTML = `<span>last week <b style="color:var(--fg)">${fmt(snap.npm?.lastWeek)}</b></span>
+    <span>last month <b style="color:var(--fg)">${fmt(snap.npm?.lastMonth)}</b></span>
+    ${gaps ? `<span style="color:var(--warn)">${gaps} day(s) flagged as npm reporting gaps</span>` : ''}`
+
+  distList($('ver-list'), hb?.byVersion, 'version', 'version')
+  distList($('plat-list'), hb?.byPlatform, 'platform', 'platform')
+}
+
+main()
+</script>
+</body>
+</html>

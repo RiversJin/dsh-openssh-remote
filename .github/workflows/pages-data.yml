@@ -1,0 +1,50 @@
+name: Pages data
+
+# 刷新 GitHub Pages 上的统计数据快照（docs/data/*.json 由主页/统计页读取）。
+#
+# 设计要点：
+#   · 统计口令只存在于 GitHub Secrets（DSH_HB_STATS_KEY），绝不进仓库、绝不进前端。
+#     Pages 是完全公开的静态站，把口令写进页面等于公开。
+#   · 定时触发（每 6 小时）+ 手动触发，让页面数据自动保鲜。
+#   · 数据变化就 commit 回 main；Pages 会自动重建。
+#   · 拉取失败不视为构建失败：脚本保留旧快照，页面继续显示上一次的数据
+#     （比让整条流水线变红、数据永远停在原地更有用）。
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages-data
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Refresh stats snapshot
+        env:
+          DSH_HB_STATS_KEY: ${{ secrets.DSH_HB_STATS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/snapshot-stats.mjs
+
+      - name: Commit when the data actually changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data/stats.json docs/data/history.json
+          if git diff --staged --quiet; then
+            echo "no data change"
+          else
+            git commit -m "chore(pages): refresh usage stats snapshot [skip ci]"
+            git push
+          fi
