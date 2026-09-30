@@ -94,6 +94,58 @@ test('documented rw_* tool names all exist in the plugin', () => {
   assert.deepEqual(ghosts, [], `pages document rw_* tools that do not exist: ${ghosts.join(', ')}`)
 })
 
+test('the DAU figure never silently skips a day that has data', () => {
+  // 回归（同类问题犯了两次，主页修了看板漏了）：两页都曾把 DAU 固定取
+  // "最近一个完整日"，于是当所有心跳都在今天时显示 0，与同屏的累计装机
+  // 自相矛盾（实测：DAU 0 / installs 53）。
+  //
+  // 判据要精确到"把 day!==todayKey 当作**唯一**取值来源"这个坏模式。
+  // 只写 /day !== todayKey/ 会误伤正确实现 —— 新逻辑里它作为**从属**判断
+  // （取最近有数据的日；若它就是今天就标注"进行中"）仍在出现，实测假红过一次。
+  for (const p of PAGES) {
+    const html = read(p)
+    // 坏模式：用 slice(0,-1).reverse().find(... !== todayKey) 之类把"今天"整个剔除
+    assert.doesNotMatch(html, /slice\(0,\s*-1\)[\s\S]{0,80}!==\s*todayKey/,
+      `${p}: must not exclude today wholesale when picking the DAU value`)
+    // 正确模式：必须存在"最近一个**有数据**的日"的取法
+    assert.match(html, /find\(d\s*=>\s*\(d\.dau\s*\|\|\s*0\)\s*>\s*0\)/,
+      `${p}: must pick the most recent day that actually has data`)
+  }
+  // 两页都要有"进行中"的标注能力，否则今天的数据会被当成终值
+  assert.match(read('docs/stats/index.html'), /进行中/, 'dashboard must label an in-progress day')
+})
+
+test('the homepage reads live numbers from the snapshot first', () => {
+  // registry.npmjs.org 在浏览器里可能被拦（实测 Failed to fetch，版本号显示 "—"）。
+  // 因此同源快照必须是主路径，直连只能是兜底。
+  const home = read('docs/index.html')
+  const fn = home.slice(home.indexOf('async function loadNumbers'))
+
+  // ★ 断言前先剥掉注释行：注释里也会出现 registry.npmjs.org（我解释为何改），
+  // 用它定位会得出错误结论 —— 实测踩过两次：
+  //   ① 未剥注释时 firstRegAt 落在注释里 ⇒ 假红；
+  //   ② 用 /\/\/[^\n]*/ 粗暴剥离会把 "https://..." 的 // 也当注释删掉，
+  //      把真实 URL 截断成 "https:" ⇒ 又假红。所以只按"行首可选的空白 + //"剥。
+  const code = fn.replace(/^[ \t]*\/\/.*$/gm, '')
+
+  const snapAt = code.indexOf("'./data/stats.json'")
+  const fallbackAt = code.indexOf('const missing =')
+  const regAt = code.indexOf('registry.npmjs.org')
+
+  assert.ok(snapAt > -1, 'homepage must read the same-origin snapshot')
+  assert.ok(fallbackAt > -1, 'homepage should keep a fallback path for missing fields')
+  assert.ok(regAt > -1, 'homepage should keep a direct-registry fallback')
+  assert.ok(snapAt < fallbackAt, 'the snapshot read must come before the fallback block')
+  assert.ok(regAt > fallbackAt,
+    'a direct registry fetch may only appear inside the fallback block, after the snapshot')
+})
+
+test('the snapshot generator records npm.latest', () => {
+  // 页面依赖这个字段把版本徽章填上；脚本不写它，兜底分支就永远不会生效。
+  const gen = read('scripts/snapshot-stats.mjs')
+  assert.match(gen, /out\.latest\s*=/, 'snapshot must record npm.latest for the pages to read')
+})
+
 test('config defaults shown on the site match the schema', () => {
   // 站点上的默认值是用户照着配的依据，必须与 lib/index.js 的 Config schema 一致。
   // 实测漂移过：auditLog 写成 false（真源 true）。
