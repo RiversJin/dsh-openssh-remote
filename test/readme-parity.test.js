@@ -132,3 +132,28 @@ test('the telemetry policy is stated once per README, in its own language', () =
   assert.match(zh, /数据采集 \/ 遥测/)
   assert.match(en, /Data collection \/ telemetry/)
 })
+
+test('the English README has no untranslated Chinese prose', () => {
+  // 回归：上一轮精简时，英文版「FAQ / troubleshooting」的**正文**整段还是中文
+  // （标题已英文化，所以只查标题的守卫抓不到）。这条按行扫描正文，
+  // 超过阈值的中文即视为漏译。
+  //
+  // 允许保留的例外：
+  //   · 界面里真实存在的中文标签（翻译掉反而误导用户）；
+  //   · 页眉里指向中文 README 的语言切换链接文字（"中文说明"）——它本就是在
+  //     告诉英文读者"中文版在那边"，翻成英文反而失去意义。
+  const ALLOWED_UI_LABELS = ['远程工作区', '设为远程工作区', '保存到远程', '测试连接', '浏览', '本机', '远程', '此电脑', '回上一级', '新建目录', '加密保存密码', '中文说明']
+  const CJK_RUN = /[\u4e00-\u9fa5]{4,}/g
+
+  const offenders = []
+  en.split('\n').forEach((line, i) => {
+    // 跳过代码块里的中文（示例命令、配置注释）与纯链接
+    if (/^\s*[`|]/.test(line)) return
+    for (const m of line.match(CJK_RUN) || []) {
+      if (ALLOWED_UI_LABELS.some((label) => m.includes(label))) continue
+      offenders.push(`L${i + 1}: ${m}`)
+    }
+  })
+  assert.deepEqual(offenders, [],
+    `untranslated Chinese prose in README.en.md (translate it, or add the label to ALLOWED_UI_LABELS if it is a real UI string):\n  ${offenders.join('\n  ')}`)
+})
