@@ -1,0 +1,190 @@
+<!doctype html>
+<!--
+  Source of docs/shots/features.png — 用一张渲染图替代 README「功能」节里
+  最长的几段文字（多机 SSH / 选择器 / 同步 / 工具 / 转发 / 审计）。
+
+  为什么做成一张仪表盘式的能力图而不是继续堆文字：
+  这些能力是"看一眼就懂"的类型，用图标块 + 一行要点表达比整段说明更快。
+  细节仍留在 README 正文里，图片只承担"概览"。
+
+  重渲染（1280 宽、自适应高）：
+    node scripts/render-doc-image.mjs docs/features.html docs/shots/features.png
+  或手工：
+    chrome --headless=new --window-size=1280,860 --force-device-scale-factor=2 \
+      --screenshot=docs/shots/features@2x.png docs/features.html
+    # 再降到 1280 宽（见 docs/promote.md）
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1280px;
+    background: #07070b;
+    font-family: Inter, "Noto Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #e8e8ef;
+  }
+
+  .board {
+    position: relative;
+    width: 1280px;
+    padding: 44px 48px 40px;
+    background:
+      radial-gradient(760px 420px at 92% 0%, rgba(122, 62, 243, .20), transparent 62%),
+      radial-gradient(560px 380px at 0% 100%, rgba(34, 131, 246, .12), transparent 60%),
+      linear-gradient(158deg, #0c0c14 0%, #07070b 58%, #06060a 100%);
+    overflow: hidden;
+  }
+  .grid-bg {
+    position: absolute; inset: 0; opacity: .45; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: linear-gradient(118deg, #000 0%, rgba(0,0,0,.3) 58%, transparent 90%);
+  }
+  .inner { position: relative; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; }
+  h2 { font-size: 30px; font-weight: 750; letter-spacing: -.015em; }
+  h2 .zh { font-size: 14px; color: #6d6d80; font-weight: 400; margin-left: 10px; }
+  .brand {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 14px; color: #7a7a93;
+  }
+  .brand b { color: #b9a6ff; font-weight: 600; }
+
+  .sub { margin-top: 8px; font-size: 14.5px; color: #9a9aad; max-width: 900px; }
+
+  .cards {
+    margin-top: 26px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .card {
+    background: rgba(255,255,255,.035);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 13px;
+    padding: 17px 18px 16px;
+  }
+  .card .row { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+  .card .ic { font-size: 17px; line-height: 1; }
+  .card h3 { font-size: 14.5px; font-weight: 650; letter-spacing: -.005em; }
+  .card p { font-size: 12.6px; line-height: 1.62; color: #9a9aad; }
+  .card code {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11.8px; color: #cbbcff;
+    background: rgba(255,255,255,.07); padding: 1px 4px; border-radius: 4px;
+  }
+  .card .badge {
+    margin-left: auto; font-size: 10.5px; font-weight: 600;
+    color: #b9a6ff; border: 1px solid rgba(122,62,243,.42);
+    background: rgba(122,62,243,.14); border-radius: 999px; padding: 1px 8px;
+  }
+
+  /* 工具条：把 20 个 rw_* 压成一行可扫读的 chip */
+  .tools {
+    margin-top: 14px;
+    background: rgba(255,255,255,.035);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 13px;
+    padding: 15px 18px 16px;
+  }
+  .tools .lead { font-size: 13px; color: #e8e8ef; font-weight: 600; margin-bottom: 10px; }
+  .tools .lead span { color: #6d6d80; font-weight: 400; margin-left: 8px; font-size: 12px; }
+  .toolrow { display: flex; flex-wrap: wrap; gap: 7px; }
+  .toolrow i {
+    font-style: normal;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11.6px; color: #cbbcff;
+    background: rgba(0,0,0,.32);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 6px; padding: 4px 8px;
+  }
+
+  .foot {
+    margin-top: 20px;
+    display: flex; align-items: center; gap: 16px;
+    font-size: 12.5px; color: #6d6d80;
+  }
+  .foot .k { color: #9a9aad; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #4caf7d; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="grid-bg"></div>
+  <div class="inner">
+
+    <div class="head">
+      <h2>核心能力 <span class="zh">Capabilities</span></h2>
+      <div class="brand">dsh<b>-</b>remote · DeepSeek Harness plugin</div>
+    </div>
+    <p class="sub">连上你维护的 SSH 机器，把远程目录当成真正的 DSH 工作区——Agent 直接在那里读、写、跑、同步。</p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="row"><span class="ic">🖧</span><h3>多机 SSH</h3></div>
+        <p>密码 / 私钥 / SSH agent / OTP / 跳板机，可选系统钥匙串加密。</p>
+      </div>
+      <div class="card">
+        <div class="row"><span class="ic">🔗</span><h3>~/.ssh/config 别名</h3><span class="badge">实时解析</span></div>
+        <p>只存别名，每次连接重新解析；改配置即生效，注册表不存副本，并显示别名实际指向哪台机。</p>
+      </div>
+      <div class="card">
+        <div class="row"><span class="ic">🗂️</span><h3>双 tab 工作区选择器</h3></div>
+        <p>本机走系统对话框；远程弹窗内浏览+实时补全，Windows 显示多盘视图，确定后创建本地镜像并被 harness 收养。</p>
+      </div>
+      <div class="card">
+        <div class="row"><span class="ic">🔄</span><h3>三路冲突检测同步</h3></div>
+        <p><code>rw_sync</code> / <code>rw_push</code>：两边都改过的文件列为冲突、绝不静默覆盖；支持 dry-run 与后台任务。</p>
+      </div>
+      <div class="card">
+        <div class="row"><span class="ic">@</span><h3>远程 @ 补全</h3></div>
+        <p>远程会话列出远端目录树（SFTP 实时读），候选是工作区相对路径，远端不可达时回退本地镜像。</p>
+      </div>
+      <div class="card">
+        <div class="row"><span class="ic">🔐</span><h3>安全与可追溯</h3></div>
+        <p>主机指纹 TOFU 校验；每条远程命令写入审计日志；凭据只存本机。</p>
+      </div>
+      <div class="card">
+        <div class="row"><span class="ic">↔️</span><h3>端口转发</h3></div>
+        <p>本地与反向 SSH 隧道，定义持久化，断开时停止。</p>
+      </div>
+      <div class="card">
+        <div class="row"><span class="ic">✏️</span><h3>侧栏远程编辑</h3></div>
+        <p>远程文件 tab 可直接编辑保存（mtime 乐观锁，冲突 409）；文件操作按会话绑定机器。</p>
+      </div>
+      <div class="card">
+        <div class="row"><span class="ic">♻️</span><h3>自动更新</h3><span class="badge">0.8.24+</span></div>
+        <p>默认自动检查并应用新版本；宿主半可在线热切换，更新后无需重启 harness。</p>
+      </div>
+    </div>
+
+    <div class="tools">
+      <div class="lead">20 个模型工具 <span>每一个都是普通 Agent 工具</span></div>
+      <div class="toolrow">
+        <i>rw_info</i><i>rw_connect</i><i>rw_pick_workspace</i><i>rw_list_dir</i>
+        <i>rw_stat</i><i>rw_read_file</i><i>rw_write_file</i><i>rw_edit</i>
+        <i>rw_append</i><i>rw_mkdir</i><i>rw_remove</i><i>rw_move</i>
+        <i>rw_exec</i><i>rw_search</i><i>rw_download</i><i>rw_upload</i>
+        <i>rw_sync</i><i>rw_push</i><i>rw_forward</i><i>rw_disconnect</i>
+      </div>
+    </div>
+
+    <div class="foot">
+      <span><span class="dot"></span> <span class="k">SFTP 协议层访问</span> · Linux / macOS / Windows 远端均可</span>
+      <span>·</span>
+      <span class="k">不改动 dsh-workspace 官方代码</span>
+      <span>·</span>
+      <span class="k">同时支持 DSH 0.1.x 与 0.2.x</span>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

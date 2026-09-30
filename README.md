@@ -32,42 +32,33 @@ DSH 的 Web 界面刻意只监听 `127.0.0.1`（CLI 为安全拒绝 `--host 0.0.
 
 ## 界面预览
 
-设置 → **远程工作区** —— 多机 SSH 列表（增/删/改/设为当前，密码本地保存、不回显）：
+**设置 → 远程工作区** —— 多机列表、高级配置（私钥/跳板机/agent）、连接体检、端口转发、审计日志、更新：
 
-<img src="docs/ui-settings-panel.png" alt="dsh-remote 设置页 — 多机列表（浅色主题，主机已打码）" width="720"/>
+<img src="docs/shots/settings-panel.png" alt="dsh-remote 设置页：机器列表、高级配置、端口转发、审计日志、更新" width="632"/>
 
-原生 **「Add workspace / 选择工作区」** 流程 —— **居中弹窗**、两个 tab，**默认落在「本机」**；切到 **「远程」**：
+原生 **「Add workspace / 选择工作区」** 流程 —— 居中弹窗、两个 tab，默认落在「本机」；切到**「远程」**：
 
-- **远程** —— 一个**机器下拉**；路径输入框**自动预填 `/` 并实时补全目录**（点选一个目录后**立即列出它的下一级**，像系统/VSCode 逐级选目录）；另外有**「浏览…」浮窗**，选中仅回填到输入框（不直接提交），你复核 / 修改后点「设为远程工作区」。
+<img src="docs/shots/picker-dialog.png" alt="选择工作目录弹窗的「远程」tab：机器下拉、最近工作区、浏览…、设为远程工作区" width="612"/>
 
-真实截图（机器已打码为占位）：
-
-<img src="docs/ui-picker-panel.png" alt="dsh-remote 工作区选择 — 真实弹窗；默认本机 tab；远程：机器下拉 + 预填根路径 + 自动补全" width="720"/>
+- 路径框实时补全；Windows 主机根级显示「此电脑」多盘视图；「浏览…」浮层选中只回填、不直接提交。
+- 确定后创建**真实本地镜像**并被 harness 收养，同时通过 SFTP 保持同步；所选工作区持久化到该机器。
 
 ---
 
 ## 功能
 
-- **多机 SSH** —— 存任意多台主机（host/port/user + 私钥或密码）。密码只存本地、不回显。每机可配 passphrase、主机指纹策略、SSH agent、keyboard-interactive（OTP）、跳板机、系统钥匙串加密。
-- **`~/.ssh/config` 别名** —— 机器可只存一个 Host 别名（`useSshConfig`），主机名/用户/端口/私钥/跳板机**每次连接从 `~/.ssh/config` 实时解析**，改配置即生效；注册表不存副本。支持 `Host a b`、通配、`!` 取反、`Include`、续行、首个取值优先。设置页可一键导入，并显示**别名 → 实际解析到哪台机**；无法照做的（多跳 `ProxyJump`、`ProxyCommand`）会显式告警。
-- **双 tab 工作区选择器**（填充原生「Add workspace」流程）：
-  - **本机** —— 原生系统文件夹对话框（或手输路径）→ 成为普通 DSH 本地工作区。框架服务缺失时回退到插件自持的选择器（macOS `osascript` / Linux `zenity`→`kdialog` / Windows `FolderBrowserDialog`）。
-  - **远程** —— 居中弹窗：选机器 → 浏览远程目录。路径框实时补全；Windows 主机根级显示「此电脑」多盘视图；选中目录立即列出下一级；另有「浏览…」浮层（面包屑跳级、大小/时间、跟随软链），选中只回填不提交。确定后创建**真实本地镜像**并被 harness 收养，同时通过 SFTP 保持同步；所选工作区持久化到该机器。
-- **Git Bash 默认终端（Windows 主机）** —— 自动探测远程平台并在 Windows 上定位 Git Bash，命令经 `bash -s` 走 stdin 执行，不受引号/反斜杠转义困扰（`config.shell` 可指定或设为 `native` 关闭）。
-- **Windows 路径自动改写** —— `C:\Users\dev` 与 `/c/Users/dev` 两种写法都接受，底层统一为 Git Bash 形式执行，工作区按 Windows 形式存储与展示。
-- **远程 `@` 补全** —— 远程会话里 `@` 列出**远端**目录树（SFTP 实时读，非本地镜像），候选是相对远程工作区根的路径（`@src/main.c`），`rw_*` 工具直接接受。有预算保护与缓存，远端不可达时回退本地镜像。
-- **双向 SFTP 同步（三路冲突检测）** —— `rw_sync`（远程→镜像）、`rw_push`（镜像→远程）。两边都改过的文件列为冲突、绝不静默覆盖（`force=true` 可覆盖）。默认深度 8 / 2000 文件，触顶标明 `TRUNCATED`；支持 dry-run、后台任务、gitignore 规则。
-- **20 个模型工具** —— `rw_info`、`rw_connect`、`rw_pick_workspace`、`rw_list_dir`、`rw_stat`、`rw_read_file`（utf-8/gbk）、`rw_write_file`、`rw_edit`（mtime 乐观锁）、`rw_append`、`rw_mkdir`、`rw_remove`、`rw_move`、`rw_exec`、`rw_search`（`rg` → `grep -R` → SFTP 遍历，Windows 可用）、`rw_download`/`rw_upload`、`rw_forward`、`rw_sync`、`rw_push`、`rw_disconnect`。
-- **端口转发** —— 设置页或 `rw_forward` 管理本地/反向隧道；定义持久化，断开时停止。
-- **侧栏远程编辑** —— 远程文件 tab 可编辑并保存（mtime 乐观锁，冲突返回 409）。文件操作按会话绑定机器，不同主机的会话不共用连接池。文件树带右键菜单。
-- **命令审计** —— 每条 `rw_exec`/写/删/移动/转发追加到 `$DSH_HOME/remote-workspaces/audit.log`，设置页显示最近 30 条。
+![核心能力总览 — 多机 SSH / 别名实时解析 / 双 tab 选择器 / 三路同步 / 远程 @ 补全 / 安全审计 / 端口转发 / 侧栏编辑 / 自动更新，以及 20 个 rw_* 工具](docs/shots/features.png)
+
+上图是能力总览；下面只列**上图没说清、但用起来需要知道**的部分。
+
+其余要点：
+
+- **20 个模型工具**（便于复制/检索）：`rw_info`、`rw_connect`、`rw_pick_workspace`、`rw_list_dir`、`rw_stat`、`rw_read_file`、`rw_write_file`、`rw_edit`、`rw_append`、`rw_mkdir`、`rw_remove`、`rw_move`、`rw_exec`、`rw_search`、`rw_download`、`rw_upload`、`rw_sync`、`rw_push`、`rw_forward`、`rw_disconnect`。
+- **远端跨平台** —— 文件访问走 SFTP 协议层（不依赖 POSIX shell），Linux/macOS/Windows 远端都能列/读/写/搜索/同步。
+- **Windows 主机** —— 自动探测平台并定位 Git Bash，命令经 `bash -s` 走 stdin 执行，不受引号/反斜杠转义困扰（`config.shell` 可指定或设 `native` 关闭）；`C:\Users\dev` 与 `/c/Users/dev` 两种写法都接受。
 - **长任务异步化** —— `rw_sync`/`rw_push` 传 `async: true` 返回 `taskId`，可查询进度/结果/取消。
-- **连接体检** —— 设置页「测试连接」按类别提示（认证 / 网络 / 主机指纹 / 超时）。
-- 当前 `user@host:/path` 与生效的转发会注入系统提示，让 Agent 明确工作根。
-- **不改动 `dsh-workspace` 官方代码** —— 全部作为普通插件实现。
-- **远端跨平台** —— 文件访问走 SFTP（不依赖 POSIX shell），Linux/macOS/Windows 远端均可。
-- **主机指纹校验（TOFU）** —— 首次连接记录，之后**密钥变化即拒绝**（`verify` 拒绝未知主机，`off` 关闭）；`/remote forget-key` 重置。
 - **数据跟随 Harness 根目录** —— 机器清单与镜像在 `$DSH_HOME/remote-workspaces`；0.6 之前的数据首次启动自动迁移。
+- **不改动 `dsh-workspace` 官方代码** —— 全部作为普通插件实现。
 
 ## 安装
 

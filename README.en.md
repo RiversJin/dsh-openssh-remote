@@ -32,42 +32,44 @@ The heartbeat is fire-and-forget: it never blocks loading and failures are ignor
 
 ## Screen previews
 
-Settings → **远程工作区** — a multi-machine SSH registry (add / edit / delete / set-current, password stored locally):
+**Settings → 远程工作区** — machine list, advanced config (key / jump host / agent), connection check, port forwarding, audit log, update:
 
-<img src="docs/ui-settings-panel.png" alt="dsh-remote settings — multi-machine registry (light theme, host scrubbed)" width="720"/>
+<img src="docs/shots/settings-panel.png" alt="dsh-remote settings: machine list, advanced config, port forwarding, audit log, update" width="632"/>
 
-The native **"Add workspace" / "Select workspace"** flow — a centered modal, two tabs, opens on **本机 (local)**; switch to **远程 (remote)**:
+The native **"Add workspace"** flow — a centered modal with two tabs, opening on Local; here switched to **Remote**:
 
-- **远程** — a **machine `<select>`**, a path field that **auto-prefills `/` and live-completes** directories (picking one immediately reveals its next level, OS/VSCode-style), plus a **浏览…** floating browser that fills the field without committing — you review, edit, then **设为远程工作区**.
+<img src="docs/shots/picker-dialog.png" alt="The 远程 (remote) tab of the workspace picker: machine select, recent workspaces, browse, set-as-remote-workspace" width="612"/>
 
-Real capture (host scrubbed to a placeholder):
-
-<img src="docs/ui-picker-panel.png" alt="dsh-remote workspace picker — real dialog; 本机 (local) tab; 远程 machine select + prefilled root path + autocomplete" width="720"/>
+- The path field autocompletes live; on Windows hosts the root shows a multi-drive view; the floating browser fills the field without committing.
+- On confirm a **real local mirror** is created and adopted by the harness, kept in sync over SFTP; the choice persists on the machine.
 
 ---
 
 ## Features
 
-- **Multi-machine SSH** — save any number of hosts (`host`/`port`/`user` + private key or password). Passwords are stored locally and never shown back. Per machine: passphrase, host-key policy, SSH agent, keyboard-interactive (OTP), jump host, optional OS-keychain password.
-- **`~/.ssh/config` aliases** — a machine can be just a Host alias (`useSshConfig`): hostname/user/port/key/jump host are read from `~/.ssh/config` **at every connect**, so edits apply immediately and nothing is stored in the registry. Supports multi-alias `Host a b`, wildcards, `!` negation, `Include`, continuations and first-obtained-value-wins. Settings can import an alias in one click and shows **alias → what it resolves to**; anything unsupported (multi-hop `ProxyJump`, `ProxyCommand`) warns instead of degrading silently.
-- **Two-tab workspace picker** (fills the native "Add workspace" flow):
-  - **Local** — the native OS folder chooser (or type a path) → an ordinary local DSH workspace. Falls back to the plugin's own chooser when no OS dialog exists.
-  - **Remote** — a centered modal: pick a machine, browse the remote tree. The path field autocompletes live; on Windows the root shows a drive view; selecting a directory lists its next level at once; a floating browser (breadcrumb jump, size/mtime, follows symlinks) fills the field without committing. On confirm a **real local mirror** is created and adopted by the harness, kept in sync over SFTP; the choice persists on the machine.
-- **Git Bash default terminal (Windows remotes)** — the remote platform is auto-detected and, on Windows, commands are piped through `bash -s` over stdin, so quoting and backslash escaping are never an issue (`config.shell` can pin a path or `native` disables wrapping).
-- **Windows path auto-conversion** — `C:\Users\dev` and `/c/Users/dev` are both accepted; shell commands run in the Git Bash form while workspaces are stored and shown Windows-style.
-- **Remote `@` completion** — in a remote session `@` lists the **remote** tree (live over SFTP, not the local mirror); candidates are workspace-relative paths (`@src/main.c`) that the `rw_*` tools accept directly. Bounded index with caching, falling back to the local mirror when the host is unreachable.
-- **Bidirectional SFTP sync, conflict-aware** — `rw_sync` (remote → mirror) and `rw_push` (mirror → remote) are three-way: files changed on both sides are reported as conflicts and never silently overwritten (`force=true` overrides). Default depth 8 / 2000 files, `TRUNCATED` when capped; supports dry-run, background tasks and gitignore-style ignores.
-- **20 model tools** — `rw_info`, `rw_connect`, `rw_pick_workspace`, `rw_list_dir`, `rw_stat`, `rw_read_file` (utf-8/gbk), `rw_write_file`, `rw_edit` (mtime optimistic lock), `rw_append`, `rw_mkdir`, `rw_remove`, `rw_move`, `rw_exec`, `rw_search` (`rg` → `grep -R` → SFTP walk, so Windows works too), `rw_download`/`rw_upload`, `rw_forward`, `rw_sync`, `rw_push`, `rw_disconnect`.
-- **Port forwarding** — manage local and reverse tunnels in Settings or via `rw_forward`; definitions persist and stop on disconnect.
-- **Sidebar remote editing** — the remote file tab is editable and saves with an mtime optimistic lock (409 on concurrent change). File ops are session-bound, so conversations on different hosts do not share a connection pool. Rows carry a right-click menu.
-- **Command audit log** — every `rw_exec`/write/remove/move/forward is appended to `$DSH_HOME/remote-workspaces/audit.log`; Settings shows the last 30.
+![Capabilities at a glance — multi-machine SSH, live alias resolution, the two-tab picker, three-way sync, remote @ completion, audit, port forwarding, sidebar editing, self-update, and the 20 rw_* tools](docs/shots/features.png)
+
+The image above is the overview. What follows is only what the image does not make obvious.
+
+**Workspace picker** (fills the native "Add workspace" flow) — Local uses the system folder chooser; Remote browses inside the modal:
+
+<img src="docs/shots/picker-dialog.png" alt="The 远程 (remote) tab of the workspace picker: machine select, recent workspaces, browse, set-as-remote-workspace" width="612"/>
+
+- The path field autocompletes live; on Windows hosts the root shows a multi-drive view; the floating browser fills the field without committing.
+- On confirm a **real local mirror** is created and adopted by the harness, kept in sync over SFTP; the choice persists on the machine.
+
+**Settings** (machine list, connection check, port forwarding, audit log, update mode):
+
+<img src="docs/shots/settings-panel.png" alt="dsh-remote settings: machine list, advanced config, port forwarding, audit log, update" width="632"/>
+
+The rest:
+
+- **20 model tools** (listed so they can be copied or searched): `rw_info`, `rw_connect`, `rw_pick_workspace`, `rw_list_dir`, `rw_stat`, `rw_read_file`, `rw_write_file`, `rw_edit`, `rw_append`, `rw_mkdir`, `rw_remove`, `rw_move`, `rw_exec`, `rw_search`, `rw_download`, `rw_upload`, `rw_sync`, `rw_push`, `rw_forward`, `rw_disconnect`.
+- **Cross-platform remotes** — all file access is SFTP-protocol-level (no POSIX shell), so Linux/macOS/Windows remotes all work.
+- **Windows remotes** — the platform is auto-detected and commands go through `bash -s` over stdin, so quoting and backslash escaping are never an issue (`config.shell` can pin a path or `native` disables wrapping); `C:\Users\dev` and `/c/Users/dev` are both accepted.
 - **Async long tasks** — `rw_sync`/`rw_push` with `async: true` return a `taskId` with progress/result/cancel.
-- **Connection health** — a 测试连接 button validates the machine before you save it, with per-category hints (auth / network / host key / timeout).
-- The active `user@host:/path` and live forwards are injected into every system prompt.
-- **No `dsh-workspace` core changes** — everything ships as a normal plugin.
-- **Cross-platform remotes** — all file access is SFTP, so Linux/macOS/Windows remotes all work.
-- **Host-key verification (TOFU)** — first connect records the key, a later change is rejected as a possible MITM (`verify` also refuses unknown hosts, `off` disables); `/remote forget-key` resets.
 - **Data lives under the harness home** — machines and mirrors follow `$DSH_HOME`; pre-0.6 data migrates automatically on first run.
+- **No `dsh-workspace` core changes** — everything ships as a normal plugin.
 
 ## Install
 

@@ -171,25 +171,14 @@
     overflow: hidden;
     background: #fff;
   }
-  /* Frame the dialog card only. In the 1306x803 source shot the card covers
-     x 122..1081, y 224..560; below 560 only the narrower suggestion list is
-     lit, so cropping there keeps the dimmed page out of the window. */
+  /* 直接用已裁好的弹窗图（shots/picker-dialog@2x.png，1176x568 @2x）。
+     旧版本对一张未裁的全屏截图做偏移+放大裁剪，那份源图（1306x803）
+     已随 2026-09-30 的重截而更新，偏移量会失准 —— 所以改成引用裁好的图，
+     由 .shot 决定显示尺寸。 */
   .shot img {
-    position: absolute;
-    width: 1035px;
-    top: -178px;
-    left: -97px;
+    display: block;
+    width: 100%;
     image-rendering: -webkit-optimize-contrast;
-  }
-  /* soften the crop through the suggestion list */
-  .shot::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 58px;
-    background: linear-gradient(rgba(255, 255, 255, 0), #fff 78%);
   }
 
   /* a tool call under the window, same tilt as the screenshot */
@@ -241,7 +230,8 @@
         <span class="chip">Remote workspace picker</span>
         <span class="chip">Conflict-aware SFTP sync</span>
         <span class="chip">Port forwarding</span>
-        <span class="chip mono">21 rw_* tools</span>
+        <span class="chip mono">20 rw_* tools</span>
+        <span class="chip">DSH 0.1.x · 0.2.x</span>
       </div>
 
       <div class="foot">
@@ -257,7 +247,7 @@
           <i></i><i></i><i></i>
           <span class="title">root@203.0.113.10 · 选择工作目录</span>
         </div>
-        <div class="shot"><img src="ui-picker-panel.png" alt="dsh-remote workspace picker"/></div>
+        <div class="shot"><img src="shots/picker-dialog@2x.png" alt="dsh-remote workspace picker"/></div>
       </div>
     </div>
 

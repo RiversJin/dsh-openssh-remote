@@ -18,3 +18,7 @@ pnpm-workspace.yaml
 
 # 一次性探针（不入库）
 probe_*.mjs
+
+# 渲染中间产物（@2x 原图只用于降采样，不入库）
+*@2x.png
+!docs/shots/picker-dialog@2x.png
