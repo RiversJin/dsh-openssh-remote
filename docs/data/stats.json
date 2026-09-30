@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-30T03:36:24.912Z",
+  "generatedAt": "2026-09-30T03:43:01.475Z",
   "heartbeat": {
     "ok": true,
     "daily": [
@@ -121,21 +121,35 @@
       },
       {
         "day": "2026-09-30",
-        "dau": 0
+        "dau": 2
       }
     ],
-    "installs": 0,
-    "wau": 0,
-    "mau": 0,
-    "byVersion": [],
-    "byPlatform": [],
+    "installs": 2,
+    "wau": 2,
+    "mau": 2,
+    "byVersion": [
+      {
+        "version": "0.0.0",
+        "n": 1
+      },
+      {
+        "version": "0.8.25",
+        "n": 1
+      }
+    ],
+    "byPlatform": [
+      {
+        "platform": "win32",
+        "n": 2
+      }
+    ],
     "tz": "Asia/Shanghai",
-    "generatedAt": "2026-09-30T03:36:22.664Z"
+    "generatedAt": "2026-09-30T03:42:59.453Z"
   },
   "heartbeatError": null,
   "npm": {
     "package": "dsh-remote",
-    "checkedAt": "2026-09-30T03:36:24.139Z",
+    "checkedAt": "2026-09-30T03:43:01.179Z",
     "lastWeek": 1814,
     "lastMonth": 8241,
     "daily": [
@@ -268,5 +282,10 @@
     ],
     "note": "npm daily counts have reporting gaps; zero-value days are flagged and are not real zero usage."
   },
-  "repo": null
+  "repo": {
+    "stars": 108,
+    "forks": 24,
+    "openIssues": 2,
+    "pushedAt": "2026-09-30T03:41:52Z"
+  }
 }
