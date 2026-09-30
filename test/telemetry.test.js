@@ -11,7 +11,9 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 import {
+  _deliverForTest,
   _resetForTest,
+  inTestProcess,
   hasPersistedId,
   heartbeatEnabled,
   heartbeatUrl,
@@ -113,7 +115,7 @@ test('sendHeartbeat posts only the whitelisted minimal fields', async () => {
       return { ok: true, status: 200 }
     }
     _resetForTest()
-    const sent = await sendHeartbeat(home, '0.8.25', { delayMs: 0 })
+    const sent = await _deliverForTest(home, '0.8.25', { delayMs: 0 })
     assert.equal(sent, true)
     assert.equal(captured.method, 'POST')
     // 端点来自 heartbeatUrl()（可被 env 覆盖），不是硬编码常量
@@ -143,8 +145,8 @@ test('sendHeartbeat swallows a network failure and allows a retry', async () => 
     globalThis.fetch = async () => { calls += 1; throw new Error('ENOTFOUND') }
     _resetForTest()
     // 心跳是旁路：失败必须静默，绝不能打穿到插件加载路径。
-    await assert.doesNotReject(() => sendHeartbeat(home, '0.8.25', { delayMs: 0 }))
-    assert.equal(await sendHeartbeat(home, '0.8.25', { delayMs: 0 }), false)
+    await assert.doesNotReject(() => _deliverForTest(home, '0.8.25', { delayMs: 0 }))
+    assert.equal(await _deliverForTest(home, '0.8.25', { delayMs: 0 }), false)
     // ★ 失败必须回滚节流，否则一次网络抖动会让这个身份静默 6 小时不再上报，
     //   把"网络不可达"错误地记成"用户当天没来"。
     assert.equal(calls, 2, 'a failed send must not consume the throttle window')
@@ -161,8 +163,8 @@ test('sendHeartbeat throttles repeated calls within the window', async () => {
   try {
     globalThis.fetch = async () => { calls += 1; return { ok: true } }
     _resetForTest()
-    assert.equal(await sendHeartbeat(home, '0.8.25', { delayMs: 0 }), true)
-    assert.equal(await sendHeartbeat(home, '0.8.25', { delayMs: 0 }), false, 'second call inside the window is skipped')
+    assert.equal(await _deliverForTest(home, '0.8.25', { delayMs: 0 }), true)
+    assert.equal(await _deliverForTest(home, '0.8.25', { delayMs: 0 }), false, 'second call inside the window is skipped')
     assert.equal(calls, 1, 'only one request must leave the machine')
   } finally {
     globalThis.fetch = realFetch
@@ -180,7 +182,7 @@ test('sendHeartbeat defers the first send away from startup', async () => {
     const started = Date.now()
     // 默认延迟存在的原因：DSH 启动瞬间的并发初始化会把首帧 fetch 饿死
     // （实测 5s 超时下稳定 abort），错过它等于丢掉当天最早的那批用户。
-    await sendHeartbeat(home, '0.8.25', { delayMs: 40 })
+    await _deliverForTest(home, '0.8.25', { delayMs: 40 })
     assert.ok(at !== null, 'must still send after the delay')
     assert.ok(at - started >= 30, `expected a startup delay, got ${at - started}ms`)
   } finally {
@@ -194,9 +196,44 @@ test('heartbeat endpoint is https and self-describing', () => {
   assert.match(heartbeatUrl(), /^https:\/\//)
 })
 
-test('tests never point at the production endpoint', () => {
-  // 这条守的是"测试不得污染生产统计"：线上曾经因为 npm test 真的发心跳，
-  // 而在日活表里多出来自 CI 的 Linux 假装机。
-  assert.notEqual(heartbeatUrl(), 'https://gitbolg-d7gmnsrw46e011706-1256429518.ap-shanghai.app.tcloudbase.com/dsh-hb/heartbeat')
-  assert.match(heartbeatUrl(), /127\.0\.0\.1|localhost/)
+test('the endpoint is overridable and defaults to production', () => {
+  // 端点必须可覆盖——否则既没法把测试从生产上摘下来，换端点也要发版。
+  // 注意断言方式：**不能**假定自己跑在 --import 前置之下（直接
+  // `node --test <file>` 是合法用法），所以这里验证的是可覆盖性与 https 约束，
+  // 而不是"当前值一定是本地地址"。真正拦住外呼的是代码里的测试守卫。
+  const saved = process.env.DSH_REMOTE_HEARTBEAT_URL
+  try {
+    process.env.DSH_REMOTE_HEARTBEAT_URL = 'https://example.invalid/hb'
+    assert.equal(heartbeatUrl(), 'https://example.invalid/hb')
+    // 明文 http 必须被拒绝，避免把伪名降级到可被中间人读取的通道
+    process.env.DSH_REMOTE_HEARTBEAT_URL = 'http://example.invalid/hb'
+    assert.match(heartbeatUrl(), /^https:\/\//)
+    delete process.env.DSH_REMOTE_HEARTBEAT_URL
+    assert.match(heartbeatUrl(), /^https:\/\/gitbolg-d7gmnsrw46e011706/)
+  } finally {
+    if (saved === undefined) delete process.env.DSH_REMOTE_HEARTBEAT_URL
+    else process.env.DSH_REMOTE_HEARTBEAT_URL = saved
+  }
+})
+
+test('the test guard recognises a test process and blanks the send', async () => {
+  // ★ 守的是"测试绝不外呼"。光靠 package.json 的 --import 前置不够：
+  //   直接 `node --test test/upload.test.js` 会绕过它，而 upload.test.js 调真实
+  //   apply()，于是线上日活表被写进测试的假装机（实测：直接跑一次就多一行）。
+  //   所以判定必须落在代码里，并且这条断言要能证明它真的生效。
+  assert.equal(inTestProcess(), true, 'running under the node test runner must be detected')
+
+  const home = tempHome()
+  const realFetch = globalThis.fetch
+  let called = false
+  try {
+    globalThis.fetch = async () => { called = true; return { ok: true } }
+    _resetForTest()
+    const sent = await sendHeartbeat(home, '0.8.25', { delayMs: 0 })
+    assert.equal(sent, false, 'sendHeartbeat must be a no-op inside a test process')
+    assert.equal(called, false, 'no request may leave the machine from a test run')
+  } finally {
+    globalThis.fetch = realFetch
+    rmSync(home, { recursive: true, force: true })
+  }
 })
