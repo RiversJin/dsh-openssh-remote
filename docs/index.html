@@ -225,8 +225,8 @@
       <thead><tr><th>Field</th><th>Default</th><th>Meaning</th></tr></thead>
       <tbody>
         <tr><td><code>host</code></td><td><code>''</code></td><td>Remote SSH host; empty starts disconnected.</td></tr>
-        <tr><td><code>updateMode</code></td><td><code>manual</code></td><td><code>manual</code> | <code>auto</code> | <code>off</code> — self-update behaviour.</td></tr>
-        <tr><td><code>updateAutoReload</code></td><td><code>true</code></td><td>Hot-swap the host half after an update lands.</td></tr>
+        <tr><td><code>updateMode</code></td><td><code>auto</code></td><td><code>auto</code> | <code>manual</code> | <code>off</code> — self-update behaviour. <b>Default changed to <code>auto</code> in 0.8.27</b>: it checks npm on load and every 6h, then hot-swaps the host half.</td></tr>
+        <tr><td><code>updateAutoReload</code></td><td><code>true</code></td><td>Hot-swap the host half after an update lands. With <code>false</code> the update only applies on the next start and the panel shows "restart to finish".</td></tr>
         <tr><td><code>updateCheckIntervalMs</code></td><td><code>6h</code></td><td>How often <code>auto</code> mode checks npm.</td></tr>
         <tr><td><code>auditLog</code></td><td><code>false</code></td><td>Record every remote command to a local audit log.</td></tr>
       </tbody>

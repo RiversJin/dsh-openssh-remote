@@ -50,6 +50,12 @@ async function setup(t) {
     {
       host: '203.0.113.10', port: 22, username: 'tester', password: 'x',
       commandTimeoutMs: 5000, connectTimeoutMs: 5000,
+      // Update checks off: since 0.8.27 the default is `auto`, which starts an
+      // update interval. This test's `effect` stub ignores its disposer, so that
+      // interval could never be cleared and the test process would hang forever
+      // (measured: the file never exited). Any test that mounts the real plugin
+      // must pin the mode it needs.
+      updateMode: 'off',
     },
   )
   const upload = tools['rw_upload']

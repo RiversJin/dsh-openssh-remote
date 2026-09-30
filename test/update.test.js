@@ -19,6 +19,7 @@ import {
   clearSelfModuleCache,
   diskVersion,
   gtVersion,
+  isInstalledCopy,
   LOADED_VERSION,
   reloadSelf,
   scheduleSelfReload,
@@ -195,6 +196,32 @@ test('gtVersion orders dotted versions', () => {
   assert.equal(gtVersion('0.8.9', '0.8.10'), false)
   assert.equal(gtVersion('0.8.9', '0.8.9'), false)
   assert.equal(gtVersion('1.0.0', '0.9.9'), true)
+})
+
+// ── refusing to overwrite a source checkout ──────────────────────────────
+
+test('isInstalledCopy distinguishes a node_modules install from a checkout', () => {
+  // 实测依据：Node 的 ESM 解析会对符号链接做 realpath，所以以 link:/开发模式
+  // 安装时 selfDir() 指向的是**源码仓库**。auto 默认开启后，一次自动更新就会
+  // 用 npm 包覆盖它（丢改动、脏工作树）——所以必须能识别出来并拒绝。
+  // 两条分支都要真被测到（用参数注入，而不是只测当前运行位置那一条）。
+  assert.equal(isInstalledCopy('C:\\Users\\x\\.dsh\\profiles\\web\\node_modules\\dsh-remote'), true)
+  assert.equal(isInstalledCopy('/home/x/.dsh/profiles/web/node_modules/dsh-remote'), true)
+  assert.equal(isInstalledCopy('D:\\work\\dsh_work\\dsh-remote'), false, 'a checkout must not count as installed')
+  assert.equal(isInstalledCopy('/home/x/src/dsh-remote'), false)
+  // 本测试进程从仓库运行 ⇒ 走真实 selfDir() 也应是 false
+  assert.equal(isInstalledCopy(), false)
+})
+
+test('applyUpdate refuses to touch a non-installed copy', async () => {
+  // 不传 options.dir 时走真实 selfDir()（本仓库 = 非安装副本）⇒ 必须拒绝，
+  // 且不得产生任何网络请求或文件改动。
+  let fetched = false
+  await assert.rejects(
+    () => applyUpdate('0.2.0', { fetchImpl: async () => { fetched = true; return { ok: false, status: 500 } } }),
+    /refusing to self-update/,
+  )
+  assert.equal(fetched, false, 'must refuse before downloading anything')
 })
 
 // ── host-half hot swap ───────────────────────────────────────────────────

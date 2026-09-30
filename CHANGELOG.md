@@ -2,6 +2,39 @@
 
 All notable changes to **dsh-remote**.
 
+## 0.8.27 — 2026-09-30
+### 更新模式默认改为 `auto`（自动更新）
+
+**为什么现在才敢改默认**：`auto` 在 0.8.24 之前不可能是安全的默认值——那时更新只把文件写到磁盘、必须重启才生效，用户会处在"浏览器半是新版、宿主半是旧版"的错位状态且毫无提示。0.8.24 补上了宿主半热切换（以及关闭时的 `pendingReload` 提示），自动更新现在才真正落地生效。
+
+- **默认值**：`updateMode` 从 `manual` 改为 **`auto`**（加载时 + 每 6 小时检查并自动应用，随后热切换宿主半）。
+  三层优先级不变：**设置页持久化的 `update-mode` 文件 > profile 配置 > 默认值**。
+  想保持手动的人不受影响（设置页选一次 `manual` 即持久化），需要彻底关掉可设 `off`。
+- **默认值收敛到单一常量 `DEFAULT_UPDATE_MODE`**：`manual` 这个字面量原先散落在
+  三处（schema 默认、`/update-check` 响应、auto 开关判断）。改默认时漏掉任何一处
+  就会出现"schema 说 auto、实际行为还是 manual"的不一致——第一版改动就是这样漏了
+  两个 `|| 'manual'` 兜底。现在改默认只需改一行，并有测试钉住不得回退成字面量。
+- **新增防护：拒绝对非安装副本自更新**。实测依据：`selfDir()` 基于
+  `import.meta.url`，而 **Node 的 ESM 解析会对符号链接做 realpath**（已实测：经
+  symlink 导入时 `import.meta.url` 报的是 realpath）。于是以 `link:`/开发模式安装时
+  `selfDir()` 指向**用户的源码仓库**，`auto` 一旦落地就会用 npm 包覆盖源码
+  （丢改动、脏工作树）。现在 `applyUpdate` 在目录不在 `node_modules` 下时直接拒绝，
+  设置页也会明确提示原因。默认改成 `auto` 正是把这个风险从"手点才触发"放大成
+  "自动发生"，所以必须同时补上。
+- **修掉一个进程挂起**：`fetchLatestVersion` 的 8s 看门狗定时器没有 `unref`，
+  于是任何"挂载后即空闲"的进程都会被它拖住。实测表现：`upload.test.js` 因默认变
+  `auto` 而启动更新定时器，该测试的 `effect` 桩不保存 disposer 故定时器无法清理，
+  **`npm test` 直接超时 420s**。现在看门狗 `unref`，且所有调用真实 `apply()` 的测试
+  必须显式钉住 `updateMode`（有测试强制这一点）。
+
+- **测试**：新增 `test/update-default.test.js`（7 例：常量即默认、schema 用常量而非字面量、
+  无 `manual` 硬编码兜底、auto 开关读同一常量、设置页初始态、看门狗 unref、
+  所有挂载插件的测试都钉住 updateMode）+ 2 例安装副本判定与拒绝自更新。
+  全量 `npm test` **244/244**（6.8s，恢复正常）。
+- **验证**：真实沙箱启动后 `/dsh-remote/update-check` 返回
+  `updateMode:"auto"` 且 `selfUpdateAllowed:true`；并用同版本源实测 auto 的判定链与落地
+  （`auto would update? true` → 文件被替换 → 磁盘版本推进）。
+
 ## 0.8.26 — 2026-09-30
 ### 插件主页 + 实时用量看板（GitHub Pages）；修掉会污染统计的两处缺陷
 
