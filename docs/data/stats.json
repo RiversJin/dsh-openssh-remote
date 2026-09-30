@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-30T09:00:33.618Z",
+  "generatedAt": "2026-09-30T12:33:16.729Z",
   "heartbeat": {
     "ok": true,
     "daily": [
@@ -121,36 +121,40 @@
       },
       {
         "day": "2026-09-30",
-        "dau": 82
+        "dau": 124
       }
     ],
-    "installs": 82,
+    "installs": 124,
     "wau": 20,
     "mau": 20,
     "byVersion": [
       {
         "version": "0.8.34",
-        "n": 27
+        "n": 74
       },
       {
         "version": "0.8.29",
-        "n": 16
-      },
-      {
-        "version": "0.8.31",
         "n": 15
       },
       {
-        "version": "0.8.28",
-        "n": 9
+        "version": "0.8.31",
+        "n": 11
       },
       {
         "version": "0.8.25",
         "n": 8
       },
       {
+        "version": "0.8.28",
+        "n": 8
+      },
+      {
         "version": "0.8.26",
         "n": 4
+      },
+      {
+        "version": "0.8.30",
+        "n": 2
       },
       {
         "version": "0.8.27",
@@ -159,33 +163,29 @@
       {
         "version": "0.8.32",
         "n": 1
-      },
-      {
-        "version": "0.8.30",
-        "n": 1
       }
     ],
     "byPlatform": [
       {
         "platform": "win32",
-        "n": 66
+        "n": 95
       },
       {
         "platform": "linux",
-        "n": 9
+        "n": 17
       },
       {
         "platform": "darwin",
-        "n": 7
+        "n": 12
       }
     ],
     "tz": "Asia/Shanghai",
-    "generatedAt": "2026-09-30T09:00:31.430Z"
+    "generatedAt": "2026-09-30T12:33:14.077Z"
   },
   "heartbeatError": null,
   "npm": {
     "package": "dsh-remote",
-    "checkedAt": "2026-09-30T09:00:33.191Z",
+    "checkedAt": "2026-09-30T12:33:16.232Z",
     "latest": "0.8.34",
     "lastWeek": 1814,
     "lastMonth": 8241,
@@ -320,9 +320,9 @@
     "note": "npm daily counts have reporting gaps; zero-value days are flagged and are not real zero usage."
   },
   "repo": {
-    "stars": 109,
+    "stars": 111,
     "forks": 24,
-    "openIssues": 1,
-    "pushedAt": "2026-09-30T08:54:43Z"
+    "openIssues": 2,
+    "pushedAt": "2026-09-30T09:41:25Z"
   }
 }
