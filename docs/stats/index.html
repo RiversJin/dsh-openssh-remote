@@ -127,6 +127,7 @@
       <li><b>Time zone</b> — days are bucketed in <code>Asia/Shanghai</code>, so a "day" is not UTC.</li>
       <li><b>npm gaps</b> — npm's daily endpoint returns 0 for some days across <em>all</em> packages (verified against control packages), i.e. a reporting gap rather than zero usage. Those days are flagged instead of being drawn as real zeros.</li>
       <li><b>Privacy</b> — only <code>idHash</code> (an HMAC pseudonym), version, platform, arch and node version are transmitted. The raw install ID never leaves the machine.</li>
+      <li><b>Developer sandboxes count</b> — the author's own test instances run the same code and report the same way, so a handful of rows can be the author's own sandboxes rather than users. Numbers settle as the install base grows.</li>
     </ul>
   </div>
   <div id="load-error"></div>
