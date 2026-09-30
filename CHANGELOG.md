@@ -2,6 +2,50 @@
 
 All notable changes to **dsh-remote**.
 
+## 0.8.29 — 2026-09-30
+### 兼容 DSH 0.2.0-rc.2：peer 范围改为**同时**相容 0.1 与 0.2 两条线
+
+**问题（真实故障）**：DSH 在 profile 导入插件前会校验 `peerDependencies` 中所有
+`@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` 声明，**任一条不匹配就在 boot 时整包丢弃**
+（没有设置页、没有 `rw_*` 工具）。判定谓词（已从 `@deepseek-ai/dsh-app-boot@0.2.0-rc.2`
+的实际代码与原样切出的判定函数验证）：
+
+```js
+semver.satisfies(runtimeVersion, range, { includePrerelease: true })
+```
+
+而 npm 上 `@deepseek-ai/dsh` 的 **`latest` 已经是 `0.2.0-rc.2`**，插件原先声明的
+`^0.1.0-rc.6` / `^0.1.2-rc.1` 在 0.x 上被 caret 锁死在 `<0.2.0` ⇒ **在 DSH 主线上一装就被丢弃**。
+感谢 @zhz1667 在 PR #43 报告并定位到 `evaluatePluginCompatibility()`。
+
+**为什么没有直接采用 PR #43 的改法**：它把 peer 全部提升到 `^0.2.0-rc.1`，
+这**只是把故障从 0.2 线挪到了 0.1 线**——`^0.2.x` 同样被 caret 锁死在 `[0.2.0, 0.3.0)`，
+于是所有仍在 0.1 线的安装（含作者本机 `0.1.5-rc.2`）会反过来被判不兼容、整包丢弃。
+用官方判定函数实测的对照：
+
+| 清单 | dsh 0.1.2-rc.1 | dsh 0.1.5-rc.2 | dsh 0.2.0-rc.1 | dsh 0.2.0-rc.2 |
+|---|---|---|---|---|
+| 改动前（`^0.1`） | ✅ | ✅ | ❌ 丢弃 | ❌ 丢弃 |
+| PR #43（`^0.2`） | ❌ 丢弃 | ❌ 丢弃 | ✅ | ✅ |
+| **本次（跨线区间）** | ✅ | ✅ | ✅ | ✅ |
+
+**本 PR 的改法**：peer 范围改为**跨线开区间** `>=0.1.0-rc.6 <0.3.0`
+（client 侧三条按各自原有下界为 `>=0.1.2-rc.1 <0.3.0`），同时容纳两条线，
+并在 `dsh.engines.dsh` 写上同样的边界（仅供人阅读——官方 README 明确
+"These checks use peer declarations, not `engines.dsh`"，它**不参与**判定）。
+
+- 保留全部原有下界：扩展下界时**不抬高**任何既有门槛，0.1 线用户不受影响。
+- 上界止于 0.3：0.3 未知，不盲目承诺（当前 `0.3.0-rc.1` 仍会被区间容纳，
+  这是 semver 预发布比较的既有语义，非本次承诺；有测试覆盖上界有效）。
+- `@deepseek-ai/cordis` 不是 `@deepseek-ai/dsh-*`，**不参与**该校验，保持 caret。
+- **`lib/` 一行未改**——本次只用 0.1 与 0.2 都存在的 API，无需适配。
+- 新增 `test/compat.test.js`（7 例）：范围不得使用 caret（0.x 上必然锁死一条线）、
+  必须同时有下界与上界、必须容纳两条线、原始下界必须仍在范围内、
+  上界必须拦住 0.3、`engines.dsh` 与 peer 一致、cordis 保持 caret。
+
+- **测试**：全量 `npm test` **253/253**；`node check.mjs` 通过。
+- 新增 devDependency `semver`（仅为复现 DSH 自己的判定谓词）。
+
 ## 0.8.28 — 2026-09-30
 ### 修 `isInstalledCopy` 的跨平台路径判断（0.8.27 CI 红）
 
