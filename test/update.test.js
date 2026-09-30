@@ -13,11 +13,16 @@ import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wr
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
+
+/** 仓库根目录：少数断言需要读源码本身（例如确认某条路由的分支结构）。 */
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 import {
   applyUpdate,
   clearSelfModuleCache,
   diskVersion,
+  fetchLatestVersion,
   gtVersion,
   isInstalledCopy,
   LOADED_VERSION,
@@ -196,6 +201,91 @@ test('gtVersion orders dotted versions', () => {
   assert.equal(gtVersion('0.8.9', '0.8.10'), false)
   assert.equal(gtVersion('0.8.9', '0.8.9'), false)
   assert.equal(gtVersion('1.0.0', '0.9.9'), true)
+})
+
+// ── registry probing must report WHY it failed ───────────────────────────
+//
+// 回归：fetchLatestVersion 原先把任何失败压成 null，调用方只能笼统报
+// "无法连接 npm registry"。实测本机被 npm 限流（/latest 返回 429，而根路径 200、
+// CI 从别的出口 IP 正常）却被显示成"连不上"，把"稍等即可"误导成"网络坏了"。
+
+test('fetchLatestVersion returns the version on success', async () => {
+  const real = globalThis.fetch
+  try {
+    globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => ({ version: '9.9.9' }) })
+    assert.deepEqual(await fetchLatestVersion(100), { version: '9.9.9' })
+  } finally { globalThis.fetch = real }
+})
+
+test('fetchLatestVersion names rate limiting instead of a vague network error', async () => {
+  const real = globalThis.fetch
+  try {
+    globalThis.fetch = async () => ({ ok: false, status: 429, json: async () => ({}) })
+    const r = await fetchLatestVersion(100)
+    assert.equal(r.reason, 'rate-limited')
+    assert.equal(r.status, 429)
+    assert.match(r.error, /429/)
+    // 这是关键：必须能区分"限流"与"连不上"，两者的处置不同
+    assert.notEqual(r.error, '无法连接 npm registry')
+  } finally { globalThis.fetch = real }
+})
+
+test('fetchLatestVersion distinguishes other HTTP failures from network ones', async () => {
+  const real = globalThis.fetch
+  try {
+    globalThis.fetch = async () => ({ ok: false, status: 503, json: async () => ({}) })
+    const r = await fetchLatestVersion(100)
+    assert.equal(r.reason, 'http')
+    assert.match(r.error, /503/)
+  } finally { globalThis.fetch = real }
+})
+
+test('fetchLatestVersion reports a timeout as a timeout', async () => {
+  const real = globalThis.fetch
+  try {
+    globalThis.fetch = async () => { const e = new Error('aborted'); e.name = 'AbortError'; throw e }
+    const r = await fetchLatestVersion(100)
+    assert.equal(r.reason, 'timeout')
+    assert.match(r.error, /超时/)
+  } finally { globalThis.fetch = real }
+})
+
+test('fetchLatestVersion reports a plain network failure', async () => {
+  const real = globalThis.fetch
+  try {
+    globalThis.fetch = async () => { throw new Error('ENOTFOUND') }
+    const r = await fetchLatestVersion(100)
+    assert.equal(r.reason, 'network')
+  } finally { globalThis.fetch = real }
+})
+
+test('fetchLatestVersion rejects a malformed payload rather than returning junk', async () => {
+  const real = globalThis.fetch
+  try {
+    globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => ({}) })
+    const r = await fetchLatestVersion(100)
+    assert.equal(r.reason, 'malformed')
+    assert.equal(r.version, undefined)
+  } finally { globalThis.fetch = real }
+})
+
+test('the update check still reports local state when the registry fails', () => {
+  // 回归：registry 失败时若整条响应 ok:false，客户端就不会 setUpd，面板会永远停在
+  // 「版本信息加载中…」——看起来像卡死，而本地版本/更新模式其实都已知。
+  const src = readFileSync(path.join(root, 'lib', 'index.js'), 'utf8')
+  const route = src.slice(src.indexOf("path: '/dsh-remote/update-check'"))
+  const body = route.slice(0, route.indexOf('kind: \'exact\'', 10))
+  assert.match(body, /if \(probe\.error\)/, 'the route must branch on a probe error')
+  assert.match(body, /ok: true, \.\.\.base/, 'a registry failure must still return local state with ok:true')
+  assert.match(body, /registryError:/, 'the failure reason must be surfaced separately')
+})
+
+test('auto mode backs off after a failed probe', () => {
+  // 被限流时反复重试只会把配额烧得更久；退避是必需的。
+  const src = readFileSync(path.join(root, 'lib', 'index.js'), 'utf8')
+  const gate = src.slice(src.indexOf('if (effectiveUpdateMode === \'auto\')'))
+  assert.match(gate, /backoffRounds/, 'the auto gate must track backoff rounds')
+  assert.match(gate, /backoffRounds = 0/, 'a successful probe must reset the backoff')
 })
 
 // ── refusing to overwrite a source checkout ──────────────────────────────
