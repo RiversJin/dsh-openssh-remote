@@ -8,7 +8,9 @@ tunnel commands” plugin.
 ## 1. Version and changelog
 
 Bump `package.json` `version`, add a section to `CHANGELOG.md`, keep
-`README.md` / `README.zh.md` in sync (tool list, Desktop notes).
+`README.md` (Chinese, the repository front page) and `README.en.md` (English)
+in sync (tool list, config table, Desktop notes). `README.zh.md` is a redirect
+stub kept only for old external links — do not put content in it.
 
 ## 2. Checks
 

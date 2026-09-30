@@ -2,6 +2,44 @@
 
 All notable changes to **dsh-remote**.
 
+## 0.8.30 — 2026-09-30
+### README 更新，并把仓库首页切换为中文
+
+- **主 README 改为中文**：`README.md` = 中文（仓库首页），`README.en.md` = 英文。
+  GitHub 只把 `README.md` 当首页，所以"主语言"就是文件名本身。
+  用 `git mv` 重命名，历史保留；`README.zh.md` 留成**跳转占位**，
+  让 npm 页、博客、镜像等既有外链不至于 404（此前 npm 的 `readmeFilename`
+  恰好解析成 `README.zh.md`，也在 `package.json` 里显式钉为 `README.md`）。
+- **补两版缺失的内容**（对齐 `lib/index.js` 的 `Config` schema 与真实实现）：
+  - 配置表补 `passphrase`、`maxOutputChars`(200000)、
+    `updateMode`(`auto`)、`updateCheckIntervalMs`(6h)、`updateAutoReload`(true)；
+    并按 schema 补上 `useAgent` / `keyboardInteractive` / `proxy` / `autoPush` / `encoding`；
+  - 中文版补回原先缺失的「常见问题 / 排查」整节（英文版一直有）；
+  - 两版补「DSH 版本兼容性」小节，说明 0.8.29 为何把 peer 改成跨线区间、
+    以及"升级 DSH 后插件整个消失"这一现象的原因与修法。
+- **修正与代码不符的描述**：`rw_search` 实际是 **`rg` → `grep -R -E` → SFTP 遍历回退**
+  （英文版原写"SFTP tree walk"，中文版写"POSIX 优先"，只有后者对）；
+  `rw_edit`/`rw_remove`/`rw_forward`/`rw_download` 等条目补上真实行为与上限。
+- **删掉英文 README 里的一整段中文重复内容**：0.8.25 加遥测章节时误把中文版
+  也插进了 `README.md`（用 `<!--中文-->` 分隔），英文读者会看到重复段落、
+  两版也更容易漂移。现在每种语言只有一份、只在自己的文件里。
+- **贡献者名单补上 #43 的 @zhz1667**（该 PR 虽未直接合并，但它定位到
+  `evaluatePluginCompatibility()`，0.8.29 的修复建立在它之上）。
+
+- **新增 `test/readme-parity.test.js`（9 例）**：把两版必须一致的部分交给机器守，
+  不再靠人工同步。检查项：
+  1. 两版互指的语言切换行存在且不指向旧文件名；
+  2. `README.zh.md` 只能是跳转占位（防止它又长成第二份全文）；
+  3. 章节**按位置显式配对**（只比数量不够——把某节内容搬走仍会"各 14 节"）；
+  4. 两版配置表的键集合完全相同；
+  5. 配置表的每个键都**真实存在于 `Config` schema**（防文档发明配置项或留下幽灵行）；
+  6. 两版列出的 `rw_*` 工具集合相同且为 20 个；
+  7. 兼容性小节双语都在且都提到 0.8.29；
+  8. 遥测政策每种语言只出现一次（守住上面那个回归）。
+  已用负对照验证：故意让英文版漏掉一个配置键 ⇒ 测试立即变红。
+
+- **测试**：全量 `npm test` **262/262**；`node check.mjs` 通过。
+
 ## 0.8.29 — 2026-09-30
 ### 兼容 DSH 0.2.0-rc.2：peer 范围改为**同时**相容 0.1 与 0.2 两条线
 

@@ -1,0 +1,134 @@
+// README 双语一致性闸门。
+//
+// 为什么需要它：README.md（中文）与 README.en.md（英文）是**面向不同读者的同一份
+// 承诺**，但它们历史上已经漂移过——英文版缺 `passphrase`/`maxOutputChars`，
+// 两版对 `rw_search` 的实现描述互相矛盾（一个说"SFTP 遍历"，真源是
+// "rg → grep -R → SFTP 回退"），中文版还缺整张配置表的部分行。
+// 人工同步会持续腐坏，所以把"必须一致"的部分交给机器检查。
+//
+// 需要一致的三类东西：
+//   1) 章节骨架（`##` 标题的**数量**与顺序位置）——防止一边漏了一整节；
+//   2) 配置表的键集合——两个表的行数/键必须完全相同；
+//   3) 工具清单——`rw_*` 名字集合必须相同。
+// 刻意**不**检查正文措辞（中英表达本就不同），那会逼出为了过测而写的僵硬文案。
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const here = path.dirname(fileURLToPath(import.meta.url))
+const root = path.join(here, '..')
+const zh = readFileSync(path.join(root, 'README.md'), 'utf8')
+const en = readFileSync(path.join(root, 'README.en.md'), 'utf8')
+
+/** 提取所有二级标题的文本（去掉尾部空白）。 */
+const h2 = (src) => src.split('\n').filter((l) => l.startsWith('## ')).map((l) => l.trim())
+
+/** 提取 markdown 表格第一列的反引号键（`key`），只取配置表那一段。 */
+function tableKeys(src) {
+  const lines = src.split('\n')
+  const start = lines.findIndex((l) => /^\|\s*(键|Key)\s*\|/.test(l))
+  if (start < 0) return []
+  const keys = []
+  for (let i = start + 2; i < lines.length; i++) {
+    const line = lines[i]
+    if (!line.startsWith('|')) break
+    const m = line.match(/^\|\s*`([^`]+)`\s*\|/)
+    if (m) keys.push(m[1])
+  }
+  return keys
+}
+
+/** 正文里出现的全部 `rw_*` 工具名。 */
+const tools = (src) => {
+  const found = new Set()
+  for (const m of src.matchAll(/`(rw_[a-z_]+)/g)) found.add(m[1])
+  return [...found].sort()
+}
+
+test('both READMEs exist with the expected bilingual pairing', () => {
+  // 语言切换行必须互指，且指向真实存在的文件
+  assert.match(zh, /\[English\]\(\.\/README\.en\.md\)/, 'Chinese README must link to README.en.md')
+  assert.match(en, /\[中文\]\(\.\/README\.md\)/, 'English README must link to README.md')
+  // 防止有人把语言切回旧文件名
+  assert.doesNotMatch(zh, /\(\.\/README\.zh\.md\)/)
+})
+
+test('README.zh.md is only a redirect stub', () => {
+  const stub = readFileSync(path.join(root, 'README.zh.md'), 'utf8')
+  assert.ok(stub.length < 1200, 'the zh stub must not grow back into a full README')
+  assert.match(stub, /\.\/README\.md/, 'the stub must point readers at the main README')
+})
+
+test('section skeletons match in count and order', () => {
+  const a = h2(zh)
+  const b = h2(en)
+  assert.equal(a.length, b.length, `section count differs:\n  zh: ${a.length}\n  en: ${b.length}`)
+})
+
+test('each section is paired by position, not merely equal in count', () => {
+  // 只用数量相等是不够的：把某个小节的内容整体搬到另一节，两个文件仍然"各 14 节"，
+  // 读者却会看到中英结构错位。这里按位置显式声明配对，任何新增/删除/换序都要
+  // 在这里同步更新，从而无法悄悄漂移。
+  const PAIRS = [
+    ['数据采集 / 遥测', 'Data collection / telemetry'],
+    ['界面预览', 'Screen previews'],
+    ['功能', 'Features'],
+    ['安装', 'Install'],
+    ['快速上手', 'Quick start'],
+    ['可选：CLI 默认机', 'CLI defaults (optional)'],
+    ['常用命令（安装 / 查看 / 启动）', 'CLI quick reference'],
+    ['开发（沙箱优先，勿改产品）', 'Development (sandbox, not product)'],
+    ['配置', 'Configuration'],
+    ['常见问题 / 排查', 'FAQ / troubleshooting'],
+    ['安全提醒', 'Safety'],
+    ['License', 'License'],
+    ['参与贡献', 'Contributing'],
+    ['变更记录', 'Changelog'],
+  ]
+  const a = h2(zh).map((s) => s.replace(/^##\s+/, ''))
+  const b = h2(en).map((s) => s.replace(/^##\s+/, ''))
+  assert.deepEqual(a, PAIRS.map((p) => p[0]), 'Chinese section order changed — update PAIRS deliberately')
+  assert.deepEqual(b, PAIRS.map((p) => p[1]), 'English section order changed — update PAIRS deliberately')
+})
+
+test('the configuration tables declare the same keys', () => {
+  const a = tableKeys(zh)
+  const b = tableKeys(en)
+  assert.ok(a.length > 20, `config table looks empty (zh=${a.length})`)
+  assert.deepEqual(a, b, 'config keys must match between README.md and README.en.md')
+})
+
+test('every config key documented in the table exists in the schema', () => {
+  // 反向核对：文档不能发明配置项，也不能在被删除后留下幽灵行。
+  const schema = readFileSync(path.join(root, 'lib', 'index.js'), 'utf8')
+  const start = schema.indexOf('export const Config')
+  const block = schema.slice(start, schema.indexOf('\n})', start))
+  const declared = new Set([...block.matchAll(/^\s{2}([a-zA-Z][a-zA-Z0-9]*):\s*z\./gm)].map((m) => m[1]))
+  const documented = new Set(tableKeys(zh))
+  const ghosts = [...documented].filter((k) => !declared.has(k))
+  assert.deepEqual(ghosts, [], `documented but not in the Config schema: ${ghosts.join(', ')}`)
+})
+
+test('both READMEs list the same rw_* tools', () => {
+  assert.deepEqual(tools(zh), tools(en), 'tool lists must agree')
+  assert.equal(tools(zh).length, 20, `expected 20 rw_* tools, found ${tools(zh).length}`)
+})
+
+test('the DSH compatibility section is present in both', () => {
+  // 0.8.29 修的正是"整包被丢弃"，这是用户最容易困惑的故障，必须双语都有。
+  assert.match(zh, /DSH 版本兼容性/)
+  assert.match(en, /DSH version compatibility/)
+  assert.match(zh, /0\.8\.29/)
+  assert.match(en, /0\.8\.29/)
+})
+
+test('the telemetry policy is stated once per README, in its own language', () => {
+  // 回归：英文 README 曾被误插一整段中文遥测（\u003c!--中文--\u003e 分隔），
+  // 于是英文读者看到重复内容、两版也更容易漂移。
+  assert.doesNotMatch(en, /<!--中文-->/, 'the English README must not carry a Chinese duplicate section')
+  assert.doesNotMatch(en, /数据采集 \/ 遥测/, 'the English README must not carry Chinese section headings')
+  assert.match(zh, /数据采集 \/ 遥测/)
+  assert.match(en, /Data collection \/ telemetry/)
+})
