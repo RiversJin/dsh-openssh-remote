@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-30T03:52:27.709Z",
+  "generatedAt": "2026-09-30T03:58:22.243Z",
   "heartbeat": {
     "ok": true,
     "daily": [
@@ -121,31 +121,21 @@
       },
       {
         "day": "2026-09-30",
-        "dau": 1
+        "dau": 0
       }
     ],
-    "installs": 1,
-    "wau": 1,
-    "mau": 1,
-    "byVersion": [
-      {
-        "version": "0.8.25",
-        "n": 1
-      }
-    ],
-    "byPlatform": [
-      {
-        "platform": "win32",
-        "n": 1
-      }
-    ],
+    "installs": 0,
+    "wau": 0,
+    "mau": 0,
+    "byVersion": [],
+    "byPlatform": [],
     "tz": "Asia/Shanghai",
-    "generatedAt": "2026-09-30T03:52:25.659Z"
+    "generatedAt": "2026-09-30T03:58:20.251Z"
   },
   "heartbeatError": null,
   "npm": {
     "package": "dsh-remote",
-    "checkedAt": "2026-09-30T03:52:27.452Z",
+    "checkedAt": "2026-09-30T03:58:21.965Z",
     "lastWeek": 1814,
     "lastMonth": 8241,
     "daily": [
@@ -282,6 +272,6 @@
     "stars": 108,
     "forks": 24,
     "openIssues": 2,
-    "pushedAt": "2026-09-30T03:50:43Z"
+    "pushedAt": "2026-09-30T03:57:43Z"
   }
 }
