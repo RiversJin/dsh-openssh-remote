@@ -2,6 +2,47 @@
 
 All notable changes to **dsh-remote**.
 
+## 0.8.24 — 2026-09-30
+### 更新落地即生效：宿主半在线热切换 + 原子落盘 + 「已应用 vs 已加载」版本区分
+
+**背景**：`auto`/手动更新此前只把新文件写到磁盘，宿主半（`lib/index.js`：`rw_*` 工具、
+`/dsh-remote/*` 路由、SSH 池）要等下次启动 Harness 才生效 —— 而浏览器半（`lib/client.js`）
+会被 DSH 的 `client-hmr` 自动热替换。于是更新后 UI 是新版、工具还是旧版，两者长期错位。
+
+- **宿主半在线热切换（新增 `POST /dsh-remote/update-reload`，更新后默认自动执行）**：
+  `lib/update.js` 的 `reloadSelf()` 先清掉本包自身模块的 Node 缓存
+  （ESM `loadCache` + CJS `require.cache`），再 `_dispose()` 我们自己的 loader entry
+  （工具、路由、SSH 池随 fiber 一起回收），最后 `init()` 重新 import 磁盘上的新代码。
+  - **为什么必须自己清缓存**：ESM 按 URL 缓存模块，只用 `_dispose()+init()` 会拿到**旧模块对象**，
+    看起来"热更新成功"实际一行没换。已用真实 cordis Loader 的进程内 E2E 证明
+    （`scripts/hotswap-e2e.mjs`，9/9：改写磁盘模块 → 切换 → 运行中的代码确实变成新版本）。
+  - **Node 24 细节**：`loader.internal.loadCache` 是 `LoadCache extends SafeMap`，
+    `instanceof Map` 为 **false**，但 `Map.prototype.has/delete.call(loadCache, url)` 实测有效
+    （已实证），故用显式 `Map.prototype` 调用而不是 `loadCache.delete()`。
+  - **失败不致命**：切到坏模块会像启动失败一样**响亮报错**并保持进程存活；此时旧代码已 dispose，
+    需修好文件后重启（与"boot 到坏文件"同样的结局，不会静默跑半个插件）。
+- **原子落盘**：`applyUpdate` 从 `copyFileSync` 改为**临时文件 + `rename`**。
+  这不是洁癖 —— client 半每 500ms 被 `dsh-client-hmr` stat-poll 并按**内容哈希**重算 rev，
+  一次撕裂写会被当场 re-hash 并推给浏览器；且写一半的 `lib/index.js` 会让下次启动直接崩。
+  另：**逐文件跳过字节相同的文件**，所以重复 apply 同一版本不再无谓搅动 mtime。
+- **修正 `auto` 模式会反复重下同一个包**：`currentVersion` 原先在定时器闭包外只取一次，
+  成功更新后它仍停在旧版 ⇒ 每个 `updateCheckIntervalMs` 都重新下载并覆盖写一遍全部 lib 文件。
+  改为每轮取「磁盘版本 / 已加载版本」中较新者。
+- **`loaded` vs `disk` 版本区分**：新增 `LOADED_VERSION`（import 时快照）与 `diskVersion()`。
+  `/dsh-remote/update-check` 现在返回 `loaded` / `disk` / `pendingReload`，
+  `current` 保持为**运行中**版本（UI 兼容）。`readVersion()` 读的是磁盘，更新后它立刻显示新版，
+  此前会让设置页在成功后仍报"有新版本"。
+- **修正 `/dsh-remote/update-apply` 的 `from` 字段**：原先在 `applyUpdate()` **之后**取版本，
+  于是 `from === to`（永远显示 `0.8.24 → 0.8.24`）。现在 apply 前取。
+- **新增配置 `updateAutoReload`（默认 `true`）**：设为 `false` 时只落盘不热切，
+  由 `pendingReload` 提示用户重启。
+- **UI**：更新成功后延迟 2s 再复查（宿主半约 300ms 后才切换，立即复查会问到旧 fiber 而误报"仍有新版本"）；
+  新增 `pendingReload` 提示条；确认框与成功文案改为"在线热切换（不重启 Harness）"。
+
+- **测试**：新增 `test/update.test.js`（15 例：tarball 安装/版本不匹配拒绝/失败不落地/
+  原子写/幂等跳过/缓存清理/entry 重挂/失败降级）+ `scripts/hotswap-e2e.mjs`（真实 Loader 端到端）。
+  全量 `npm test` 224/224。
+
 ## 0.8.23 — 2026-09-28
 ### 性能修复：远程路径自动补全逐字符卡顿（issue #41，PR #42 by @GDWhisper）+ 机器身份硬化
 
