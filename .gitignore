@@ -12,3 +12,9 @@ pnpm-workspace.yaml
 
 # npm cache workaround artifacts
 .npm-cache/
+
+# 日活统计口令（本地查询用，绝不入库）
+.stats-key
+
+# 一次性探针（不入库）
+probe_*.mjs

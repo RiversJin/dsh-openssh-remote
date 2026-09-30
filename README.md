@@ -20,6 +20,48 @@ Manage several SSH machines, then pick a **remote workspace** (or a **local** on
 
 The harness Web UI intentionally binds `127.0.0.1` (the CLI rejects `--host 0.0.0.0` for safety). This plugin goes the other way: **you connect out** to the machines you maintain, pick a workspace, and work in it through the normal DSH workspace + agent fs flows — no changes to `dsh-workspace` or the harness core.
 
+## Data collection / telemetry
+
+dsh-remote sends **one anonymous heartbeat per launch** (at most once every 6 hours) so the author can measure real usage: daily active installs, which version is actually running, and platform distribution. npm download counts cannot answer this (they are release-driven and include mirrors/crawlers), and GitHub clones include CI.
+
+**What is sent** — exactly five fields, and nothing else:
+
+| Field | Example | Purpose |
+|---|---|---|
+| `idHash` | `872bd8cf…` (32 hex) | `HMAC-SHA256('dsh-remote/telemetry/v1', installId)` — a pseudonym for this install |
+| `version` | `0.8.24` | which version is actually running |
+| `platform` | `win32` / `darwin` / `linux` | platform distribution |
+| `arch` | `x64` / `arm64` | architecture |
+| `node` | `24.14.0` | Node version |
+
+**What is never sent** — hostnames, usernames, file paths, IP addresses, SSH hosts/ports/keys, your machine list, conversation content, or anything from your remote sessions. The original `installId` **never leaves your machine**: only its HMAC is transmitted, so the server cannot correlate it with anything else and cannot reverse it.
+
+**Where the identity lives** — a random UUID in `<DSH_HOME>/.dsh-remote-install-id` (e.g. `~/.dsh/`). It is deliberately **not** stored in the plugin directory, which npm/pnpm overwrites on every upgrade; keeping it in `DSH_HOME` means an upgrade does not make you look like a new user. Delete that file to reset the identity.
+
+The heartbeat is **fire-and-forget**: it never blocks loading, never logs noise, and any failure (offline, blocked, endpoint change) is swallowed silently — it can never affect any plugin feature.
+
+<!--中文-->
+
+## 数据采集 / 遥测
+
+dsh-remote 每次启动会发送**一次匿名心跳**（同一安装最多每 6 小时一次），用于统计真实使用量：去重日活、实际在跑的版本、平台分布。npm 下载量回答不了这些问题（由发版驱动、且含镜像与爬虫），GitHub clone 也混有 CI。
+
+**发送的内容** —— 严格只有 5 个字段：
+
+| 字段 | 示例 | 用途 |
+|---|---|---|
+| `idHash` | `872bd8cf…`（32 位 hex） | `HMAC-SHA256('dsh-remote/telemetry/v1', installId)`，本安装的伪名 |
+| `version` | `0.8.24` | 实际在运行的版本 |
+| `platform` | `win32` / `darwin` / `linux` | 平台分布 |
+| `arch` | `x64` / `arm64` | 架构 |
+| `node` | `24.14.0` | Node 版本 |
+
+**绝不发送** —— 主机名、用户名、文件路径、IP、SSH 主机/端口/密钥、你的机器列表、会话内容、任何远程工作区数据。原始 `installId` **不离开本机**：只有它的 HMAC 被传出，服务端无法与其他数据关联，也无法反推。
+
+**身份存放位置** —— `<DSH_HOME>/.dsh-remote-install-id`（如 `~/.dsh/`）中的一个随机 UUID。刻意**不放在插件目录**（npm/pnpm 每次升级都会覆盖），放 `DSH_HOME` 才能保证升级后不会把你算成新用户。删除该文件即重置身份。
+
+心跳是**尽力而为**的旁路：不阻塞加载、不产生日志噪音、任何失败（离线/被拦截/端点变更）都静默吞掉，绝不影响插件的任何功能。
+
 ## Screen previews
 
 Settings → **远程工作区** — a multi-machine SSH registry (add / edit / delete / set-current, password stored locally):
