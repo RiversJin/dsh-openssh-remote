@@ -46,6 +46,9 @@
   .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
   .chart{width:100%;height:auto;display:block;overflow:visible}
   .legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--mut);margin-top:12px}
+  /* 摘要里的多项要有明确间距；只靠 flex gap 在某些换行/嵌套下会挤在一起 */
+  #npm-summary{gap:18px}
+  #npm-summary > span + span{border-left:1px solid var(--line);padding-left:18px}
   .swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
 
   .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
@@ -304,11 +307,17 @@ async function main () {
     ? new Date(hb.generatedAt).toLocaleDateString('en-CA', { timeZone: hb.tz || 'Asia/Shanghai' })
     : ''
 
-  // 最近一个**完整**日：最后一个桶是"今天至今"，不能当作下跌来读
-  const completed = daily.slice().reverse().find(d => d.day !== todayKey)
-  $('k-dau').textContent = fmt(completed?.dau ?? 0)
-  document.querySelector('.kpi.hi .hint').textContent = completed
-    ? T(`${completed.day}`, completed.day)
+  // 取最近一个**有数据**的日，而不是机械地取"最近一个完整日"。
+  //
+  // 为什么：早先固定跳过"今天"是为了避免把半天读成暴跌，但当所有数据都在今天时
+  // （新项目很常见），这会让 DAU 显示 0 而累计装机显示 53 —— 自相矛盾且误导。
+  // 现在优先显示今天并**明确标注"进行中"**，既不隐藏信息也不假装是终值。
+  const lastWithData = daily.slice().reverse().find(d => (d.dau || 0) > 0)
+  const shown = lastWithData || daily.slice().reverse().find(d => d.day !== todayKey)
+  const isToday = shown?.day === todayKey
+  $('k-dau').textContent = fmt(shown?.dau ?? 0)
+  document.querySelector('.kpi.hi .hint').textContent = shown
+    ? (isToday ? T(`${shown.day}（进行中）`, `${shown.day} (in progress)`) : shown.day)
     : T('最近一个完整日', 'latest full day')
   $('k-wau').textContent = fmt(hb?.wau ?? 0)
   $('k-mau').textContent = fmt(hb?.mau ?? 0)
@@ -325,12 +334,14 @@ async function main () {
   })), { height: 150, gradId: 'gnpm' })
 
   const gaps = zeroDays.size
-  // 下载量标签带一个「含缺口日」的显式提示：缺口日的 0 不是真实零，
-  // 所以这里只报"原始日合计"，并说明其中有几天缺失。
-  $('npm-summary').innerHTML =
-    `<span>${esc(T('近一周', 'last week'))} <b style="color:var(--fg)">${fmt(SNAP.npm?.lastWeek)}</b></span>` +
-    `<span>${esc(T('近一月', 'last month'))} <b style="color:var(--fg)">${fmt(SNAP.npm?.lastMonth)}</b></span>` +
-    (gaps ? `<span style="color:var(--warn)">${esc(T(`${gaps} 天为 npm 上报缺口`, `${gaps} day(s) flagged as npm reporting gaps`))}</span>` : '')
+  // 下载量标签带上"含缺口日"的显式提示：缺口日的 0 不是真实零，所以只报原始合计。
+  // 三项之间要有间距/分隔，否则渲染出来会连成一片（实测踩过："近一周 1,814近一月 8,2414 天…"）。
+  const parts = [
+    `${esc(T('近一周', 'last week'))} <b style="color:var(--fg)">${fmt(SNAP.npm?.lastWeek)}</b>`,
+    `${esc(T('近一月', 'last month'))} <b style="color:var(--fg)">${fmt(SNAP.npm?.lastMonth)}</b>`,
+  ]
+  if (gaps) parts.push(`<span style="color:var(--warn)">${esc(T(`${gaps} 天为 npm 上报缺口`, `${gaps} day(s) flagged as npm reporting gaps`))}</span>`)
+  $('npm-summary').innerHTML = parts.map(p => `<span>${p}</span>`).join('')
 
   distList($('ver-list'), hb?.byVersion, 'version', T('版本', 'version'))
   distList($('plat-list'), hb?.byPlatform, 'platform', T('平台', 'platform'))
