@@ -2,6 +2,19 @@
 
 All notable changes to **dsh-remote**.
 
+## 0.8.28 — 2026-09-30
+### 修 `isInstalledCopy` 的跨平台路径判断（0.8.27 CI 红）
+
+0.8.27 的"拒绝对非安装副本自更新"逻辑在 Linux CI 上误判：`isInstalledCopy`
+只按 `path.sep` 切分路径，于是在 Linux 上判断 Windows 风格路径时
+（`C:\...\node_modules\dsh-remote`）切不开，被判为"非安装副本"——本机 Windows
+全绿、CI 直接红（246 例 fail 1）。现在同时把 `\` 与 `/` 归一化，两种平台的
+路径都给出正确答案。
+
+- 教训同 `os.homedir()` 那一类：**跨平台判断不能依赖本机的 `path.sep`**，
+  这类缺陷只在另一种平台上暴露，必须让判定函数自身与分隔符无关。
+- 测试补充了 5 条路径用例（Windows/POSIX × 安装副本/源码检出 + CI 检出路径）。
+
 ## 0.8.27 — 2026-09-30
 ### 更新模式默认改为 `auto`（自动更新）
 
