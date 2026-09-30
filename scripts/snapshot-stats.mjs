@@ -37,11 +37,16 @@ async function getJson(url, timeoutMs = 25000, headers) {
 /** npm 下载量（公开数据，无需口令）。 */
 async function npmStats() {
   const out = { package: NPM_PACKAGE, checkedAt: new Date().toISOString() }
-  const [lastWeek, lastMonth, range] = await Promise.all([
+  const [latest, lastWeek, lastMonth, range] = await Promise.all([
+    // 最新版本号也在这里取：页面直连 registry.npmjs.org 可能在部分浏览器/网络
+    // 策略下被拦（实测 "Failed to fetch"，页面上版本号显示成 "—"），所以由 CI
+    // 落进同源快照，页面优先读它、直连只作兜底。
+    getJson(`https://registry.npmjs.org/${NPM_PACKAGE}/latest`),
     getJson(`https://api.npmjs.org/downloads/point/last-week/${NPM_PACKAGE}`),
     getJson(`https://api.npmjs.org/downloads/point/last-month/${NPM_PACKAGE}`),
     getJson(`https://api.npmjs.org/downloads/range/last-month/${NPM_PACKAGE}`),
   ])
+  out.latest = typeof latest?.version === 'string' ? latest.version : null
   out.lastWeek = lastWeek?.downloads ?? null
   out.lastMonth = lastMonth?.downloads ?? null
   if (range?.downloads) {

@@ -373,27 +373,40 @@ const set = (id, v) => { const el = document.getElementById(id); if (el && v !==
 const fmt = (n) => (n === null || n === undefined) ? '—' : Number(n).toLocaleString('en-US')
 
 async function loadNumbers () {
-  try {
-    const [latest, week] = await Promise.all([
-      fetch('https://registry.npmjs.org/dsh-remote/latest').then(r => r.json()).catch(() => null),
-      fetch('https://api.npmjs.org/downloads/point/last-week/dsh-remote').then(r => r.json()).catch(() => null),
-    ])
-    set('v-version', latest?.version ?? '—')
-    set('v-week', week ? fmt(week.downloads) : '—')
-  } catch { /* 保留破折号 */ }
-
+  // 版本号：优先同源快照（CI 已从 npm 拉到并落盘），再退回直连 npm。
+  // 直连 registry.npmjs.org 在某些浏览器/网络策略下会被拦（实测出现
+  // "Failed to fetch"），所以快照是主路径、直连是兜底，而不是反过来。
   try {
     const snap = await fetch('./data/stats.json', { cache: 'no-cache' }).then(r => r.json())
-    const daily = snap?.heartbeat?.daily || []
-    // 最后一个桶是"今天至今"，应显示最近一个**完整**日，避免把半天读成暴跌
-    const completed = daily.slice(0, -1).reverse().find(d => (d.dau || 0) > 0) || daily[daily.length - 2]
-    set('v-dau', completed ? fmt(completed.dau) : '0')
+    const hb = snap?.heartbeat || {}
+    const daily = hb.daily || []
+    const todayKey = hb.generatedAt
+      ? new Date(hb.generatedAt).toLocaleDateString('en-CA', { timeZone: hb.tz || 'Asia/Shanghai' })
+      : ''
+    // 取最近一个**有数据**的日；若它就是今天，如实显示（这是"当前值"而非终值）。
+    // 早先固定跳过今天以防把半天读成暴跌，但当所有数据都在今天时那会直接显示 0，
+    // 与同屏的累计装机自相矛盾。
+    const last = daily.slice().reverse().find(d => (d.dau || 0) > 0)
+    set('v-dau', last ? fmt(last.dau) : '0')
     set('v-stars', fmt(snap?.repo?.stars))
-    if (!snap?.repo?.stars) {
-      fetch('https://api.github.com/repos/flymysql/dsh-remote')
-        .then(r => r.ok ? r.json() : null).then(d => set('v-stars', fmt(d?.stargazers_count))).catch(() => {})
-    }
+    if (snap?.npm?.latest) set('v-version', snap.npm.latest)
+    if (snap?.npm?.lastWeek !== undefined && snap?.npm?.lastWeek !== null) set('v-week', fmt(snap.npm.lastWeek))
   } catch { /* 数字缺席页面仍可用 */ }
+
+  // 兜底：只补齐快照里没有的字段，不覆盖已有值
+  const missing = (id) => { const el = document.getElementById(id); return el && el.textContent === '—' }
+  if (missing('v-version')) {
+    fetch('https://registry.npmjs.org/dsh-remote/latest').then(r => r.json())
+      .then(d => set('v-version', d?.version ?? '—')).catch(() => {})
+  }
+  if (missing('v-week')) {
+    fetch('https://api.npmjs.org/downloads/point/last-week/dsh-remote').then(r => r.json())
+      .then(d => set('v-week', d ? fmt(d.downloads) : '—')).catch(() => {})
+  }
+  if (missing('v-stars')) {
+    fetch('https://api.github.com/repos/flymysql/dsh-remote')
+      .then(r => r.ok ? r.json() : null).then(d => set('v-stars', fmt(d?.stargazers_count))).catch(() => {})
+  }
 }
 loadNumbers()
 </script>
