@@ -77,6 +77,6 @@
     "@deepseek-ai/dsh-tools": "^0.1.0-rc.6"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --import ./test/setup-telemetry-off.mjs --test"
   }
 }

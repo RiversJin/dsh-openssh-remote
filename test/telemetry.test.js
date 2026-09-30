@@ -21,6 +21,12 @@ import {
   sendHeartbeat,
 } from '../lib/telemetry.js'
 
+// ★ 测试绝不允许打到生产统计端点——但这件事由 `test/setup-telemetry-off.mjs`
+// （package.json 的 `--import` 前置）统一负责，覆盖**整个测试进程**，因为
+// `upload.test.js` 会调用真实 apply() 而 apply() 里有 `void sendHeartbeat(...)`。
+// 这里不再重复设置 env（单一来源），只断言"确实处于被禁用的端点下"。
+// 需要真机验证端点时才用显式脚本，不要在单测里做。
+
 function tempHome() {
   return mkdtempSync(path.join(tmpdir(), 'dsh-remote-tel-'))
 }
@@ -110,7 +116,9 @@ test('sendHeartbeat posts only the whitelisted minimal fields', async () => {
     const sent = await sendHeartbeat(home, '0.8.25', { delayMs: 0 })
     assert.equal(sent, true)
     assert.equal(captured.method, 'POST')
-    assert.match(captured.url, /^https:\/\/.+\/heartbeat$/)
+    // 端点来自 heartbeatUrl()（可被 env 覆盖），不是硬编码常量
+    assert.equal(captured.url, heartbeatUrl())
+    assert.match(captured.url, /^https:\/\//)
     // 字段白名单：多一个都不行（本插件能拿到 SSH 主机/路径，必须留在本地）
     assert.deepEqual(
       Object.keys(captured.body).sort(),
@@ -184,4 +192,11 @@ test('sendHeartbeat defers the first send away from startup', async () => {
 test('heartbeat endpoint is https and self-describing', () => {
   assert.equal(heartbeatEnabled(), true)
   assert.match(heartbeatUrl(), /^https:\/\//)
+})
+
+test('tests never point at the production endpoint', () => {
+  // 这条守的是"测试不得污染生产统计"：线上曾经因为 npm test 真的发心跳，
+  // 而在日活表里多出来自 CI 的 Linux 假装机。
+  assert.notEqual(heartbeatUrl(), 'https://gitbolg-d7gmnsrw46e011706-1256429518.ap-shanghai.app.tcloudbase.com/dsh-hb/heartbeat')
+  assert.match(heartbeatUrl(), /127\.0\.0\.1|localhost/)
 })
