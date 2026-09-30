@@ -11,6 +11,7 @@
 //   3) 两版 README 各自至少引用 3 张图（防"全删了"的极端回归）。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -119,5 +120,33 @@ test('side-by-side figures are constrained so different aspect ratios stay balan
   // 每张并排图都要有 max-width，防止位图被拉伸到容器宽度而放大
   const constrained = (home.match(/class="shots"[\s\S]*?<\/div>/)[0].match(/max-width:\d+px/g) || []).length
   assert.ok(constrained >= 2, `each stacked figure needs a max-width cap, found ${constrained}`)
+})
+
+test('no screenshot has text cut off at its edges', () => {
+  // 回归（用户在评审里直接指出的问题："截的区域太窄了，有些边界的文字都被切割了"）：
+  // 我两次都用"若干**选定**文字节点的并集"当裁剪框，而那些节点不是最宽的 ——
+  // 设置面板真实容器是 612x746（内容 1325 高、页面不可滚动，要滚内部容器），
+  // 我却裁成 535x714 且上边界差了 513px，把上半整段切掉、右边也切了字。
+  //
+  // 判据：面板/弹窗是深色底 + 亮色文字。若图片最外侧 6px 内出现高亮像素
+  // （阈值 110，高于描边 62 与画布底色 14），就是文字被裁断。
+  // 深色配图才有这个性质，浅色图跳过。
+  const INK = 110
+  const MARGIN = 6
+  const offenders = []
+  for (const rel of ['docs/shots/settings-panel.png', 'docs/shots/picker-dialog.png', 'docs/shots/features.png']) {
+    const p = path.join(root, rel)
+    if (!existsSync(p)) continue
+    const { w, h } = pngSize(p) || {}
+    if (!w || !h) continue
+    // 用 PIL 做像素级检测（node 侧不便解码）；脚本已随仓库提供
+    const out = execFileSync('python', [path.join(root, 'scripts/check-edge-clipping.py'), p], { encoding: 'utf8' })
+    // 脚本对每条边输出「干净」或「发现 N 个高亮像素」
+    const cut = [...out.matchAll(/边缘"(\w+)" 发现 (\d+)/g)].map((m) => `${m[1]}=${m[2]}`)
+    if (cut.length) offenders.push(`${rel}: ${cut.join(', ')}`)
+    void INK; void MARGIN
+  }
+  assert.deepEqual(offenders, [],
+    `screenshot text is clipped at the edge:\n  ${offenders.join('\n  ')}`)
 })
 

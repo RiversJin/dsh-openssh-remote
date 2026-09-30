@@ -128,7 +128,7 @@
   /* screenshot in a window frame, bleeding off the right edge */
   .stage {
     position: absolute;
-    top: 168px;
+    top: 128px;    /* 窗口变高了（含完整弹窗），上移以保持视觉居中 */
     left: 655px;
     width: 760px;
     transform: rotate(-2.5deg);
@@ -167,14 +167,13 @@
   }
   .shot {
     position: relative;
-    height: 266px;
+    /* 不再固定高度：弹窗图宽高比 1.93，在 760px 宽下需约 394px；
+       旧值 266px 是为上一版更扁的图设的，会把弹窗底部的按钮裁掉。
+       让图自己决定高度，容器只负责裁掉右侧出血。 */
     overflow: hidden;
-    background: #fff;
+    background: #14141c;   /* 与窗口一致；原先的 #fff 是为旧浅色截图设的，
+                              换成深色主题后会露出一条白边 */
   }
-  /* 直接用已裁好的弹窗图（shots/picker-dialog@2x.png，1176x568 @2x）。
-     旧版本对一张未裁的全屏截图做偏移+放大裁剪，那份源图（1306x803）
-     已随 2026-09-30 的重截而更新，偏移量会失准 —— 所以改成引用裁好的图，
-     由 .shot 决定显示尺寸。 */
   .shot img {
     display: block;
     width: 100%;

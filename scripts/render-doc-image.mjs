@@ -67,16 +67,45 @@ const measured = await evalJs(`(() => {
   const el = document.body.firstElementChild || document.body;
   const r = el.getBoundingClientRect();
   const imgs = [...document.images].map(i => ({ src: i.getAttribute('src'), ok: i.complete && i.naturalWidth > 0 }));
+  // 配图是否被容器裁掉：图片的完整矩形 vs 其 overflow:hidden 祖先的矩形。
+  // 封面曾把弹窗图放进固定高度 266px 的 .shot，而图在该宽度下需要 394px，
+  // 于是底部 128px（含按钮）被静默裁掉 —— 这类问题不报错、只能靠量测发现。
+  const clipped = [];
+  for (const img of document.images) {
+    const ir = img.getBoundingClientRect();
+    let p = img.parentElement;
+    while (p && p !== document.body) {
+      const cs = getComputedStyle(p);
+      if (/(hidden|clip)/.test(cs.overflow + cs.overflowY + cs.overflowX)) {
+        const pr = p.getBoundingClientRect();
+        const cutBottom = Math.round(ir.bottom - pr.bottom);
+        const cutRight = Math.round(ir.right - pr.right);
+        if (cutBottom > 2 || cutRight > 2) {
+          clipped.push({ src: img.getAttribute('src'), cutBottom, cutRight });
+        }
+        break;
+      }
+      p = p.parentElement;
+    }
+  }
   return JSON.stringify({
     contentH: Math.ceil(r.height),
     contentW: Math.ceil(r.width),
     scrollH: document.documentElement.scrollHeight,
     scrollW: document.documentElement.scrollWidth,
     imgs,
+    clipped,
   });
 })()`)
 const m = JSON.parse(measured)
 console.log('量测:', JSON.stringify(m))
+
+if (m.clipped && m.clipped.length) {
+  console.error('以下配图被容器裁掉（内容缺失，但不会报错）:')
+  for (const c of m.clipped) console.error(`  ${c.src} 底部裁掉 ${c.cutBottom}px, 右侧裁掉 ${c.cutRight}px`)
+  ws.close()
+  process.exit(1)
+}
 
 const badImgs = m.imgs.filter((i) => !i.ok)
 if (badImgs.length) {

@@ -89,7 +89,8 @@
   .card code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:rgba(255,255,255,.07);
     padding:1.5px 5px;border-radius:4px;color:#cbbcff}
 
-  .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+  /* 配图容器：竖向排列（定义见下方 .shots，曾误留一份并排的三列定义在此，
+     被后者覆盖成死代码，且会让按"第一处匹配"的静态检查读到错的定义）。 */
   /* 圆角图片卡片：不做投影（扁平化），只用 1px hairline 与底色分层 */
   figure{background:var(--panel);border:1px solid rgba(255,255,255,.065);border-radius:14px;overflow:hidden}
   figure img{width:100%;display:block;border-bottom:1px solid var(--line)}
@@ -239,11 +240,11 @@
     <!-- 竖向排列，各自原始比例（不并排、不放大：两张比例差太大，并排会一高一矮） -->
     <div class="shots">
       <figure>
-        <img src="./shots/picker-dialog.png" alt="远程工作区选择器" loading="lazy" style="max-width:595px"/>
+        <img src="./shots/picker-dialog.png" alt="远程工作区选择器" loading="lazy" style="max-width:632px"/>
         <figcaption class="t" data-zh="<b>工作区选择器</b> —— 原生弹窗多了「远程」tab；可浏览并自动补全远程目录。" data-en="<b>Workspace picker</b> — the native modal gains a 远程 (remote) tab; browse and autocomplete remote directories."><b>工作区选择器</b> —— 原生弹窗多了「远程」tab；可浏览并自动补全远程目录。</figcaption>
       </figure>
       <figure>
-        <img src="./shots/settings-panel.png" alt="多机 SSH 列表与设置" loading="lazy" style="max-width:535px"/>
+        <img src="./shots/settings-panel.png" alt="多机 SSH 列表与设置" loading="lazy" style="max-width:640px"/>
         <figcaption class="t" data-zh="<b>设置 → 远程工作区</b> —— 机器列表、高级配置（私钥/跳板机/agent）、连接体检、端口转发、审计日志、更新。" data-en="<b>Settings → 远程工作区</b> — machine list, advanced config (key / jump host / agent), connection check, port forwarding, audit log, update."><b>设置 → 远程工作区</b> —— 机器列表、高级配置（私钥/跳板机/agent）、连接体检、端口转发、审计日志、更新。</figcaption>
       </figure>
     </div>

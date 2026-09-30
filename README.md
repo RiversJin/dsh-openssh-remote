@@ -34,11 +34,11 @@ DSH 的 Web 界面刻意只监听 `127.0.0.1`（CLI 为安全拒绝 `--host 0.0.
 
 **设置 → 远程工作区** —— 多机列表、高级配置（私钥/跳板机/agent）、连接体检、端口转发、审计日志、更新：
 
-<img src="docs/shots/settings-panel.png" alt="dsh-remote 设置页：机器列表、高级配置、端口转发、审计日志、更新" width="535"/>
+<img src="docs/shots/settings-panel.png" alt="dsh-remote 设置页：机器列表、高级配置、端口转发、审计日志、更新" width="640"/>
 
 原生 **「Add workspace / 选择工作区」** 流程 —— 居中弹窗、两个 tab，默认落在「本机」；切到**「远程」**：
 
-<img src="docs/shots/picker-dialog.png" alt="选择工作目录弹窗的「远程」tab：机器下拉、最近工作区、浏览…、设为远程工作区" width="595"/>
+<img src="docs/shots/picker-dialog.png" alt="选择工作目录弹窗的「远程」tab：机器下拉、最近工作区、浏览…、设为远程工作区" width="632"/>
 
 - 路径框实时补全；Windows 主机根级显示「此电脑」多盘视图；「浏览…」浮层选中只回填、不直接提交。
 - 确定后创建**真实本地镜像**并被 harness 收养，同时通过 SFTP 保持同步；所选工作区持久化到该机器。

@@ -34,11 +34,11 @@ The heartbeat is fire-and-forget: it never blocks loading and failures are ignor
 
 **Settings → 远程工作区** — machine list, advanced config (key / jump host / agent), connection check, port forwarding, audit log, update:
 
-<img src="docs/shots/settings-panel.png" alt="dsh-remote settings: machine list, advanced config, port forwarding, audit log, update" width="535"/>
+<img src="docs/shots/settings-panel.png" alt="dsh-remote settings: machine list, advanced config, port forwarding, audit log, update" width="640"/>
 
 The native **"Add workspace"** flow — a centered modal with two tabs, opening on Local; here switched to **Remote**:
 
-<img src="docs/shots/picker-dialog.png" alt="The 远程 (remote) tab of the workspace picker: machine select, recent workspaces, browse, set-as-remote-workspace" width="595"/>
+<img src="docs/shots/picker-dialog.png" alt="The 远程 (remote) tab of the workspace picker: machine select, recent workspaces, browse, set-as-remote-workspace" width="632"/>
 
 - The path field autocompletes live; on Windows hosts the root shows a multi-drive view; the floating browser fills the field without committing.
 - On confirm a **real local mirror** is created and adopted by the harness, kept in sync over SFTP; the choice persists on the machine.
@@ -53,14 +53,14 @@ The image above is the overview. What follows is only what the image does not ma
 
 **Workspace picker** (fills the native "Add workspace" flow) — Local uses the system folder chooser; Remote browses inside the modal:
 
-<img src="docs/shots/picker-dialog.png" alt="The 远程 (remote) tab of the workspace picker: machine select, recent workspaces, browse, set-as-remote-workspace" width="595"/>
+<img src="docs/shots/picker-dialog.png" alt="The 远程 (remote) tab of the workspace picker: machine select, recent workspaces, browse, set-as-remote-workspace" width="632"/>
 
 - The path field autocompletes live; on Windows hosts the root shows a multi-drive view; the floating browser fills the field without committing.
 - On confirm a **real local mirror** is created and adopted by the harness, kept in sync over SFTP; the choice persists on the machine.
 
 **Settings** (machine list, connection check, port forwarding, audit log, update mode):
 
-<img src="docs/shots/settings-panel.png" alt="dsh-remote settings: machine list, advanced config, port forwarding, audit log, update" width="535"/>
+<img src="docs/shots/settings-panel.png" alt="dsh-remote settings: machine list, advanced config, port forwarding, audit log, update" width="640"/>
 
 The rest:
 

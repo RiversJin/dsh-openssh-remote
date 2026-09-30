@@ -1,48 +1,59 @@
-# 静态验证图片在页面里的几何（不依赖浏览器加载，避开 headless 下 lazy 不触发的问题）。
+# 静态验证配图在页面里的几何（不依赖浏览器加载，避开 headless 下 lazy 不触发）。
 #
-# 验证的是"CSS 约束 + 图片自然尺寸"是否匹配：
-#   · .shots figure img  有固定 height + object-fit:cover  => 并排两张不会互相压扁
-#   · figure.wide img    宽度 100% => 按比例显示，不会坍缩
-# 这正是之前真实出问题的地方（三列网格把 612/1280 宽的图压到 332，长图把同行压成 1px）。
+# 判据随方案演进过两次，这里只保留**当前方案**的要求：
+#   方案：并排图竖向排列，各自 width:100% + height:auto + 逐图 max-width 上限，
+#         绝不放大位图（放大位图 = 模糊）。
+#   （旧的"固定 height + object-fit:cover"方案已被否决：它会把 595x224 的扁图
+#     放大 1.6 倍而模糊，而那正是当初踩过的坑。）
 import re
+import sys
 from PIL import Image
 
 html = open('docs/index.html', encoding='utf-8').read()
 
-imgs = re.findall(r'src="\./(shots/[^"]+)"', html)
-print('页面引用的配图:')
-for rel in imgs:
-    im = Image.open('docs/' + rel)
-    print(f'  {rel:34} natural={im.size[0]}x{im.size[1]}')
 
-# 抽取关键 CSS
 def rule(sel):
     m = re.search(re.escape(sel) + r'\s*\{([^}]*)\}', html)
     return m.group(1).strip() if m else None
 
-shots_img = rule('.shots figure img')
-wide_rule = rule('figure.wide')
+
+shots_css = rule('.shots figure img') or rule('.shots figure img')
+wide_css = rule('figure.wide')
+shots_grid = rule('.shots')
+
+print('页面引用的配图:')
+for rel in re.findall(r'src="\./(shots/[^"]+)"', html):
+    im = Image.open('docs/' + rel)
+    print(f'  {rel:32} natural={im.size[0]}x{im.size[1]}')
+
 print('\nCSS 约束:')
-print('  .shots figure img ->', (shots_img or '(未定义)').replace('\n', ' ')[:110])
+print('  .shots            ->', (shots_grid or '(无)').replace('\n', ' ')[:90])
+print('  .shots figure img ->', (shots_css or '(未定义)').replace('\n', ' ')[:110])
 
 problems = []
 
-# 1) 并排的两张必须有固定高度 + object-fit，否则长图会撑高整行、把另一张压扁
-if not shots_img:
-    problems.append('.shots figure img 未定义：并排图会互相压扁')
+if not shots_css:
+    problems.append('.shots figure img 未定义')
 else:
-    if 'height' not in shots_img:
-        problems.append('.shots figure img 没有固定高度：长图会撑高整行')
-    if 'object-fit' not in shots_img:
-        problems.append('.shots figure img 没有 object-fit：长图会被拉伸变形')
+    # 方案要求：按比例 + 不放大。若回到"固定高度 + cover"就是倒退。
+    if 'height' in shots_css and 'auto' not in shots_css:
+        problems.append('.shots figure img 设了非 auto 高度：会拉伸/压扁位图')
+    if 'object-fit' in shots_css and 'cover' in shots_css:
+        problems.append('.shots figure img 用了 object-fit:cover：扁图会被放大而模糊')
 
-# 2) 并排的图不能同时带 width:100% 且无 object-fit（会按各自比例撑高）
-if shots_img and 'width' in shots_img and 'object-fit' not in shots_img:
-    problems.append('并排图同时有 width 与无 object-fit')
+# 逐图必须有 max-width 上限（防止位图被拉到容器宽度而放大）
+inline = re.findall(r'class="shots"[\s\S]*?</div>', html)
+caps = re.findall(r'style="max-width:(\d+)px"', inline[0] if inline else '')
+n_imgs = len(re.findall(r'src="\./shots/', inline[0] if inline else ''))
+print(f'\n并排区: {n_imgs} 张图, {len(caps)} 个 max-width 上限: {caps}')
+if len(caps) < n_imgs:
+    problems.append(f'并排区有 {n_imgs} 张图但只有 {len(caps)} 个 max-width 上限')
 
-# 3) 全宽图（能力总览）必须按比例：不能设固定 height
-if wide_rule and 'height' in wide_rule:
-    problems.append('能力总览设了固定高度，会裁掉内容')
+# 上限不得超过图片真实宽度（否则就是放大）
+for cap, rel in zip(caps, re.findall(r'src="\./(shots/[^"]+)"', inline[0] if inline else '')):
+    im = Image.open('docs/' + rel)
+    if int(cap) > im.size[0]:
+        problems.append(f'{rel}: max-width {cap} > 实际宽度 {im.size[0]}（会放大）')
 
 print('\n问题:', '; '.join(problems) if problems else '无')
-raise SystemExit(1 if problems else 0)
+sys.exit(1 if problems else 0)
