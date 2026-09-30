@@ -60,11 +60,6 @@
   .bar{height:7px;border-radius:4px;background:linear-gradient(90deg,var(--purple),var(--blue));min-width:2px}
   .empty{color:var(--dim);font-size:13px;padding:10px 0}
 
-  .caveat{border-left:2px solid var(--warn);background:rgba(230,192,123,.07);
-    border-radius:0 9px 9px 0;padding:14px 16px;font-size:13.2px;color:var(--mut);margin-top:14px}
-  .caveat b{color:var(--fg)}
-  .caveat ul{margin:8px 0 0 18px}
-  .caveat li{margin-bottom:5px}
   footer{margin:44px 0 48px;padding-top:20px;border-top:1px solid var(--line);
     font-size:12.5px;color:var(--dim);display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
   footer a{text-decoration:none}footer a:hover{color:#b9a6ff}
@@ -140,30 +135,6 @@
 </section>
 
 <section>
-  <h2><span class="t" data-zh="怎么读这些数字" data-en="How to read these numbers">怎么读这些数字</span></h2>
-  <div class="caveat zh-only">
-    <b>这些是「已升级的安装」，不是全部用户。</b>心跳只来自含上报能力的版本（0.8.25+），
-    在所有人都升级之前，日活 / 周活 / 月活会**系统性偏低**——请把它们当作下限，并用 npm 下载量交叉校准。
-    <ul>
-      <li><b>去重口径</b> —— 同一安装最多每 6 小时上报一次；每天每安装只写一行，当天重复上报只累加计数。删除 <code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code> 会被算成新装机。</li>
-      <li><b>时区</b> —— 按 <code>Asia/Shanghai</code> 分日，因此「一天」不是 UTC。</li>
-      <li><b>npm 缺口日</b> —— npm 的日粒度接口会在某几天对<em>所有</em>包都返回 0（已用对照包验证），属于上报缺口而非零使用；这些天在图上标灰，不会画成真实的零。</li>
-      <li><b>隐私</b> —— 只传输 <code>idHash</code>（HMAC 伪名）、版本、平台、架构与 Node 版本；原始安装 ID 不离开本机。</li>
-      <li><b>作者自己的沙箱也会上报</b> —— 作者本机的测试实例跑同一份代码、上报方式相同，所以少量记录可能来自作者的沙箱而非真实用户。随着装机量增长，这部分占比会自然变小。</li>
-    </ul>
-  </div>
-  <div class="caveat en-only" hidden>
-    <b>These are "installs that have upgraded", not all users.</b> Heartbeats only come from versions
-    that contain the reporter (0.8.25+). Until everyone upgrades, DAU/WAU/MAU systematically
-    <b>under-count</b> — treat them as a floor and cross-check against npm downloads.
-    <ul>
-      <li><b>Deduplication</b> — one install reports at most once every 6 hours; a row is written per install per day, and a repeated report the same day only increments a counter. Deleting <code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code> makes an install look new.</li>
-      <li><b>Time zone</b> — days are bucketed in <code>Asia/Shanghai</code>, so a "day" is not UTC.</li>
-      <li><b>npm gaps</b> — npm's daily endpoint returns 0 for some days across <em>all</em> packages (verified against control packages), i.e. a reporting gap rather than zero usage. Those days are flagged instead of being drawn as real zeros.</li>
-      <li><b>Privacy</b> — only <code>idHash</code> (an HMAC pseudonym), version, platform, arch and node version are transmitted. The raw install ID never leaves the machine.</li>
-      <li><b>Developer sandboxes count</b> — the author's own test instances run the same code and report the same way, so a handful of rows can be the author's own sandboxes rather than users. Numbers settle as the install base grows.</li>
-    </ul>
-  </div>
   <div id="load-error"></div>
 </section>
 
@@ -193,8 +164,6 @@ function applyLang (lang) {
     if (el.querySelector('[data-zh][data-en]')) continue
     el.textContent = zh ? el.dataset.zh : el.dataset.en
   }
-  for (const el of document.querySelectorAll('.zh-only')) el.hidden = !zh
-  for (const el of document.querySelectorAll('.en-only')) el.hidden = zh
   document.getElementById('lang-zh').setAttribute('aria-pressed', String(zh))
   document.getElementById('lang-en').setAttribute('aria-pressed', String(!zh))
   document.title = zh ? 'dsh-remote — 用量统计' : 'dsh-remote — usage stats'

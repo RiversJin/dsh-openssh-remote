@@ -272,36 +272,6 @@
   </div>
 </section>
 
-<section id="privacy">
-  <div class="wrap">
-    <h2 class="t" data-zh="数据采集与隐私" data-en="Telemetry &amp; privacy">数据采集与隐私</h2>
-    <p class="sub t" data-zh="自 0.8.25 起，插件每次启动发送一次匿名心跳（同一安装最多每 6 小时一次），用于统计真实使用量——这是 npm 下载量与 GitHub clone 回答不了的问题。" data-en="Since 0.8.25 the plugin sends one anonymous heartbeat per launch (at most once every 6 hours) so real usage can be measured — something npm download counts and GitHub clones cannot answer.">自 0.8.25 起，插件每次启动发送一次匿名心跳（同一安装最多每 6 小时一次），用于统计真实使用量——这是 npm 下载量与 GitHub clone 回答不了的问题。</p>
-    <table>
-      <thead><tr><th></th><th></th></tr></thead>
-      <tbody>
-        <tr>
-          <td><b class="t" data-zh="发送的内容" data-en="Sent">发送的内容</b></td>
-          <td class="t" data-zh="严格 5 个字段：<code>idHash</code>（HMAC 伪名）、<code>version</code>、<code>platform</code>、<code>arch</code>、<code>node</code>。" data-en="Exactly five fields: <code>idHash</code> (HMAC pseudonym), <code>version</code>, <code>platform</code>, <code>arch</code>, <code>node</code>.">严格 5 个字段：<code>idHash</code>（HMAC 伪名）、<code>version</code>、<code>platform</code>、<code>arch</code>、<code>node</code>。</td>
-        </tr>
-        <tr>
-          <td><b class="t" data-zh="绝不发送" data-en="Never sent">绝不发送</b></td>
-          <td class="t" data-zh="主机名、用户名、文件路径、IP、SSH 主机/端口/密钥、你的机器列表、会话内容、任何远程工作区数据。" data-en="Hostnames, usernames, paths, IPs, SSH hosts/ports/keys, your machine list, conversation content, anything from your remote sessions.">主机名、用户名、文件路径、IP、SSH 主机/端口/密钥、你的机器列表、会话内容、任何远程工作区数据。</td>
-        </tr>
-        <tr>
-          <td><b class="t" data-zh="身份存放" data-en="Identity">身份存放</b></td>
-          <td class="t" data-zh="<code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code> 里的一个随机 UUID。原始 ID 不离开本机——只传它的 HMAC，因此既无法关联也无法反推。" data-en="A random UUID in <code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code>. The original never leaves your machine — only its HMAC is transmitted, so it cannot be correlated or reversed."><code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code> 里的一个随机 UUID。原始 ID 不离开本机——只传它的 HMAC，因此既无法关联也无法反推。</td>
-        </tr>
-      </tbody>
-    </table>
-    <p class="sub" style="margin-top:18px;margin-bottom:0">
-      <span class="t" data-zh="心跳是尽力而为的旁路：不阻塞加载，任何失败都静默吞掉。详见" data-en="The heartbeat is fire-and-forget: it never blocks loading and any failure is swallowed silently. See the">心跳是尽力而为的旁路：不阻塞加载，任何失败都静默吞掉。详见</span>
-      <a href="./stats/" style="color:#b9a6ff"><span class="t" data-zh="实时用量统计" data-en="live usage stats">实时用量统计</span></a>
-      <span class="t" data-zh="与" data-en="and the">与</span>
-      <a href="https://github.com/flymysql/dsh-remote/blob/main/README.md#数据采集--遥测" style="color:#b9a6ff"><span class="t" data-zh="完整说明" data-en="full policy">完整说明</span></a>。
-    </p>
-  </div>
-</section>
-
 <footer>
   <div class="wrap" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;width:100%">
     <span class="t" data-zh="MIT 许可 · 由 @flymysql 维护" data-en="MIT licensed · maintained by @flymysql">MIT 许可 · 由 @flymysql 维护</span>
