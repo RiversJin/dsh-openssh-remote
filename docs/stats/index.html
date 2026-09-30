@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>dsh-remote — usage stats</title>
-<meta name="description" content="Daily / weekly / monthly active installs for the dsh-remote DeepSeek Harness plugin, measured from anonymous heartbeats."/>
+<title>dsh-remote — 用量统计</title>
+<meta name="description" content="dsh-remote（DeepSeek Harness 远程工作助手插件）的日活 / 周活 / 月活统计，数据来自匿名心跳。"/>
 <meta name="theme-color" content="#07070b"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>"/>
 <style>
@@ -15,16 +15,22 @@
     --purple:#7a3ef3; --blue:#2283f6; --ok:#4caf7d; --warn:#e6c07b; --bad:#e06c75;
   }
   body{background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased;
-    font-family:Inter,"Noto Sans","PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.6}
+    font-family:Inter,"Noto Sans","PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.65}
   .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
   a{color:inherit}
   header{padding:30px 0 8px}
   .top{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between}
   h1{font-size:24px;font-weight:750;letter-spacing:-.015em}
   h1 span{color:var(--dim);font-weight:400;font-size:15px;margin-left:8px}
+  .right{display:flex;align-items:center;gap:14px}
   .back{font-size:13px;color:var(--mut);text-decoration:none}
   .back:hover{color:#b9a6ff}
   .stamp{font-size:12px;color:var(--dim);margin-top:4px}
+
+  /* 语言开关：默认中文（无 localStorage 时按中文渲染），点 EN 切英文 */
+  .lang{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;font-size:12px}
+  .lang button{background:transparent;border:0;color:var(--dim);padding:3px 9px;cursor:pointer;font:inherit}
+  .lang button[aria-pressed="true"]{background:rgba(122,62,243,.28);color:#e8e8ef;font-weight:600}
 
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:24px 0 8px}
   .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
@@ -69,59 +75,84 @@
 <header>
   <div class="top">
     <div>
-      <h1>dsh-remote usage<span>实时统计 / usage stats</span></h1>
-      <div class="stamp" id="stamp">loading…</div>
+      <h1><span class="t" data-zh="dsh-remote 用量统计" data-en="dsh-remote usage">dsh-remote 用量统计</span><span class="t" data-zh="来自匿名心跳" data-en="from anonymous heartbeats">来自匿名心跳</span></h1>
+      <div class="stamp" id="stamp">加载中…</div>
     </div>
-    <a class="back" href="../">← plugin home</a>
+    <div class="right">
+      <span class="lang">
+        <button id="lang-zh" aria-pressed="true">中文</button>
+        <button id="lang-en" aria-pressed="false">EN</button>
+      </span>
+      <a class="back" href="../"><span class="t" data-zh="← 插件主页" data-en="← plugin home">← 插件主页</span></a>
+    </div>
   </div>
 </header>
 
 <div class="kpis">
-  <div class="kpi hi"><div class="lab">DAU</div><div class="val" id="k-dau">—</div><div class="hint" id="k-dau-hint">latest full day</div></div>
-  <div class="kpi"><div class="lab">WAU · 7d</div><div class="val" id="k-wau">—</div><div class="hint">unique installs</div></div>
-  <div class="kpi"><div class="lab">MAU · 30d</div><div class="val" id="k-mau">—</div><div class="hint">unique installs</div></div>
-  <div class="kpi"><div class="lab">Installs</div><div class="val" id="k-inst">—</div><div class="hint">ever reported</div></div>
+  <div class="kpi hi">
+    <div class="lab">DAU</div>
+    <div class="val" id="k-dau">—</div>
+    <div class="hint t" data-zh="最近一个完整日" data-en="latest full day">最近一个完整日</div>
+  </div>
+  <div class="kpi"><div class="lab">WAU · 7d</div><div class="val" id="k-wau">—</div>
+    <div class="hint t" data-zh="去重装机" data-en="unique installs">去重装机</div></div>
+  <div class="kpi"><div class="lab">MAU · 30d</div><div class="val" id="k-mau">—</div>
+    <div class="hint t" data-zh="去重装机" data-en="unique installs">去重装机</div></div>
+  <div class="kpi"><div class="lab t" data-zh="累计装机" data-en="Installs">累计装机</div>
+    <div class="val" id="k-inst">—</div>
+    <div class="hint t" data-zh="曾上报过的安装" data-en="ever reported">曾上报过的安装</div></div>
 </div>
 
 <section>
-  <h2>Daily active installs<span>日活</span></h2>
-  <p class="sub">One heartbeat per install per day, de-duplicated by pseudonymous ID. The last bar is <b>today, still incomplete</b>.</p>
+  <h2><span class="t" data-zh="日活" data-en="Daily active installs">日活</span></h2>
+  <p class="sub t" data-zh="每台安装每天最多一条心跳，按伪名去重。最后一根是「今天（尚未结束）」，刻意压暗。" data-en="One heartbeat per install per day, de-duplicated by pseudonym. The last bar is today, still incomplete, and is drawn dimmed.">每台安装每天最多一条心跳，按伪名去重。最后一根是「今天（尚未结束）」，刻意压暗。</p>
   <div class="box"><div id="chart-dau"></div></div>
 </section>
 
 <section>
-  <h2>npm downloads<span>下载量（对照口径）</span></h2>
-  <p class="sub">Release-driven, not usage-driven — kept here as a sanity check against the heartbeat numbers.</p>
+  <h2><span class="t" data-zh="npm 下载量" data-en="npm downloads">npm 下载量</span><span class="t" data-zh="对照口径" data-en="for reference">对照口径</span></h2>
+  <p class="sub t" data-zh="下载量由「发版」驱动而非「装机」驱动，只作对照，不代表用户数。" data-en="Release-driven rather than usage-driven — kept only as a sanity check, not a user count.">下载量由「发版」驱动而非「装机」驱动，只作对照，不代表用户数。</p>
   <div class="box">
     <div id="chart-npm"></div>
     <div class="legend">
-      <span><i class="swatch" style="background:linear-gradient(90deg,#7a3ef3,#2283f6)"></i>downloads</span>
-      <span><i class="swatch" style="background:var(--dim)"></i>flagged gap day (npm reported 0)</span>
+      <span><i class="swatch" style="background:linear-gradient(90deg,#7a3ef3,#2283f6)"></i><span class="t" data-zh="下载量" data-en="downloads">下载量</span></span>
+      <span><i class="swatch" style="background:var(--dim)"></i><span class="t" data-zh="npm 上报缺口日（非真实零）" data-en="flagged gap day (npm reported 0)">npm 上报缺口日（非真实零）</span></span>
     </div>
     <div id="npm-summary" class="legend"></div>
   </div>
 </section>
 
 <section>
-  <h2>Distribution<span>分布</span></h2>
+  <h2><span class="t" data-zh="分布" data-en="Distribution">分布</span></h2>
   <div class="cols">
     <div class="box">
-      <h2 style="font-size:14px;margin-bottom:10px">Version <span>在跑版本</span></h2>
+      <h2 style="font-size:14px;margin-bottom:10px"><span class="t" data-zh="在跑版本" data-en="Version">在跑版本</span></h2>
       <div id="ver-list"></div>
     </div>
     <div class="box">
-      <h2 style="font-size:14px;margin-bottom:10px">Platform <span>平台</span></h2>
+      <h2 style="font-size:14px;margin-bottom:10px"><span class="t" data-zh="平台" data-en="Platform">平台</span></h2>
       <div id="plat-list"></div>
     </div>
   </div>
 </section>
 
 <section>
-  <h2>How to read these numbers<span>口径说明</span></h2>
-  <div class="caveat">
+  <h2><span class="t" data-zh="怎么读这些数字" data-en="How to read these numbers">怎么读这些数字</span></h2>
+  <div class="caveat zh-only">
+    <b>这些是「已升级的安装」，不是全部用户。</b>心跳只来自含上报能力的版本（0.8.25+），
+    在所有人都升级之前，日活 / 周活 / 月活会**系统性偏低**——请把它们当作下限，并用 npm 下载量交叉校准。
+    <ul>
+      <li><b>去重口径</b> —— 同一安装最多每 6 小时上报一次；每天每安装只写一行，当天重复上报只累加计数。删除 <code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code> 会被算成新装机。</li>
+      <li><b>时区</b> —— 按 <code>Asia/Shanghai</code> 分日，因此「一天」不是 UTC。</li>
+      <li><b>npm 缺口日</b> —— npm 的日粒度接口会在某几天对<em>所有</em>包都返回 0（已用对照包验证），属于上报缺口而非零使用；这些天在图上标灰，不会画成真实的零。</li>
+      <li><b>隐私</b> —— 只传输 <code>idHash</code>（HMAC 伪名）、版本、平台、架构与 Node 版本；原始安装 ID 不离开本机。</li>
+      <li><b>作者自己的沙箱也会上报</b> —— 作者本机的测试实例跑同一份代码、上报方式相同，所以少量记录可能来自作者的沙箱而非真实用户。随着装机量增长，这部分占比会自然变小。</li>
+    </ul>
+  </div>
+  <div class="caveat en-only" hidden>
     <b>These are "installs that have upgraded", not all users.</b> Heartbeats only come from versions
     that contain the reporter (0.8.25+). Until everyone upgrades, DAU/WAU/MAU systematically
-    <b>under-count</b> — so treat them as a floor and cross-check against npm downloads.
+    <b>under-count</b> — treat them as a floor and cross-check against npm downloads.
     <ul>
       <li><b>Deduplication</b> — one install reports at most once every 6 hours; a row is written per install per day, and a repeated report the same day only increments a counter. Deleting <code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code> makes an install look new.</li>
       <li><b>Time zone</b> — days are bucketed in <code>Asia/Shanghai</code>, so a "day" is not UTC.</li>
@@ -134,9 +165,9 @@
 </section>
 
 <footer>
-  <span>Generated from anonymous heartbeat data · MIT licensed</span>
+  <span class="t" data-zh="数据来自匿名心跳 · MIT 许可" data-en="Generated from anonymous heartbeat data · MIT licensed">数据来自匿名心跳 · MIT 许可</span>
   <span>
-    <a href="../">home</a> ·
+    <a href="../"><span class="t" data-zh="主页" data-en="home">主页</span></a> ·
     <a href="https://github.com/flymysql/dsh-remote">GitHub</a> ·
     <a href="https://www.npmjs.com/package/dsh-remote">npm</a>
   </span>
@@ -145,25 +176,50 @@
 </div>
 
 <script>
+// ── 语言：默认中文；英文仅在用户显式切换后使用 ──────────────────────────────
+// 之所以用 data-zh/data-en 属性而不是"英文为主、中文折叠"：需求是**优先中文**，
+// 所以中文必须是无脚本、无 localStorage 时的默认渲染结果（首屏不闪英文）。
+const LANG_KEY = 'dsh-remote-stats-lang'
+function applyLang (lang) {
+  const zh = lang !== 'en'
+  document.documentElement.lang = zh ? 'zh-CN' : 'en'
+  // ★ 只处理"叶子"元素（内部不再含带 data-zh 的子元素）。若对容器整体写
+  // innerHTML/textContent，会把子元素的 data-zh/data-en 一起抹掉 ——
+  // 表现为切一次语言后那部分文案永久卡在某一语言。
+  for (const el of document.querySelectorAll('[data-zh][data-en]')) {
+    if (el.querySelector('[data-zh][data-en]')) continue
+    el.textContent = zh ? el.dataset.zh : el.dataset.en
+  }
+  for (const el of document.querySelectorAll('.zh-only')) el.hidden = !zh
+  for (const el of document.querySelectorAll('.en-only')) el.hidden = zh
+  document.getElementById('lang-zh').setAttribute('aria-pressed', String(zh))
+  document.getElementById('lang-en').setAttribute('aria-pressed', String(!zh))
+  document.title = zh ? 'dsh-remote — 用量统计' : 'dsh-remote — usage stats'
+}
+let LANG = 'zh'
+try { LANG = localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'zh' } catch { /* 隐私模式 */ }
+document.getElementById('lang-zh').addEventListener('click', () => { LANG = 'zh'; try { localStorage.setItem(LANG_KEY, LANG) } catch {} applyLang(LANG) })
+document.getElementById('lang-en').addEventListener('click', () => { LANG = 'en'; try { localStorage.setItem(LANG_KEY, LANG) } catch {} applyLang(LANG) })
+applyLang(LANG)
+const T = (zh, en) => (LANG === 'en' ? en : zh)
+
 const $ = (id) => document.getElementById(id)
 const fmt = (n) => (n === null || n === undefined || Number.isNaN(n)) ? '—' : Number(n).toLocaleString('en-US')
 const short = (n) => {
   if (n === null || n === undefined) return '—'
   const v = Number(n)
   if (v >= 1e6) return (v / 1e6).toFixed(1).replace(/\.0$/, '') + 'M'
-  if (v >= 1e4) return (v / 1e3).toFixed(1).replace(/\.0$/, '') + 'k'
-  if (v >= 1e3) return (v / 1e3).toFixed(1).replace(/\.0$/, '') + 'k'
+  if (v >= 1e4 || v >= 1e3) return (v / 1e3).toFixed(1).replace(/\.0$/, '') + 'k'
   return String(v)
 }
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
 /**
- * Minimal SVG bar chart — no chart library, because this repo is deliberately
- * zero-build and a dashboard is not worth a dependency tree.
+ * 极简 SVG 柱图 —— 不引图表库：本仓库刻意零构建，为一个看板拉依赖树不划算。
  */
 function barChart (el, rows, opts = {}) {
   const { height = 170, gradId = 'gbar' } = opts
-  if (!rows.length) { el.innerHTML = '<div class="empty">no data yet</div>'; return }
+  if (!rows.length) { el.innerHTML = `<div class="empty">${esc(T('暂无数据', 'no data yet'))}</div>`; return }
 
   const W = 1000, H = height, padB = 26, padT = 14
   const max = Math.max(1, ...rows.map(r => r.value || 0))
@@ -175,16 +231,17 @@ function barChart (el, rows, opts = {}) {
     const x = i * bw + bw * 0.16
     const w = bw * 0.68
     const y = padT + (inner - h)
-    const flagged = r.flagged
-    // A gap day and "today so far" get distinct fills so neither is misread:
-    // the first is missing data, the second is an incomplete day.
-    const fill = flagged ? 'rgba(109,109,128,.42)'
+    // 缺口日与"今天未完整"用不同填充，避免两者被读成同一件事：
+    // 前者是数据缺失，后者是当天还没过完。
+    const fill = r.flagged ? 'rgba(109,109,128,.42)'
       : (r.partial ? 'rgba(122,62,243,.42)' : `url(#${gradId})`)
+    const tip = `${r.label}: ${r.value ?? 0}` +
+      (r.flagged ? T('（npm 上报缺口）', ' (npm reporting gap)') : '') +
+      (r.partial ? T('（今天，未完整）', ' (today, incomplete)') : '')
     return `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}"
-              rx="2" fill="${fill}"><title>${esc(r.label)}: ${esc(r.value ?? 0)}${flagged ? ' (npm reporting gap)' : ''}${r.partial ? ' (today, incomplete)' : ''}</title></rect>`
+              rx="2" fill="${fill}"><title>${esc(tip)}</title></rect>`
   }).join('')
 
-  // x labels: show about 6 evenly spaced dates
   const step = Math.max(1, Math.ceil(rows.length / 6))
   const labels = rows.map((r, i) => (i % step === 0 || i === rows.length - 1)
     ? `<text x="${(i * bw + bw / 2).toFixed(1)}" y="${H - 8}" fill="#6d6d80" font-size="11" text-anchor="middle">${esc((r.label || '').slice(5))}</text>`
@@ -204,12 +261,12 @@ function barChart (el, rows, opts = {}) {
   </svg>`
 }
 
-/** Horizontal distribution list with proportional bars. */
+/** 分布列表：带按比例的长度条。 */
 function distList (el, rows, keyName, label) {
-  if (!rows || !rows.length) { el.innerHTML = `<div class="empty">no data yet</div>`; return }
+  if (!rows || !rows.length) { el.innerHTML = `<div class="empty">${esc(T('暂无数据', 'no data yet'))}</div>`; return }
   const max = Math.max(1, ...rows.map(r => r.n || 0))
   const total = rows.reduce((s, r) => s + (r.n || 0), 0)
-  el.innerHTML = `<table><thead><tr><th>${esc(label)}</th><th class="r">installs</th><th class="r">share</th></tr></thead><tbody>${
+  el.innerHTML = `<table><thead><tr><th>${esc(label)}</th><th class="r">${esc(T('装机', 'installs'))}</th><th class="r">${esc(T('占比', 'share'))}</th></tr></thead><tbody>${
     rows.map(r => {
       const pct = total ? Math.round((r.n / total) * 100) : 0
       return `<tr><td><code>${esc(r[keyName])}</code></td><td class="r">${fmt(r.n)}</td>
@@ -220,58 +277,69 @@ function distList (el, rows, keyName, label) {
   }</tbody></table>`
 }
 
+let SNAP = null
+
 async function main () {
-  let snap
   try {
-    snap = await fetch('../data/stats.json', { cache: 'no-cache' }).then(r => r.json())
-  } catch (e) {
-    $('load-error').innerHTML = '<div class="warnbox">Could not load <code>data/stats.json</code> — the snapshot may not have been generated yet. Run <code>node scripts/snapshot-stats.mjs</code> (CI does this on a schedule).</div>'
-    $('stamp').textContent = 'snapshot unavailable'
+    SNAP = await fetch('../data/stats.json', { cache: 'no-cache' }).then(r => r.json())
+  } catch {
+    $('load-error').innerHTML = `<div class="warnbox">${esc(T('无法加载 data/stats.json —— 快照可能还没生成。运行 node scripts/snapshot-stats.mjs（CI 会定时执行）。', 'Could not load data/stats.json — the snapshot may not have been generated yet. Run node scripts/snapshot-stats.mjs (CI does this on a schedule).'))}</div>`
+    $('stamp').textContent = T('快照不可用', 'snapshot unavailable')
     return
   }
 
-  const hb = snap.heartbeat
-  const generated = snap.generatedAt ? new Date(snap.generatedAt) : null
+  const hb = SNAP.heartbeat
+  const generated = SNAP.generatedAt ? new Date(SNAP.generatedAt) : null
   $('stamp').textContent = generated
-    ? `snapshot ${generated.toLocaleString()} · heartbeats in Asia/Shanghai`
-    : 'snapshot present'
+    ? T(`快照于 ${generated.toLocaleString()} · 心跳按 Asia/Shanghai 分日`,
+        `snapshot ${generated.toLocaleString()} · heartbeats in Asia/Shanghai`)
+    : T('已有快照', 'snapshot present')
 
-  if (snap.heartbeatError) {
-    $('load-error').innerHTML = `<div class="warnbox">Heartbeat stats unavailable: <code>${esc(snap.heartbeatError)}</code></div>`
+  if (SNAP.heartbeatError) {
+    $('load-error').innerHTML = `<div class="warnbox">${esc(T('心跳统计不可用：', 'Heartbeat stats unavailable: '))}<code>${esc(SNAP.heartbeatError)}</code></div>`
   }
 
   const daily = (hb && hb.daily) || []
-  const todayKey = hb?.generatedAt ? new Date(hb.generatedAt).toLocaleDateString('en-CA', { timeZone: hb.tz || 'Asia/Shanghai' }) : ''
+  const todayKey = hb?.generatedAt
+    ? new Date(hb.generatedAt).toLocaleDateString('en-CA', { timeZone: hb.tz || 'Asia/Shanghai' })
+    : ''
 
-  // completed-day DAU: the last bucket is today-so-far and must not be read as a drop
-  const completed = daily.slice().reverse().find(d => d.day !== todayKey) 
-  const inst = hb?.installs ?? null
+  // 最近一个**完整**日：最后一个桶是"今天至今"，不能当作下跌来读
+  const completed = daily.slice().reverse().find(d => d.day !== todayKey)
   $('k-dau').textContent = fmt(completed?.dau ?? 0)
-  $('k-dau-hint').textContent = completed ? `on ${completed.day}` : 'latest full day'
+  document.querySelector('.kpi.hi .hint').textContent = completed
+    ? T(`${completed.day}`, completed.day)
+    : T('最近一个完整日', 'latest full day')
   $('k-wau').textContent = fmt(hb?.wau ?? 0)
   $('k-mau').textContent = fmt(hb?.mau ?? 0)
-  $('k-inst').textContent = fmt(inst ?? 0)
+  $('k-inst').textContent = fmt(hb?.installs ?? 0)
 
   barChart($('chart-dau'), daily.map(d => ({
     label: d.day, value: d.dau || 0, partial: d.day === todayKey,
   })), { gradId: 'gdau' })
 
-  // npm chart with gap days flagged
-  const npmDaily = (snap.npm && snap.npm.daily) || []
-  const zeroDays = new Set((snap.npm && snap.npm.zeroDays) || [])
+  const npmDaily = (SNAP.npm && SNAP.npm.daily) || []
+  const zeroDays = new Set((SNAP.npm && SNAP.npm.zeroDays) || [])
   barChart($('chart-npm'), npmDaily.map(d => ({
     label: d.day, value: d.downloads || 0, flagged: zeroDays.has(d.day),
   })), { height: 150, gradId: 'gnpm' })
 
   const gaps = zeroDays.size
-  $('npm-summary').innerHTML = `<span>last week <b style="color:var(--fg)">${fmt(snap.npm?.lastWeek)}</b></span>
-    <span>last month <b style="color:var(--fg)">${fmt(snap.npm?.lastMonth)}</b></span>
-    ${gaps ? `<span style="color:var(--warn)">${gaps} day(s) flagged as npm reporting gaps</span>` : ''}`
+  // 下载量标签带一个「含缺口日」的显式提示：缺口日的 0 不是真实零，
+  // 所以这里只报"原始日合计"，并说明其中有几天缺失。
+  $('npm-summary').innerHTML =
+    `<span>${esc(T('近一周', 'last week'))} <b style="color:var(--fg)">${fmt(SNAP.npm?.lastWeek)}</b></span>` +
+    `<span>${esc(T('近一月', 'last month'))} <b style="color:var(--fg)">${fmt(SNAP.npm?.lastMonth)}</b></span>` +
+    (gaps ? `<span style="color:var(--warn)">${esc(T(`${gaps} 天为 npm 上报缺口`, `${gaps} day(s) flagged as npm reporting gaps`))}</span>` : '')
 
-  distList($('ver-list'), hb?.byVersion, 'version', 'version')
-  distList($('plat-list'), hb?.byPlatform, 'platform', 'platform')
+  distList($('ver-list'), hb?.byVersion, 'version', T('版本', 'version'))
+  distList($('plat-list'), hb?.byPlatform, 'platform', T('平台', 'platform'))
 }
 
+// 切语言后重绘（图表内嵌文案与分布表头都要跟着变）
+for (const id of ['lang-zh', 'lang-en']) {
+  document.getElementById(id).addEventListener('click', () => { if (SNAP) main() })
+}
 main()
 </script>
 </body>

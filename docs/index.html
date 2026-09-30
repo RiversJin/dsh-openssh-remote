@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>dsh-remote — make any SSH machine a real DSH workspace</title>
-<meta name="description" content="Remote-work assistant for DeepSeek Harness (DSH): connect SSH (key or password), pick a remote workspace, operate with rw_* tools, and SFTP-mirror it into a real local DSH workspace."/>
-<meta property="og:title" content="dsh-remote — make any SSH machine a real DSH workspace"/>
-<meta property="og:description" content="Multi-machine SSH registry, remote workspace picker, 20 rw_* tools, conflict-aware mirror sync, port forwarding."/>
+<title>dsh-remote — 把任意 SSH 机器变成真正的 DSH 工作区</title>
+<meta name="description" content="为 DeepSeek Harness（DSH）打造的远程工作助手：多机 SSH、远程工作区选择、20 个 rw_* 工具、冲突感知镜像同步、端口转发。"/>
+<meta property="og:title" content="dsh-remote — 把任意 SSH 机器变成真正的 DSH 工作区"/>
+<meta property="og:description" content="多机 SSH 列表、远程工作区选择器、20 个 rw_* 工具、三路冲突检测镜像同步、端口转发。"/>
 <meta property="og:image" content="https://flymysql.github.io/dsh-remote/cover.png"/>
 <meta name="theme-color" content="#07070b"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>"/>
@@ -21,13 +21,19 @@
   body{
     background:var(--bg); color:var(--fg); -webkit-font-smoothing:antialiased;
     font-family:Inter,"Noto Sans","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
-    line-height:1.65; overflow-x:hidden;
+    line-height:1.7; overflow-x:hidden;
   }
   a{color:inherit}
   .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
 
+  /* 语言开关：默认中文（无脚本/无 localStorage 时首屏即中文，不闪英文） */
+  .lang{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;font-size:12px}
+  .lang button{background:transparent;border:0;color:var(--dim);padding:3px 9px;cursor:pointer;font:inherit}
+  .lang button[aria-pressed="true"]{background:rgba(122,62,243,.28);color:#e8e8ef;font-weight:600}
+  .topbar{display:flex;justify-content:flex-end;padding-top:18px}
+
   /* ── hero ─────────────────────────────────────────── */
-  .hero{position:relative;padding:88px 0 64px;overflow:hidden}
+  .hero{position:relative;padding:24px 0 60px;overflow:hidden}
   .hero::before{content:"";position:absolute;inset:0;pointer-events:none;
     background:
       radial-gradient(760px 460px at 86% 4%, rgba(122,62,243,.30), transparent 62%),
@@ -43,10 +49,9 @@
   .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:600;
     letter-spacing:.16em;text-transform:uppercase;color:#b9a6ff;margin-bottom:18px}
   .eyebrow::before{content:"";width:26px;height:2px;background:linear-gradient(90deg,var(--purple),var(--blue))}
-  h1{font-size:clamp(34px,5.4vw,58px);line-height:1.08;letter-spacing:-.02em;font-weight:800;margin-bottom:16px}
+  h1{font-size:clamp(30px,4.8vw,52px);line-height:1.2;letter-spacing:-.02em;font-weight:800;margin-bottom:16px}
   h1 .grad{background:linear-gradient(96deg,#b9a6ff,#7a3ef3 42%,#2283f6);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .lede{font-size:clamp(15px,1.7vw,18px);color:var(--mut);max-width:660px;margin-bottom:8px}
-  .lede.zh{font-size:14px;color:var(--dim);max-width:660px;margin-bottom:26px}
+  .lede{font-size:clamp(14.5px,1.6vw,17px);color:var(--mut);max-width:690px;margin-bottom:26px}
   .cta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:22px}
   .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:9px;
     font-size:14px;font-weight:600;text-decoration:none;border:1px solid var(--line);
@@ -68,17 +73,18 @@
   .hero-stats a:hover b{color:#b9a6ff}
 
   /* ── sections ─────────────────────────────────────── */
-  section{padding:60px 0;border-top:1px solid var(--line)}
-  h2{font-size:clamp(22px,2.8vw,30px);letter-spacing:-.015em;font-weight:700;margin-bottom:8px}
-  h2 .zh{font-size:14px;color:var(--dim);font-weight:400;margin-left:10px}
-  .sub{color:var(--mut);max-width:700px;margin-bottom:30px;font-size:15px}
+  section{padding:56px 0;border-top:1px solid var(--line)}
+  h2{font-size:clamp(21px,2.6vw,28px);letter-spacing:-.015em;font-weight:700;margin-bottom:8px}
+  .sub{color:var(--mut);max-width:720px;margin-bottom:28px;font-size:14.5px}
+  .sub code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#cbbcff;
+    background:rgba(255,255,255,.07);padding:1.5px 5px;border-radius:4px}
 
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:14px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;transition:.18s border-color,.18s transform}
   .card:hover{border-color:rgba(185,166,255,.36);transform:translateY(-2px)}
   .card .ic{font-size:20px;margin-bottom:10px;display:block}
   .card h3{font-size:15px;margin-bottom:7px;font-weight:650}
-  .card p{font-size:13.2px;color:var(--mut);line-height:1.6}
+  .card p{font-size:13.2px;color:var(--mut);line-height:1.65}
   .card code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:rgba(255,255,255,.07);
     padding:1.5px 5px;border-radius:4px;color:#cbbcff}
 
@@ -96,15 +102,17 @@
 
   table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
   th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
-  th{color:var(--dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+  th{color:var(--dim);font-weight:600;font-size:12px;letter-spacing:.03em}
   td code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#cbbcff}
-  .tool-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:7px;margin-top:14px}
+  .tool-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:7px;margin-top:14px}
   .tool-list code{font-family:ui-monospace,Menlo,monospace;font-size:12.2px;background:var(--panel);
     border:1px solid var(--line);border-radius:6px;padding:5px 9px;color:#cbbcff}
 
   .note{border-left:2px solid var(--purple);padding:12px 16px;background:rgba(122,62,243,.07);
     border-radius:0 9px 9px 0;font-size:13.4px;color:var(--mut);margin-top:18px}
   .note b{color:var(--fg)}
+  .note.warn{border-left-color:var(--warn);background:rgba(230,192,123,.07)}
+  .note code{font-family:ui-monospace,Menlo,monospace;font-size:12.3px;color:#cbbcff}
 
   footer{padding:36px 0 56px;border-top:1px solid var(--line);color:var(--dim);font-size:13px;
     display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center}
@@ -115,69 +123,82 @@
 </head>
 <body>
 
+<div class="wrap topbar">
+  <span class="lang">
+    <button id="lang-zh" aria-pressed="true">中文</button>
+    <button id="lang-en" aria-pressed="false">EN</button>
+  </span>
+</div>
+
 <header class="hero">
   <div class="grid-bg"></div>
   <div class="wrap hero-in">
     <div class="eyebrow">DeepSeek Harness plugin</div>
-    <h1>Make any SSH machine<br/>a real <span class="grad">DSH workspace</span></h1>
-    <p class="lede">
-      Manage several SSH machines, pick a remote directory, and let the agent work there directly —
-      listing files, reading code, running builds and commands over the remote host, and keeping that
-      directory mirrored into a real local workspace.
-    </p>
-    <p class="lede zh">
-      连上任意 SSH 机器，把远程目录当成真正的 DSH 工作区：20 个 <code>rw_*</code> 工具、冲突感知的镜像同步、端口转发。
-    </p>
+    <h1>
+      <span class="t" data-zh="把任意 SSH 机器" data-en="Make any SSH machine">把任意 SSH 机器</span><br/>
+      <span class="t" data-zh="变成真正的 " data-en="a real ">变成真正的 </span><span class="grad t" data-zh="DSH 工作区" data-en="DSH workspace">DSH 工作区</span>
+    </h1>
+    <p class="lede t"
+       data-zh="管理多台 SSH 机器，选一个远程目录，Agent 就能直接在那里工作——列文件、读代码、在远程主机上跑构建与命令，并把该目录镜像成一个真实的本地工作区。"
+       data-en="Manage several SSH machines, pick a remote directory, and let the agent work there directly — listing files, reading code, running builds and commands over the remote host, and keeping that directory mirrored into a real local workspace.">管理多台 SSH 机器，选一个远程目录，Agent 就能直接在那里工作——列文件、读代码、在远程主机上跑构建与命令，并把该目录镜像成一个真实的本地工作区。</p>
 
     <div class="cta">
-      <a class="btn primary" href="#install">Get started</a>
+      <a class="btn primary" href="#install"><span class="t" data-zh="开始使用" data-en="Get started">开始使用</span></a>
       <a class="btn" href="https://github.com/flymysql/dsh-remote">GitHub ↗</a>
       <a class="btn" href="https://www.npmjs.com/package/dsh-remote">npm ↗</a>
-      <a class="btn" href="./stats/">用法统计 ↗</a>
+      <a class="btn" href="./stats/"><span class="t" data-zh="用量统计 ↗" data-en="Usage stats ↗">用量统计 ↗</span></a>
     </div>
 
-    <div class="install" id="install-cmd" title="click to copy">
+    <div class="install" id="install-cmd" title="点击复制 / click to copy">
       <span><span class="dollar">$</span> dsh plugin --profile web add dsh-remote</span>
-      <span class="copy" id="copy-label">copy</span>
+      <span class="copy" id="copy-label">复制</span>
     </div>
 
     <div class="hero-stats" id="hero-stats">
-      <a href="https://www.npmjs.com/package/dsh-remote"><b id="v-version">—</b>latest version</a>
-      <a href="https://www.npmjs.com/package/dsh-remote"><b id="v-week">—</b>downloads / week</a>
-      <a href="https://github.com/flymysql/dsh-remote"><b id="v-stars">—</b>GitHub stars</a>
-      <a href="./stats/"><b id="v-dau">—</b>daily active installs</a>
+      <a href="https://www.npmjs.com/package/dsh-remote"><b id="v-version">—</b><span class="t" data-zh="最新版本" data-en="latest version">最新版本</span></a>
+      <a href="https://www.npmjs.com/package/dsh-remote"><b id="v-week">—</b><span class="t" data-zh="周下载" data-en="downloads / week">周下载</span></a>
+      <a href="https://github.com/flymysql/dsh-remote"><b id="v-stars">—</b><span class="t" data-zh="GitHub star" data-en="GitHub stars">GitHub star</span></a>
+      <a href="./stats/"><b id="v-dau">—</b><span class="t" data-zh="日活装机" data-en="daily active installs">日活装机</span></a>
     </div>
   </div>
 </header>
 
 <section id="features">
   <div class="wrap">
-    <h2>What it does <span class="zh">能力</span></h2>
-    <p class="sub">The harness Web UI intentionally binds <code>127.0.0.1</code>. This plugin goes the other way: <b>you connect out</b> to the machines you maintain — through the normal DSH workspace and agent file flows, with no changes to the harness core.</p>
+    <h2 class="t" data-zh="它能做什么" data-en="What it does">它能做什么</h2>
+    <p class="sub t"
+       data-zh="DSH 的 Web 界面刻意只监听 <code>127.0.0.1</code>（CLI 为安全拒绝 <code>--host 0.0.0.0</code>）。本插件反过来：<b>由你主动连出</b>到你维护的机器，通过 DSH 原生的工作区与文件流来工作——<b>不改动 dsh-workspace 核心</b>。"
+       data-en="The harness Web UI intentionally binds <code>127.0.0.1</code>. This plugin goes the other way: <b>you connect out</b> to the machines you maintain — through the normal DSH workspace and agent file flows, with no changes to the harness core.">DSH 的 Web 界面刻意只监听 <code>127.0.0.1</code>（CLI 为安全拒绝 <code>--host 0.0.0.0</code>）。本插件反过来：<b>由你主动连出</b>到你维护的机器，通过 DSH 原生的工作区与文件流来工作——<b>不改动 dsh-workspace 核心</b>。</p>
     <div class="cards">
-      <div class="card"><span class="ic">🖧</span><h3>Multi-machine registry</h3>
-        <p>Add, edit, and switch between many SSH hosts. Password, private key, SSH agent, keyboard-interactive, and jump hosts via <code>ProxyJump</code>.</p></div>
-      <div class="card"><span class="ic">🗂️</span><h3>Remote workspace picker</h3>
-        <p>Pick a local <i>or</i> remote workspace from the native modal. Remote paths autocomplete over SFTP with per-keystroke latency kept in the tens of milliseconds.</p></div>
-      <div class="card"><span class="ic">🛠️</span><h3>20 <code>rw_*</code> tools</h3>
-        <p>read / write / edit / append / mkdir / remove / move / stat / exec / search / upload / download / sync / push / forward and more — all as first-class agent tools.</p></div>
-      <div class="card"><span class="ic">🔄</span><h3>Conflict-aware mirror</h3>
-        <p>A three-way SFTP sync keeps the remote tree mirrored locally, so <code>@</code> file references, read tools, and the sidebar editor all just work.</p></div>
-      <div class="card"><span class="ic">🔐</span><h3>Credentials stay local</h3>
-        <p>Passwords in the OS keychain when available, TOFU host-key verification, a command audit log, and keys never leave your machine.</p></div>
-      <div class="card"><span class="ic">♻️</span><h3>Self-updating</h3>
-        <p>Checks npm on load, and since 0.8.24 hot-swaps its own host half — an update takes effect without restarting the harness.</p></div>
+      <div class="card"><span class="ic">🖧</span>
+        <h3 class="t" data-zh="多机 SSH 列表" data-en="Multi-machine registry">多机 SSH 列表</h3>
+        <p class="t" data-zh="增删改并一键切换多台主机。支持密码、私钥、SSH agent、keyboard-interactive（OTP），以及 <code>ProxyJump</code> 跳板机。" data-en="Add, edit, and switch between many SSH hosts. Password, private key, SSH agent, keyboard-interactive, and jump hosts via <code>ProxyJump</code>.">增删改并一键切换多台主机。支持密码、私钥、SSH agent、keyboard-interactive（OTP），以及 <code>ProxyJump</code> 跳板机。</p></div>
+      <div class="card"><span class="ic">🗂️</span>
+        <h3 class="t" data-zh="远程工作区选择器" data-en="Remote workspace picker">远程工作区选择器</h3>
+        <p class="t" data-zh="在原生弹窗里选本地或远程工作区。远程路径走 SFTP 实时补全，逐字符延迟保持在几十毫秒级。" data-en="Pick a local or remote workspace from the native modal. Remote paths autocomplete over SFTP with per-keystroke latency kept in the tens of milliseconds.">在原生弹窗里选本地或远程工作区。远程路径走 SFTP 实时补全，逐字符延迟保持在几十毫秒级。</p></div>
+      <div class="card"><span class="ic">🛠️</span>
+        <h3 class="t" data-zh="20 个 <code>rw_*</code> 工具" data-en="20 <code>rw_*</code> tools">20 个 <code>rw_*</code> 工具</h3>
+        <p class="t" data-zh="读 / 写 / 编辑 / 追加 / 建目录 / 删除 / 移动 / stat / 执行 / 搜索 / 上传 / 下载 / 同步 / 推送 / 转发……全部是一等 Agent 工具。" data-en="read / write / edit / append / mkdir / remove / move / stat / exec / search / upload / download / sync / push / forward and more — all as first-class agent tools.">读 / 写 / 编辑 / 追加 / 建目录 / 删除 / 移动 / stat / 执行 / 搜索 / 上传 / 下载 / 同步 / 推送 / 转发……全部是一等 Agent 工具。</p></div>
+      <div class="card"><span class="ic">🔄</span>
+        <h3 class="t" data-zh="冲突感知的镜像同步" data-en="Conflict-aware mirror">冲突感知的镜像同步</h3>
+        <p class="t" data-zh="三路 SFTP 同步把远程目录镜像到本地，因此 <code>@</code> 文件引用、读文件工具与侧栏编辑器都能正常工作。" data-en="A three-way SFTP sync keeps the remote tree mirrored locally, so <code>@</code> file references, read tools, and the sidebar editor all just work.">三路 SFTP 同步把远程目录镜像到本地，因此 <code>@</code> 文件引用、读文件工具与侧栏编辑器都能正常工作。</p></div>
+      <div class="card"><span class="ic">🔐</span>
+        <h3 class="t" data-zh="凭据留在本机" data-en="Credentials stay local">凭据留在本机</h3>
+        <p class="t" data-zh="密码可存系统钥匙串，主机指纹做 TOFU 校验，命令记入审计日志；私钥内容永不离开你的机器。" data-en="Passwords in the OS keychain when available, TOFU host-key verification, a command audit log, and keys never leave your machine.">密码可存系统钥匙串，主机指纹做 TOFU 校验，命令记入审计日志；私钥内容永不离开你的机器。</p></div>
+      <div class="card"><span class="ic">♻️</span>
+        <h3 class="t" data-zh="自动更新" data-en="Self-updating">自动更新</h3>
+        <p class="t" data-zh="0.8.27 起默认自动检查并应用新版本；0.8.24 起可热切换宿主半——更新后无需重启 harness。" data-en="Since 0.8.27 it checks and applies new releases by default; since 0.8.24 it hot-swaps its own host half — an update takes effect without restarting the harness.">0.8.27 起默认自动检查并应用新版本；0.8.24 起可热切换宿主半——更新后无需重启 harness。</p></div>
     </div>
   </div>
 </section>
 
 <section id="tools">
   <div class="wrap">
-    <h2>The tool surface <span class="zh">工具面</span></h2>
-    <p class="sub">Every capability is a normal agent tool, so the model uses it the same way it uses local file tools.</p>
+    <h2 class="t" data-zh="工具面" data-en="The tool surface">工具面</h2>
+    <p class="sub t" data-zh="每个能力都是普通的 Agent 工具，模型用起来和本地文件工具完全一样。" data-en="Every capability is a normal agent tool, so the model uses it the same way it uses local file tools.">每个能力都是普通的 Agent 工具，模型用起来和本地文件工具完全一样。</p>
     <div class="tool-list">
-      <code>rw_info</code><code>rw_connect</code><code>rw_workspace</code><code>rw_list</code>
-      <code>rw_read</code><code>rw_write</code><code>rw_edit</code><code>rw_append</code>
+      <code>rw_info</code><code>rw_connect</code><code>rw_pick_workspace</code><code>rw_list_dir</code>
+      <code>rw_read_file</code><code>rw_write_file</code><code>rw_edit</code><code>rw_append</code>
       <code>rw_mkdir</code><code>rw_remove</code><code>rw_move</code><code>rw_stat</code>
       <code>rw_exec</code><code>rw_search</code><code>rw_download</code><code>rw_upload</code>
       <code>rw_sync</code><code>rw_push</code><code>rw_forward</code><code>rw_disconnect</code>
@@ -187,16 +208,16 @@
 
 <section id="screens">
   <div class="wrap">
-    <h2>Screenshots <span class="zh">界面</span></h2>
-    <p class="sub">The native "Add workspace" flow and the multi-machine settings panel.</p>
+    <h2 class="t" data-zh="界面" data-en="Screenshots">界面</h2>
+    <p class="sub t" data-zh="原生的「Add workspace / 选择工作区」流程，以及多机设置面板。" data-en="The native &quot;Add workspace&quot; flow and the multi-machine settings panel.">原生的「Add workspace / 选择工作区」流程，以及多机设置面板。</p>
     <div class="shots">
       <figure>
-        <img src="./ui-picker-panel.png" alt="Remote workspace picker" loading="lazy"/>
-        <figcaption><b>Workspace picker</b> — the native modal gains a <b>远程 (remote)</b> tab; browse and autocomplete remote directories.</figcaption>
+        <img src="./ui-picker-panel.png" alt="远程工作区选择器" loading="lazy"/>
+        <figcaption class="t" data-zh="<b>工作区选择器</b> —— 原生弹窗多了「远程」tab；可浏览并自动补全远程目录。" data-en="<b>Workspace picker</b> — the native modal gains a 远程 (remote) tab; browse and autocomplete remote directories."><b>工作区选择器</b> —— 原生弹窗多了「远程」tab；可浏览并自动补全远程目录。</figcaption>
       </figure>
       <figure>
-        <img src="./ui-settings-panel.png" alt="Multi-machine SSH registry" loading="lazy"/>
-        <figcaption><b>Settings → 远程工作区</b> — multi-machine SSH registry with add / edit / delete / set-current.</figcaption>
+        <img src="./ui-settings-panel.png" alt="多机 SSH 列表" loading="lazy"/>
+        <figcaption class="t" data-zh="<b>设置 → 远程工作区</b> —— 多机 SSH 列表，支持增 / 改 / 删 / 设为当前。" data-en="<b>Settings → 远程工作区</b> — multi-machine SSH registry with add / edit / delete / set-current."><b>设置 → 远程工作区</b> —— 多机 SSH 列表，支持增 / 改 / 删 / 设为当前。</figcaption>
       </figure>
     </div>
   </div>
@@ -204,31 +225,48 @@
 
 <section id="install">
   <div class="wrap">
-    <h2>Install <span class="zh">安装</span></h2>
-    <p class="sub">Requires DeepSeek Harness. The plugin is a normal profile bundle.</p>
-<pre><span class="c"># 1. add it to the web profile</span>
+    <h2 class="t" data-zh="安装" data-en="Install">安装</h2>
+    <p class="sub t" data-zh="需要已安装 DeepSeek Harness。本插件是普通的 profile bundle。" data-en="Requires DeepSeek Harness. The plugin is a normal profile bundle.">需要已安装 DeepSeek Harness。本插件是普通的 profile bundle。</p>
+<pre><span class="c"># 1. 装进 web profile / add it to the web profile</span>
 <span class="k">dsh</span> plugin --profile web add dsh-remote
 
-<span class="c"># 2. start the harness (or restart it once)</span>
+<span class="c"># 2. 启动 harness（或先重启一次）</span>
 <span class="k">dsh</span> web
 
-<span class="c"># update later</span>
+<span class="c"># 以后升级 / update later</span>
 <span class="k">dsh</span> plugin --profile web add dsh-remote@latest</pre>
 
     <div class="note">
-      <b>Upgrading an old install?</b> Versions before <b>0.8.24</b> cannot hot-swap themselves —
-      the first hop to 0.8.24+ needs <b>one restart</b>. After that, updates apply without restarting.
+      <b class="t" data-zh="从旧版本升级？" data-en="Upgrading an old install?">从旧版本升级？</b>
+      <span class="t" data-zh="0.8.24 之前的版本无法自我热切换——首次升到 0.8.24+ <b>需要重启一次</b>。之后更新即无需重启。" data-en="Versions before <b>0.8.24</b> cannot hot-swap themselves — the first hop to 0.8.24+ needs <b>one restart</b>. After that, updates apply without restarting.">0.8.24 之前的版本无法自我热切换——首次升到 0.8.24+ <b>需要重启一次</b>。之后更新即无需重启。</span>
     </div>
 
-    <h2 style="margin-top:44px;font-size:19px">Configuration <span class="zh">配置</span></h2>
+    <div class="note warn">
+      <b class="t" data-zh="插件在升级 DSH 后整个不见了？" data-en="Did the plugin vanish after a DSH upgrade?">插件在升级 DSH 后整个不见了？</b>
+      <span class="t" data-zh="DSH 会在导入前校验所有 <code>@deepseek-ai/dsh-*</code> 的 peer 版本范围，只要有一条不匹配就<b>整包丢弃</b>（没有设置页、没有 <code>rw_*</code> 工具）。0.8.29 起改为跨线区间，同时兼容 0.1.x 与 0.2.x；请升到 0.8.29 或更高。" data-en="DSH validates every <code>@deepseek-ai/dsh-*</code> peer range before importing a bundle and drops the whole bundle if any range does not match. Since 0.8.29 the ranges are cross-line intervals covering both 0.1.x and 0.2.x — upgrade to 0.8.29 or newer.">DSH 会在导入前校验所有 <code>@deepseek-ai/dsh-*</code> 的 peer 版本范围，只要有一条不匹配就<b>整包丢弃</b>（没有设置页、没有 <code>rw_*</code> 工具）。0.8.29 起改为跨线区间，同时兼容 0.1.x 与 0.2.x；请升到 0.8.29 或更高。</span>
+    </div>
+
+    <h2 style="margin-top:44px;font-size:19px" class="t" data-zh="配置" data-en="Configuration">配置</h2>
+    <p class="sub t" data-zh="下面是最常用的几项；<b>完整表（26 项）</b>见 README 的「配置」一节——权威清单是 <code>lib/index.js</code> 里的 <code>Config</code> schema。" data-en="The most-used keys below; the <b>full table (26 keys)</b> is in the README — the authoritative list is the <code>Config</code> schema in <code>lib/index.js</code>.">下面是最常用的几项；<b>完整表（26 项）</b>见 README 的「配置」一节——权威清单是 <code>lib/index.js</code> 里的 <code>Config</code> schema。</p>
     <table>
-      <thead><tr><th>Field</th><th>Default</th><th>Meaning</th></tr></thead>
+      <thead><tr>
+        <th class="t" data-zh="字段" data-en="Field">字段</th>
+        <th class="t" data-zh="默认" data-en="Default">默认</th>
+        <th class="t" data-zh="说明" data-en="Meaning">说明</th>
+      </tr></thead>
       <tbody>
-        <tr><td><code>host</code></td><td><code>''</code></td><td>Remote SSH host; empty starts disconnected.</td></tr>
-        <tr><td><code>updateMode</code></td><td><code>auto</code></td><td><code>auto</code> | <code>manual</code> | <code>off</code> — self-update behaviour. <b>Default changed to <code>auto</code> in 0.8.27</b>: it checks npm on load and every 6h, then hot-swaps the host half.</td></tr>
-        <tr><td><code>updateAutoReload</code></td><td><code>true</code></td><td>Hot-swap the host half after an update lands. With <code>false</code> the update only applies on the next start and the panel shows "restart to finish".</td></tr>
-        <tr><td><code>updateCheckIntervalMs</code></td><td><code>6h</code></td><td>How often <code>auto</code> mode checks npm.</td></tr>
-        <tr><td><code>auditLog</code></td><td><code>false</code></td><td>Record every remote command to a local audit log.</td></tr>
+        <tr><td><code>host</code></td><td><code>''</code></td>
+          <td class="t" data-zh="默认 SSH 主机；留空则启动时处于断开状态。" data-en="Remote SSH host; empty starts disconnected.">默认 SSH 主机；留空则启动时处于断开状态。</td></tr>
+        <tr><td><code>updateMode</code></td><td><code>auto</code></td>
+          <td class="t" data-zh="<code>auto</code> | <code>manual</code> | <code>off</code> —— 自更新行为。<b>0.8.27 起默认改为 auto</b>：加载时及每 6 小时检查 npm，随后热切换宿主半。" data-en="<code>auto</code> | <code>manual</code> | <code>off</code> — self-update behaviour. <b>Default changed to auto in 0.8.27</b>: it checks npm on load and every 6h, then hot-swaps the host half."><code>auto</code> | <code>manual</code> | <code>off</code> —— 自更新行为。<b>0.8.27 起默认改为 auto</b>：加载时及每 6 小时检查 npm，随后热切换宿主半。</td></tr>
+        <tr><td><code>updateAutoReload</code></td><td><code>true</code></td>
+          <td class="t" data-zh="更新落地后自动热切换宿主半；设为 false 则留到下次启动，设置页会提示需重启。" data-en="Hot-swap the host half after an update lands. With false the update only applies on the next start and the panel shows &quot;restart to finish&quot;.">更新落地后自动热切换宿主半；设为 false 则留到下次启动，设置页会提示需重启。</td></tr>
+        <tr><td><code>updateCheckIntervalMs</code></td><td><code>6h</code></td>
+          <td class="t" data-zh="auto 模式检查 npm 的间隔（下限 60000）。" data-en="How often auto mode checks npm.">auto 模式检查 npm 的间隔（下限 60000）。</td></tr>
+        <tr><td><code>auditLog</code></td><td><code>true</code></td>
+          <td class="t" data-zh="把每条执行的远程命令记入本地审计日志。" data-en="Record every remote command to a local audit log.">把每条执行的远程命令记入本地审计日志。</td></tr>
+        <tr><td><code>maxOutputChars</code></td><td><code>200000</code></td>
+          <td class="t" data-zh="单条远程命令捕获的 stdout/stderr 上限。" data-en="Cap on captured stdout/stderr per remote command.">单条远程命令捕获的 stdout/stderr 上限。</td></tr>
       </tbody>
     </table>
   </div>
@@ -236,61 +274,105 @@
 
 <section id="privacy">
   <div class="wrap">
-    <h2>Telemetry &amp; privacy <span class="zh">数据采集</span></h2>
-    <p class="sub">Since 0.8.25 the plugin sends <b>one anonymous heartbeat per launch</b> (at most once every 6 hours) so real usage can be measured — something npm download counts and GitHub clones cannot answer.</p>
+    <h2 class="t" data-zh="数据采集与隐私" data-en="Telemetry &amp; privacy">数据采集与隐私</h2>
+    <p class="sub t" data-zh="自 0.8.25 起，插件每次启动发送一次匿名心跳（同一安装最多每 6 小时一次），用于统计真实使用量——这是 npm 下载量与 GitHub clone 回答不了的问题。" data-en="Since 0.8.25 the plugin sends one anonymous heartbeat per launch (at most once every 6 hours) so real usage can be measured — something npm download counts and GitHub clones cannot answer.">自 0.8.25 起，插件每次启动发送一次匿名心跳（同一安装最多每 6 小时一次），用于统计真实使用量——这是 npm 下载量与 GitHub clone 回答不了的问题。</p>
     <table>
       <thead><tr><th></th><th></th></tr></thead>
       <tbody>
-        <tr><td><b>Sent</b></td><td><code>idHash</code> (HMAC pseudonym), <code>version</code>, <code>platform</code>, <code>arch</code>, <code>node</code> — exactly five fields.</td></tr>
-        <tr><td><b>Never sent</b></td><td>Hostnames, usernames, paths, IPs, SSH hosts/ports/keys, your machine list, conversation content, anything from your remote sessions.</td></tr>
-        <tr><td><b>Identity</b></td><td>A random UUID in <code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code>. The original never leaves your machine — only its HMAC is transmitted, so it cannot be correlated or reversed.</td></tr>
+        <tr>
+          <td><b class="t" data-zh="发送的内容" data-en="Sent">发送的内容</b></td>
+          <td class="t" data-zh="严格 5 个字段：<code>idHash</code>（HMAC 伪名）、<code>version</code>、<code>platform</code>、<code>arch</code>、<code>node</code>。" data-en="Exactly five fields: <code>idHash</code> (HMAC pseudonym), <code>version</code>, <code>platform</code>, <code>arch</code>, <code>node</code>.">严格 5 个字段：<code>idHash</code>（HMAC 伪名）、<code>version</code>、<code>platform</code>、<code>arch</code>、<code>node</code>。</td>
+        </tr>
+        <tr>
+          <td><b class="t" data-zh="绝不发送" data-en="Never sent">绝不发送</b></td>
+          <td class="t" data-zh="主机名、用户名、文件路径、IP、SSH 主机/端口/密钥、你的机器列表、会话内容、任何远程工作区数据。" data-en="Hostnames, usernames, paths, IPs, SSH hosts/ports/keys, your machine list, conversation content, anything from your remote sessions.">主机名、用户名、文件路径、IP、SSH 主机/端口/密钥、你的机器列表、会话内容、任何远程工作区数据。</td>
+        </tr>
+        <tr>
+          <td><b class="t" data-zh="身份存放" data-en="Identity">身份存放</b></td>
+          <td class="t" data-zh="<code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code> 里的一个随机 UUID。原始 ID 不离开本机——只传它的 HMAC，因此既无法关联也无法反推。" data-en="A random UUID in <code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code>. The original never leaves your machine — only its HMAC is transmitted, so it cannot be correlated or reversed."><code>&lt;DSH_HOME&gt;/.dsh-remote-install-id</code> 里的一个随机 UUID。原始 ID 不离开本机——只传它的 HMAC，因此既无法关联也无法反推。</td>
+        </tr>
       </tbody>
     </table>
     <p class="sub" style="margin-top:18px;margin-bottom:0">
-      The heartbeat is fire-and-forget: it never blocks loading and any failure is swallowed silently.
-      See the <a href="./stats/" style="color:#b9a6ff">live usage stats</a> and the
-      <a href="https://github.com/flymysql/dsh-remote/blob/main/README.en.md#data-collection--telemetry" style="color:#b9a6ff">full policy</a>.
+      <span class="t" data-zh="心跳是尽力而为的旁路：不阻塞加载，任何失败都静默吞掉。详见" data-en="The heartbeat is fire-and-forget: it never blocks loading and any failure is swallowed silently. See the">心跳是尽力而为的旁路：不阻塞加载，任何失败都静默吞掉。详见</span>
+      <a href="./stats/" style="color:#b9a6ff"><span class="t" data-zh="实时用量统计" data-en="live usage stats">实时用量统计</span></a>
+      <span class="t" data-zh="与" data-en="and the">与</span>
+      <a href="https://github.com/flymysql/dsh-remote/blob/main/README.md#数据采集--遥测" style="color:#b9a6ff"><span class="t" data-zh="完整说明" data-en="full policy">完整说明</span></a>。
     </p>
   </div>
 </section>
 
 <footer>
   <div class="wrap" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;width:100%">
-    <span>MIT licensed · maintained by <a href="https://github.com/flymysql">@flymysql</a></span>
+    <span class="t" data-zh="MIT 许可 · 由 @flymysql 维护" data-en="MIT licensed · maintained by @flymysql">MIT 许可 · 由 @flymysql 维护</span>
     <span class="flinks">
       <a href="https://github.com/flymysql/dsh-remote">GitHub</a>
       <a href="https://www.npmjs.com/package/dsh-remote">npm</a>
-      <a href="./stats/">Stats</a>
-      <a href="https://github.com/flymysql/dsh-remote/issues">Issues</a>
-      <a href="https://gitpull.cn">Blog</a>
+      <a href="./stats/"><span class="t" data-zh="统计" data-en="Stats">统计</span></a>
+      <a href="https://github.com/flymysql/dsh-remote/issues"><span class="t" data-zh="问题反馈" data-en="Issues">问题反馈</span></a>
+      <a href="https://gitpull.cn"><span class="t" data-zh="博客" data-en="Blog">博客</span></a>
     </span>
   </div>
 </footer>
 
 <script>
-// ── copy the install command ─────────────────────────────────────────────
+// ── 语言：默认中文 ──────────────────────────────────────────────────────────
+// 需求是"优先显示中文"，所以中文必须是**无脚本、无 localStorage 时的默认渲染结果**：
+// 页面骨架本身写的是中文，脚本只在用户点 EN 后才替换成英文，首屏不会闪英文。
+const LANG_KEY = 'dsh-remote-site-lang'
+const COPY_DEFAULT = { zh: '复制', en: 'copy', okZh: '已复制', okEn: 'copied!' }
+
+function applyLang (lang) {
+  const zh = lang !== 'en'
+  document.documentElement.lang = zh ? 'zh-CN' : 'en'
+  // ★ 只处理"叶子"元素（内部不再含带 data-zh 的子元素）。
+  // 反例：<h1> 里包着若干 data-zh 的 <span>，若对 h1 也整体写 innerHTML，
+  // 就会把子 span 连同它们的 data-zh/data-en 一起抹掉 —— 表现为切一次语言后
+  // 标题永久卡在某一语言。用 closest/querySelector 自省来排除容器。
+  for (const el of document.querySelectorAll('[data-zh][data-en]')) {
+    if (el.querySelector('[data-zh][data-en]')) continue
+    // 文案里含 <b>/<code>/<i> 等内联标签时用 innerHTML 以保留强调
+    const v = zh ? el.dataset.zh : el.dataset.en
+    if (el.querySelector('b, code, i, em, strong, br')) el.innerHTML = v
+    else el.textContent = v
+  }
+  document.getElementById('lang-zh').setAttribute('aria-pressed', String(zh))
+  document.getElementById('lang-en').setAttribute('aria-pressed', String(!zh))
+  document.title = zh
+    ? 'dsh-remote — 把任意 SSH 机器变成真正的 DSH 工作区'
+    : 'dsh-remote — make any SSH machine a real DSH workspace'
+  const label = document.getElementById('copy-label')
+  if (label && !label.dataset.done) label.textContent = zh ? COPY_DEFAULT.zh : COPY_DEFAULT.en
+}
+
+let LANG = 'zh'
+try { LANG = localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'zh' } catch { /* 隐私模式 */ }
+document.getElementById('lang-zh').addEventListener('click', () => { LANG = 'zh'; try { localStorage.setItem(LANG_KEY, LANG) } catch {} applyLang(LANG) })
+document.getElementById('lang-en').addEventListener('click', () => { LANG = 'en'; try { localStorage.setItem(LANG_KEY, LANG) } catch {} applyLang(LANG) })
+applyLang(LANG)
+
+// ── 复制安装命令 ───────────────────────────────────────────────────────────
 const cmd = document.getElementById('install-cmd')
 cmd.addEventListener('click', async () => {
-  const text = 'dsh plugin --profile web add dsh-remote'
   try {
-    await navigator.clipboard.writeText(text)
+    await navigator.clipboard.writeText('dsh plugin --profile web add dsh-remote')
     cmd.classList.add('copied')
-    document.getElementById('copy-label').textContent = 'copied!'
+    const label = document.getElementById('copy-label')
+    label.dataset.done = '1'
+    label.textContent = LANG === 'en' ? COPY_DEFAULT.okEn : COPY_DEFAULT.okZh
     setTimeout(() => {
-      cmd.classList.remove('copied')
-      document.getElementById('copy-label').textContent = 'copy'
+      delete label.dataset.done
+      label.textContent = LANG === 'en' ? COPY_DEFAULT.en : COPY_DEFAULT.zh
     }, 1600)
-  } catch { /* clipboard blocked; the text is selectable anyway */ }
+  } catch { /* 剪贴板被拦；文本本身可选中复制 */ }
 })
 
-// ── live numbers ─────────────────────────────────────────────────────────
-// Prefer the CI-refreshed snapshot (same origin, always available); fall back to
-// npm directly, which sends CORS headers and needs no key.
+// ── 实时数字 ──────────────────────────────────────────────────────────────
+// 优先用 CI 刷新过的同源快照；npm / GitHub 的公开接口带 CORS 头，作为兜底。
 const set = (id, v) => { const el = document.getElementById(id); if (el && v !== null && v !== undefined) el.textContent = v }
 const fmt = (n) => (n === null || n === undefined) ? '—' : Number(n).toLocaleString('en-US')
 
 async function loadNumbers () {
-  // baseline from npm + registry (public, no key, CORS-enabled)
   try {
     const [latest, week] = await Promise.all([
       fetch('https://registry.npmjs.org/dsh-remote/latest').then(r => r.json()).catch(() => null),
@@ -298,22 +380,20 @@ async function loadNumbers () {
     ])
     set('v-version', latest?.version ?? '—')
     set('v-week', week ? fmt(week.downloads) : '—')
-  } catch { /* leave the dashes */ }
+  } catch { /* 保留破折号 */ }
 
-  // snapshot fills in what the public APIs cannot tell us
   try {
     const snap = await fetch('./data/stats.json', { cache: 'no-cache' }).then(r => r.json())
     const daily = snap?.heartbeat?.daily || []
-    // the last bucket is *today so far*; show the latest completed day instead
+    // 最后一个桶是"今天至今"，应显示最近一个**完整**日，避免把半天读成暴跌
     const completed = daily.slice(0, -1).reverse().find(d => (d.dau || 0) > 0) || daily[daily.length - 2]
     set('v-dau', completed ? fmt(completed.dau) : '0')
     set('v-stars', fmt(snap?.repo?.stars))
     if (!snap?.repo?.stars) {
-      // snapshot had no token-limited repo data; ask GitHub directly (60/h anon)
       fetch('https://api.github.com/repos/flymysql/dsh-remote')
         .then(r => r.ok ? r.json() : null).then(d => set('v-stars', fmt(d?.stargazers_count))).catch(() => {})
     }
-  } catch { /* dashboards still usable without it */ }
+  } catch { /* 数字缺席页面仍可用 */ }
 }
 loadNumbers()
 </script>
