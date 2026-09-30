@@ -59,6 +59,9 @@
 
   .sub { margin-top: 8px; font-size: 14.5px; color: #9a9aad; max-width: 900px; }
 
+  /* 扁平化：靠底色与 hairline 描边分层，不用投影。
+     卡片底色比页面底稍亮一档，边框只保留 1px 极低对比 ——
+     这是 Apple 风格的做法（层叠靠明度差，不靠阴影）。 */
   .cards {
     margin-top: 26px;
     display: grid;
@@ -66,9 +69,9 @@
     gap: 14px;
   }
   .card {
-    background: rgba(255,255,255,.035);
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: 13px;
+    background: rgba(255, 255, 255, .042);
+    border: 1px solid rgba(255, 255, 255, .065);
+    border-radius: 14px;
     padding: 17px 18px 16px;
   }
   .card .row { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
@@ -89,9 +92,9 @@
   /* 工具条：把 20 个 rw_* 压成一行可扫读的 chip */
   .tools {
     margin-top: 14px;
-    background: rgba(255,255,255,.035);
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: 13px;
+    background: rgba(255, 255, 255, .042);
+    border: 1px solid rgba(255, 255, 255, .065);
+    border-radius: 14px;
     padding: 15px 18px 16px;
   }
   .tools .lead { font-size: 13px; color: #e8e8ef; font-weight: 600; margin-bottom: 10px; }
@@ -101,9 +104,9 @@
     font-style: normal;
     font-family: "JetBrains Mono", ui-monospace, monospace;
     font-size: 11.6px; color: #cbbcff;
-    background: rgba(0,0,0,.32);
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: 6px; padding: 4px 8px;
+    background: rgba(255, 255, 255, .05);
+    border: 1px solid rgba(255, 255, 255, .07);
+    border-radius: 7px; padding: 4px 8px;
   }
 
   .foot {

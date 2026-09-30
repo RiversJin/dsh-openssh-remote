@@ -88,3 +88,36 @@ test('the capability overview image is referenced by both READMEs', () => {
     assert.ok(refs.some((r) => r.includes('features.png')), `${f} must reference the capabilities overview image`)
   }
 })
+
+test('a width= attribute never upscales the bitmap', () => {
+  // 回归：图片重截后尺寸变了（settings 632x1325 -> 535x640、picker 612x308 -> 595x224），
+  // 而 README 里的 width 属性还是旧值 —— GitHub 会按属性把位图放大，直接糊掉。
+  // 判据：写了 width 就必须 <= 图片真实宽度。
+  const offenders = []
+  for (const f of ['README.md', 'README.en.md']) {
+    const text = readFileSync(path.join(root, f), 'utf8')
+    for (const m of text.matchAll(/<img[^>]+src="([^"]+)"[^>]*width="(\d+)"/g)) {
+      const [, ref, w] = m
+      const p = resolveRef(f, ref)
+      if (!p || !p.endsWith('.png')) continue
+      const size = pngSize(p)
+      if (!size) continue
+      if (Number(w) > size.w) {
+        offenders.push(`${f}: ${ref} width=${w} > 实际宽度 ${size.w}（会被放大而模糊）`)
+      }
+    }
+  }
+  assert.deepEqual(offenders, [], `width attribute would upscale the bitmap:\n  ${offenders.join('\n  ')}`)
+})
+
+test('side-by-side figures are constrained so different aspect ratios stay balanced', () => {
+  // 回归：三张比例差异很大的图（0.84 / 2.66 / 1.81）曾塞进同一个三列网格，
+  // 结果被压到 332px 宽、长图还把同行压成 1px 高。现在竖向排列且各自限宽。
+  const home = readFileSync(path.join(root, 'docs/index.html'), 'utf8')
+  const shots = home.slice(home.indexOf('.shots'), home.indexOf('.shots') + 900)
+  assert.match(shots, /grid-template-columns:1fr/, 'the shots block must stack vertically')
+  // 每张并排图都要有 max-width，防止位图被拉伸到容器宽度而放大
+  const constrained = (home.match(/class="shots"[\s\S]*?<\/div>/)[0].match(/max-width:\d+px/g) || []).length
+  assert.ok(constrained >= 2, `each stacked figure needs a max-width cap, found ${constrained}`)
+})
+

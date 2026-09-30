@@ -13,7 +13,7 @@
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   :root{
-    --bg:#07070b; --panel:rgba(255,255,255,.035); --line:rgba(255,255,255,.10);
+    --bg:#07070b; --panel:rgba(255,255,255,.042); --line:rgba(255,255,255,.065);
     --fg:#e8e8ef; --mut:#9a9aad; --dim:#6d6d80;
     --purple:#7a3ef3; --blue:#2283f6; --ok:#4caf7d; --warn:#e6c07b;
   }
@@ -80,8 +80,9 @@
     background:rgba(255,255,255,.07);padding:1.5px 5px;border-radius:4px}
 
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;transition:.18s border-color,.18s transform}
-  .card:hover{border-color:rgba(185,166,255,.36);transform:translateY(-2px)}
+  /* 扁平化：层叠靠明度差，不靠投影；描边只做极低对比的 hairline */
+  .card{background:var(--panel);border:1px solid rgba(255,255,255,.065);border-radius:14px;padding:20px;transition:.18s border-color,background}
+  .card:hover{border-color:rgba(185,166,255,.30);background:rgba(255,255,255,.055)}
   .card .ic{font-size:20px;margin-bottom:10px;display:block}
   .card h3{font-size:15px;margin-bottom:7px;font-weight:650}
   .card p{font-size:13.2px;color:var(--mut);line-height:1.65}
@@ -89,10 +90,26 @@
     padding:1.5px 5px;border-radius:4px;color:#cbbcff}
 
   .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
-  figure{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  /* 圆角图片卡片：不做投影（扁平化），只用 1px hairline 与底色分层 */
+  figure{background:var(--panel);border:1px solid rgba(255,255,255,.065);border-radius:14px;overflow:hidden}
   figure img{width:100%;display:block;border-bottom:1px solid var(--line)}
   figcaption{padding:12px 16px;font-size:13px;color:var(--mut)}
   figcaption b{color:var(--fg);font-weight:600}
+  /* 配图：竖向排列，各自按原始比例显示。
+     两张界面图比例差很大（设置面板 0.84、弹窗 2.66），并排会出现一高一矮的失衡感；
+     而给扁图设固定高度又会把它放大到 1.6 倍而模糊。所以改成：
+       · 全宽展示（宽度 100%）；
+       · 但 max-width 限制在**图片自身的像素宽度**内，绝不放大位图；
+       · height:auto 保持原始比例。 */
+  figure.wide{margin-bottom:16px}
+  .shots{display:grid;grid-template-columns:1fr;gap:16px;justify-items:start}
+  .shots figure img{
+    width:100%;
+    height:auto;
+    max-width:100%;
+    border-bottom:1px solid var(--line);
+  }
+  .shots figcaption{flex:1}
 
   pre{background:rgba(0,0,0,.42);border:1px solid var(--line);border-radius:12px;
     padding:18px 20px;overflow-x:auto;font-size:13px;line-height:1.75;
@@ -210,20 +227,25 @@
   <div class="wrap">
     <h2 class="t" data-zh="界面" data-en="Screenshots">界面</h2>
     <p class="sub t" data-zh="原生的「Add workspace / 选择工作区」流程，以及多机设置面板。" data-en="The native &quot;Add workspace&quot; flow and the multi-machine settings panel.">原生的「Add workspace / 选择工作区」流程，以及多机设置面板。</p>
+
+    <!-- 三张图尺寸差异很大（612x308 / 632x1325 / 1280x706），塞进同一个三列网格会被
+         压到约 332px 宽 —— 长图还会把整行撑高、把另两张压成 1px 高。
+         所以拆开：能力总览单独全宽，两张界面图并排（各自图注说明）。 -->
+    <figure class="wide">
+      <img src="./shots/features.png" alt="核心能力总览" loading="lazy"/>
+      <figcaption class="t" data-zh="<b>能力总览</b> —— 多机 SSH / 别名实时解析 / 三路同步 / 远程 @ 补全 / 端口转发 / 自动更新，以及 20 个 <code>rw_*</code> 工具。" data-en="<b>Capabilities</b> — multi-machine SSH, live alias resolution, three-way sync, remote @ completion, port forwarding, self-update, and the 20 rw_* tools."><b>能力总览</b> —— 多机 SSH / 别名实时解析 / 三路同步 / 远程 @ 补全 / 端口转发 / 自动更新，以及 20 个 <code>rw_*</code> 工具。</figcaption>
+    </figure>
+
+    <!-- 竖向排列，各自原始比例（不并排、不放大：两张比例差太大，并排会一高一矮） -->
     <div class="shots">
       <figure>
-        <img src="./shots/picker-dialog.png" alt="远程工作区选择器" loading="lazy"/>
+        <img src="./shots/picker-dialog.png" alt="远程工作区选择器" loading="lazy" style="max-width:595px"/>
         <figcaption class="t" data-zh="<b>工作区选择器</b> —— 原生弹窗多了「远程」tab；可浏览并自动补全远程目录。" data-en="<b>Workspace picker</b> — the native modal gains a 远程 (remote) tab; browse and autocomplete remote directories."><b>工作区选择器</b> —— 原生弹窗多了「远程」tab；可浏览并自动补全远程目录。</figcaption>
       </figure>
       <figure>
-        <img src="./shots/settings-panel.png" alt="多机 SSH 列表与设置" loading="lazy"/>
-        <figcaption class="t" data-zh="<b>设置 → 远程工作区</b> —— 机器列表、高级配置、端口转发、审计日志、更新。" data-en="<b>Settings → 远程工作区</b> — machine list, advanced config, port forwarding, audit log, update."><b>设置 → 远程工作区</b> —— 机器列表、高级配置、端口转发、审计日志、更新。</figcaption>
+        <img src="./shots/settings-panel.png" alt="多机 SSH 列表与设置" loading="lazy" style="max-width:535px"/>
+        <figcaption class="t" data-zh="<b>设置 → 远程工作区</b> —— 机器列表、高级配置（私钥/跳板机/agent）、连接体检、端口转发、审计日志、更新。" data-en="<b>Settings → 远程工作区</b> — machine list, advanced config (key / jump host / agent), connection check, port forwarding, audit log, update."><b>设置 → 远程工作区</b> —— 机器列表、高级配置（私钥/跳板机/agent）、连接体检、端口转发、审计日志、更新。</figcaption>
       </figure>
-      <figure>
-        <img src="./shots/features.png" alt="核心能力总览" loading="lazy"/>
-        <figcaption class="t" data-zh="<b>能力总览</b> —— 多机 SSH / 别名实时解析 / 三路同步 / 远程 @ 补全 / 端口转发 / 自动更新，以及 20 个 <code>rw_*</code> 工具。" data-en="<b>Capabilities</b> — multi-machine SSH, live alias resolution, three-way sync, remote @ completion, port forwarding, self-update, and the 20 rw_* tools."><b>能力总览</b> —— 多机 SSH / 别名实时解析 / 三路同步 / 远程 @ 补全 / 端口转发 / 自动更新，以及 20 个 <code>rw_*</code> 工具。</figcaption>
-      </figure>
-    </div>
     </div>
   </div>
 </section>
