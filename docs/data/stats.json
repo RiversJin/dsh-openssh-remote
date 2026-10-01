@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-01T13:10:40.455Z",
+  "generatedAt": "2026-10-01T22:40:06.304Z",
   "heartbeat": null,
   "heartbeatError": "stats endpoint returned no response",
   "npm": {
     "package": "dsh-remote",
-    "checkedAt": "2026-10-01T13:10:40.109Z",
+    "checkedAt": "2026-10-01T22:40:05.959Z",
     "latest": "0.8.34",
     "lastWeek": 1805,
     "lastMonth": 8108,
@@ -142,6 +142,6 @@
     "stars": 114,
     "forks": 25,
     "openIssues": 3,
-    "pushedAt": "2026-10-01T05:49:49Z"
+    "pushedAt": "2026-10-01T13:10:41Z"
   }
 }
