@@ -10,6 +10,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
+import { readFileSync } from 'node:fs'
 import { searchTree, searchViaShell, searchRemote } from '../lib/search.js'
 import { SshPool } from '../lib/pool.js'
 import { compileIgnore, DEFAULT_IGNORE, DEFAULT_SEARCH_IGNORE } from '../lib/ignore.js'
@@ -142,6 +143,28 @@ test('sftp() bounds the subchannel open itself', async () => {
   const dt = Date.now() - t0
   assert.ok(dt < 2500, `open must time out, took ${dt}ms`)
   pool.close()
+})
+
+test('the sftp open watchdog keeps the process alive until it settles', () => {
+  // ★ 回归：这个看门狗定时器曾被 unref()，而它是"本次 await 的 sftp 打开"的
+  //   **唯一结算者**。一旦 unref，且进程此刻没有其它 pending 句柄，Node 会直接
+  //   退出 —— 调用方永远等不到结果。实测症状：CI 上同文件后续 4 个用例被标记
+  //   `cancelledByParent`（子进程提前退出），而本地因运行器恰好持着句柄而侥幸全绿。
+  //
+  //   这里用源码断言而非时序断言，是因为该缺陷只在"事件循环恰好空闲"时显形，
+  //   用挂钟时间测会得出"本地通过"的假安全感（这正是它躲过一轮的原因）。
+  const src = readFileSync(new URL('../lib/pool.js', import.meta.url), 'utf8')
+  const block = src.slice(src.indexOf('const attemptTimer = setTimeout'))
+  const timerBody = block.slice(0, block.indexOf('const clearAttempt'))
+
+  assert.match(timerBody, /reject\(new Error\(`ssh sftp open timed out/, 'sanity: this is the open watchdog')
+  assert.doesNotMatch(timerBody, /\.unref\(\)/,
+    'the sftp open watchdog is the sole settler of an awaited promise and must not be unref-ed')
+
+  // 对照：真正只做清理的定时器**应当**保持 unref，否则一个卡住的 socket 会拖住进程。
+  // （把两类混淆正是最初出错的原因，所以两个方向都钉住。）
+  const hardCloses = [...src.matchAll(/const hardClose = setTimeout[\s\S]{0,120}?\n\s*if \(typeof hardClose\.unref/g)]
+  assert.ok(hardCloses.length >= 2, 'cleanup-only timers should still be unref-ed')
 })
 
 test('search ignores machine-local cache trees without changing mirror sync', async () => {
