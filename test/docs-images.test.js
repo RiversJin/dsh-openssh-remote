@@ -19,6 +19,27 @@ import { fileURLToPath } from 'node:url'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.join(here, '..')
 
+/**
+ * Is Python + Pillow available for the pixel-level edge check?
+ * Probe once and cache — the alternative (letting the check throw) turns a
+ * missing optional tool into a red suite for contributors who never touched
+ * images. Reported by the PR #45 author, whose environment has no PIL.
+ */
+let pillowProbe = null
+function detectPillow() {
+  if (pillowProbe) return pillowProbe
+  for (const py of ['python', 'python3']) {
+    try {
+      execFileSync(py, ['-c', 'import PIL; print(PIL.__version__)'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+      pillowProbe = { ok: true, python: py }
+      return pillowProbe
+    } catch (e) {
+      pillowProbe = { ok: false, why: `${py}: ${String(e.message || e).split('\n')[0]}` }
+    }
+  }
+  return pillowProbe
+}
+
 const SOURCES = ['README.md', 'README.en.md', 'docs/index.html', 'docs/stats/index.html', 'screenshots.json']
 
 /** 抽出所有相对图片引用（跳过 http/data URI）。 */
@@ -122,7 +143,7 @@ test('side-by-side figures are constrained so different aspect ratios stay balan
   assert.ok(constrained >= 2, `each stacked figure needs a max-width cap, found ${constrained}`)
 })
 
-test('no screenshot has text cut off at its edges', () => {
+test('no screenshot has text cut off at its edges', (t) => {
   // 回归（用户在评审里直接指出的问题："截的区域太窄了，有些边界的文字都被切割了"）：
   // 我两次都用"若干**选定**文字节点的并集"当裁剪框，而那些节点不是最宽的 ——
   // 设置面板真实容器是 612x746（内容 1325 高、页面不可滚动，要滚内部容器），
@@ -130,21 +151,26 @@ test('no screenshot has text cut off at its edges', () => {
   //
   // 判据：面板/弹窗是深色底 + 亮色文字。若图片最外侧 6px 内出现高亮像素
   // （阈值 110，高于描边 62 与画布底色 14），就是文字被裁断。
-  // 深色配图才有这个性质，浅色图跳过。
-  const INK = 110
-  const MARGIN = 6
+  //
+  // 像素检测需要 Python + Pillow。**没有它时必须 skip，不能 fail**：
+  // 这是一个可选的外部依赖，而贡献者（PR #45 作者）在没装 PIL 的环境上跑
+  // 全量测试时，这条会误报成"测试失败"，掩盖他真正需要关注的结论。
+  // 检测能力本身仍由 scripts/check-edge-clipping.py 提供，CI 上有 PIL 会实跑。
+  const probe = detectPillow()
+  if (!probe.ok) {
+    t.skip(`需要 Python + Pillow 才能做像素级检测（${probe.why}）`)
+    return
+  }
+
   const offenders = []
   for (const rel of ['docs/shots/settings-panel.png', 'docs/shots/picker-dialog.png', 'docs/shots/features.png']) {
     const p = path.join(root, rel)
     if (!existsSync(p)) continue
     const { w, h } = pngSize(p) || {}
     if (!w || !h) continue
-    // 用 PIL 做像素级检测（node 侧不便解码）；脚本已随仓库提供
     const out = execFileSync('python', [path.join(root, 'scripts/check-edge-clipping.py'), p], { encoding: 'utf8' })
-    // 脚本对每条边输出「干净」或「发现 N 个高亮像素」
     const cut = [...out.matchAll(/边缘"(\w+)" 发现 (\d+)/g)].map((m) => `${m[1]}=${m[2]}`)
     if (cut.length) offenders.push(`${rel}: ${cut.join(', ')}`)
-    void INK; void MARGIN
   }
   assert.deepEqual(offenders, [],
     `screenshot text is clipped at the edge:\n  ${offenders.join('\n  ')}`)

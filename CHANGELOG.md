@@ -2,6 +2,61 @@
 
 All notable changes to **dsh-remote**.
 
+## 0.8.35 — 2026-10-02
+### 修 issue #44：`rw_search` 大目录搜索会把会话永久卡死；并入 PR #45 的 `rw_edit` 别名
+
+**issue #44 是真缺陷，报告人的根因分析逐条成立**，且比"跑得慢"更严重：不是慢，
+而是**逐条目等满超时定时器**，等效永久卡死。实测复现：SFTP 通道死掉后，每次
+`stat` 都要等满 `commandTimeoutMs`（默认 20s）才失败 —— 一条 `stat`+`readFile`
+就是 40s，数万条目 ≈ 天级，而 `session/cancel`、steer、timeout-policy 全部无效
+（DSH 的工具取消是**协作式**的：工具不响应 `exec.signal`，谁也叫不停它）。
+
+四处修复（对应报告的四点建议）：
+
+- **搜索可取消**（`lib/search.js`）：`searchTree` / `searchViaShell` 接收
+  `exec.signal`，在每个目录、每个条目检查；取消时**返回已扫到的部分结果**
+  并标 `CANCELLED`，而不是抛错丢掉进度。
+- **通道死了要立即失败**（`lib/pool.js`）：ssh2 的 SFTP 通道 EOF 时只清理
+  "当时挂起"的请求，之后新发的请求永远没有回调 —— 现在在 `end`/`close`/`error`
+  上标记通道已死，后续操作立刻以 `sftp channel closed` 拒绝。
+  另给 `c.sftp(cb)` 打开子通道本身加了超时（此前远端无响应会永久挂起）。
+- **搜索有预算上限**：新增配置 `searchTimeoutMs`（默认 60s）、
+  `searchMaxEntries`（默认 50000），也可用工具参数 `maxDurationMs`/`maxEntries`
+  覆盖；超限返回部分结果并标 `TRUNCATED`。
+- **工具声明 `timeoutMs`**：`rw_search` 现在把预算作为 `timeoutMs` 交给
+  `@deepseek-ai/dsh-tool-call-timeout-policy`，配合上面的取消支持才会真正生效
+  （该策略只能"请求"工具停止，工具不配合就等于没有）。
+- **默认跳过机器级缓存树**：搜索默认忽略 `~/.npm`、`~/.cache`、`~/.cargo` 等
+  （报告里点名的 `~/.npm/_cacache` 正是元凶）。**镜像同步的忽略集刻意不变** ——
+  静默把缓存目录移出同步会丢数据；显式传 `path` 仍可搜索任何位置。
+
+**防回归**：`test/search-cancel.test.js`（8 例）覆盖时间预算、abort 中途停止、
+已 abort 不产生任何 IO、取消后不回退到慢路径、死通道立即失败、打开子通道超时、
+以及"搜索忽略缓存但同步不忽略"。每条都做了**负对照**：去掉对应修复即变红
+（取消类 3 例失败且耗时升到 5-8s，正是失控遍历的特征）。
+
+### PR #45（@moesnow）已并入并扩展
+
+`rw_edit` 现在同时接受 `old`/`new` 与 `old_string`/`new_string` 两种拼写。
+PR 的论证经核实成立：宿主原生 `edit` 工具（`dsh-tool-fs`）声明的正是
+`file_path`/`old_string`/`new_string`，模型照抄这个习惯时会被
+`invalid arguments: missing required property "old"` 拒掉。
+
+并入时发现并补了两个缺口：
+
+- **补上 `file_path` 别名**。PR 只做了 `old_string`/`new_string`，但 `path` 仍
+  在 schema 里 `required` —— 于是模型若一并照抄原生拼写（`file_path`），依然被拒。
+  三个参数的 `required` 都从 schema 移到 resolver，别名才真正生效。
+- **修一个因放宽 schema 引入的回归**：`resolveRemoteArg` 对空路径会回退到
+  工作区根，所以仅去掉 `required` 会让"没给路径"的 `rw_edit` 静默改写工作区根。
+  现在先校验**原始参数**是否存在，再解析。
+
+**同时修了我上一轮引入的一个缺陷**：`test/docs-images.test.js` 依赖 Python +
+Pillow 做像素级检测，在没有 PIL 的环境（PR 作者的环境）会**误报失败**。
+现在探测不到 PIL 就 **skip** 并说明原因，有 PIL 时照常实跑。
+
+---
+
 ## 0.8.34 — 2026-09-30
 ### 主页也修同一类问题：DAU 不再显示 0，版本号不再显示「—」
 
