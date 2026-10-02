@@ -264,6 +264,13 @@ Deploying to a product profile is a separate, explicit action (`./sync.sh`) for 
 
 **The plugin vanished after a DSH upgrade** — DSH's compatibility check dropped the bundle; upgrade to **0.8.29+** (see "DSH version compatibility" above).
 
+**"Remote DSH Web UI" will not connect / spins forever** — first check that `dsh web` starts on that
+machine *at all*. Known trap: **dsh 0.1.0-rc.6 cannot start the web surface on Linux** — the
+`node-pty@1.1.0` it depends on ships macOS/Windows prebuilds but **no `linux-x64`**, so it fails with
+`Failed to load native module: pty.node`. Upgrade to 0.1.5-rc.2+ (its `node-pty@1.2.0-beta.15` ships
+the Linux build). If the remote `dsh` is not on the SSH login PATH (a private prefix, say), point
+`webAttachCommand` at its absolute path.
+
 ## Safety
 
 Giving the plugin a machine's credentials lets the agent run **shell commands as your user** on that host — only add machines you trust. Passwords live in a local file (or the OS keychain); treat them as sensitive. With `auditLog` on, every command is recorded.
