@@ -20,7 +20,7 @@ import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import {
   parseWebStart, launchFailed, buildLaunchCommand, parseRemotePid, buildStopCommand,
-  WebAttach, TAIL_MARKER, PID_MARKER,
+  explainLaunchFailure, WebAttach, TAIL_MARKER, PID_MARKER,
 } from '../lib/web-attach.js'
 
 // ── startup-line parsing ────────────────────────────────────────────────────
@@ -210,6 +210,79 @@ test('a remote that never reports a token explains what to check', async () => {
     attach.open({ pool: fakePool(`noise\n${TAIL_MARKER}\nstill booting`) }),
     /did not report a startup token/,
   )
+})
+
+// Measured on a real Linux host: dsh 0.1.0-rc.6 depends on node-pty@1.1.0, whose
+// published tarball ships darwin/win32 prebuilds but NO linux-x64, so `dsh web`
+// cannot start there. Without this the operator only sees "no startup token" and
+// reasonably blames the plugin.
+test('the node-pty Linux failure is explained with the known cause and the fix', async () => {
+  const attach = new WebAttach({ net: fakeNet() })
+  const out = `__DSH_REMOTE_DIED__\n${TAIL_MARKER}\nFailed to load native module: pty.node, checked: build/Release`
+  await assert.rejects(attach.open({ pool: fakePool(out) }), (err) => {
+    assert.match(err.message, /node-pty/)
+    assert.match(err.message, /0\.1\.0-rc\.6/, 'must name the affected version range')
+    assert.match(err.message, /0\.1\.5-rc\.2/, 'must name a working version')
+    assert.match(err.message, /linux-x64/)
+    return true
+  })
+})
+
+test('a missing dsh binary points at webAttachCommand', async () => {
+  const attach = new WebAttach({ net: fakeNet() })
+  const out = `__DSH_REMOTE_DIED__\n${TAIL_MARKER}\nsh: dsh: command not found`
+  await assert.rejects(attach.open({ pool: fakePool(out) }), /webAttachCommand/)
+})
+
+test('an unrecognized failure adds no misleading hint', () => {
+  assert.equal(explainLaunchFailure('some novel explosion'), '')
+  assert.equal(explainLaunchFailure(''), '')
+})
+
+// Measured on a real Linux host: dsh 0.1.0-rc.6 has no `--no-open` flag and
+// exits "unknown option '--no-open'" before doing anything. Retrying once
+// without that flag is safe precisely because the first attempt provably never
+// started a server.
+test('an old dsh without --no-open is retried once, without it', async () => {
+  const seen = []
+  const pool = {
+    async connect() { return { forwardOut: (_a, _b, _h, _p, cb) => { const c = new EventEmitter(); c.close = () => {}; c.pipe = () => c; setImmediate(() => cb(null, c)) } } },
+    async exec(cmd) {
+      seen.push(cmd)
+      // First attempt: the old CLI rejects the flag and dies. Second: it works.
+      if (/--no-open/.test(cmd)) return { code: 0, stdout: `error: unknown option '--no-open'\n__DSH_REMOTE_DIED__`, stderr: '' }
+      return { code: 0, stdout: READY(43210, 'tokAfterRetry'), stderr: '' }
+    },
+  }
+  const netDouble = fakeNet()
+  const attach = new WebAttach({ net: netDouble })
+  const info = await attach.open({ pool, machineId: 'm-old' })
+  assert.equal(seen.length, 2, 'exactly one retry')
+  assert.match(seen[0], /--no-open/, 'the first attempt uses the preferred form')
+  assert.doesNotMatch(seen[1], /--no-open/, 'the retry drops the unsupported flag')
+  assert.equal(info.remotePort, 43210)
+  assert.equal(attach.omittedNoOpen, true, 'the session records that it had to omit the flag')
+})
+
+test('an unrelated unknown-option failure is NOT retried', async () => {
+  let calls = 0
+  const pool = {
+    async connect() { return { forwardOut: (_a, _b, _h, _p, cb) => { const c = new EventEmitter(); c.close = () => {}; c.pipe = () => c; setImmediate(() => cb(null, c)) } } },
+    async exec() { calls++; return { code: 0, stdout: `error: unknown option '--wat'\n__DSH_REMOTE_DIED__`, stderr: '' } },
+  }
+  const attach = new WebAttach({ net: fakeNet() })
+  await assert.rejects(attach.open({ pool }), /exited during startup/)
+  assert.equal(calls, 1, 'only the known --no-open incompatibility is worth a retry')
+})
+
+test('buildLaunchCommand can omit --no-open on request', () => {
+  const withFlag = buildLaunchCommand({ command: 'dsh', profile: 'web', logPath: '.l' })
+  const without = buildLaunchCommand({ command: 'dsh', profile: 'web', logPath: '.l', omitNoOpen: true })
+  assert.match(withFlag, /--no-open/)
+  assert.doesNotMatch(without, /--no-open/)
+  // Everything else must be untouched by the omission.
+  assert.match(without, /--profile web/)
+  assert.match(without, /--port 0/)
 })
 
 test('an existing remote URL attaches without launching anything', async () => {
