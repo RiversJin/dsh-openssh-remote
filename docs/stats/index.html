@@ -267,8 +267,24 @@ async function main () {
         `snapshot ${generated.toLocaleString()} · heartbeats in Asia/Shanghai`)
     : T('已有快照', 'snapshot present')
 
+  // ★ 读不到数据 ≠ 数据是 0。
+  //
+  // 早先这里用 hb?.wau ?? 0 把"采集端点挂了"渲染成了 0，于是 CloudBase
+  // 环境到期（函数返回 InsufficientBalance、库也读不出来）时，页面显示的是
+  // 一片 0 —— 看起来像"没人用"，而不是"数据源断了"。这与本项目对 npm 缺口日
+  // 的一贯原则（缺数据必须标注，不能画成真实的零）直接矛盾，所以改为：
+  // 读不到就显示 — 并给出醒目告警，绝不填 0。
+  const heartbeatUnavailable = !hb
+  const dash = (v) => (heartbeatUnavailable ? '—' : fmt(v ?? 0))
+
   if (SNAP.heartbeatError) {
-    $('load-error').innerHTML = `<div class="warnbox">${esc(T('心跳统计不可用：', 'Heartbeat stats unavailable: '))}<code>${esc(SNAP.heartbeatError)}</code></div>`
+    // 分片拼接，避免在模板字符串里再嵌套模板字符串（那样的反引号配对极易出错，
+    // 实测就写出过一个未闭合的外层模板，整段脚本直接语法错误）。
+    const head = T('心跳数据当前读不到（不是 0，是数据源不可用）：', 'Heartbeat data is currently unavailable (not zero -- the data source is down): ')
+    const tail = hb ? '' : T('下方数字显示为「—」以免被误读成真实为零。', 'Figures below show "—" so they cannot be misread as real zeros.')
+    $('load-error').innerHTML =
+      '<div class="warnbox">' + esc(head) + '<code>' + esc(SNAP.heartbeatError) + '</code>' +
+      (tail ? '<br/>' + esc(tail) : '') + '</div>'
   }
 
   const daily = (hb && hb.daily) || []
@@ -284,13 +300,16 @@ async function main () {
   const lastWithData = daily.slice().reverse().find(d => (d.dau || 0) > 0)
   const shown = lastWithData || daily.slice().reverse().find(d => d.day !== todayKey)
   const isToday = shown?.day === todayKey
-  $('k-dau').textContent = fmt(shown?.dau ?? 0)
-  document.querySelector('.kpi.hi .hint').textContent = shown
-    ? (isToday ? T(`${shown.day}（进行中）`, `${shown.day} (in progress)`) : shown.day)
-    : T('最近一个完整日', 'latest full day')
-  $('k-wau').textContent = fmt(hb?.wau ?? 0)
-  $('k-mau').textContent = fmt(hb?.mau ?? 0)
-  $('k-inst').textContent = fmt(hb?.installs ?? 0)
+  $('k-dau').textContent = heartbeatUnavailable ? '—' : fmt(shown?.dau ?? 0)
+  let dauHint
+  if (heartbeatUnavailable) dauHint = T('数据源不可用', 'data source unavailable')
+  else if (!shown) dauHint = T('最近一个完整日', 'latest full day')
+  else if (isToday) dauHint = T(`${shown.day}（进行中）`, `${shown.day} (in progress)`)
+  else dauHint = shown.day
+  document.querySelector('.kpi.hi .hint').textContent = dauHint
+  $('k-wau').textContent = dash(hb?.wau)
+  $('k-mau').textContent = dash(hb?.mau)
+  $('k-inst').textContent = dash(hb?.installs)
 
   barChart($('chart-dau'), daily.map(d => ({
     label: d.day, value: d.dau || 0, partial: d.day === todayKey,
