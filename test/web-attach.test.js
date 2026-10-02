@@ -1,0 +1,305 @@
+// Issue #46 — "can I connect to a remote dsh-web?" Answer: yes, by inverting the
+// direction. We SSH out, boot (or reuse) a loopback-bound `dsh web` on the
+// remote, and carry its socket back with a local TCP forward.
+//
+// These tests pin the parts that are easy to get subtly wrong and expensive to
+// find live:
+//   • the startup line is the ONLY source of the token (process-local
+//     randomBytes, never a file), and it must be parsed together with the port
+//     so the pair stays consistent;
+//   • a remote that dies during boot must be reported with its output, not
+//     turned into a silent timeout;
+//   • the listener is loopback-only and moves past ports already in use;
+//   • closing never kills a remote process we did not start unless asked.
+//
+// Everything is driven through injected doubles (`net`, `exec`), so no SSH or
+// real socket is involved; the end-to-end case against a real Linux host lives
+// in the integration script.
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { EventEmitter } from 'node:events'
+import {
+  parseWebStart, launchFailed, buildLaunchCommand, parseRemotePid,
+  WebAttach, TAIL_MARKER, PID_MARKER,
+} from '../lib/web-attach.js'
+
+// ── startup-line parsing ────────────────────────────────────────────────────
+
+test('parses the launch line into a consistent (token, port) pair', () => {
+  const parsed = parseWebStart('dsh web: http://127.0.0.1:43129/?token=Iy7FKuPSI5qJKJUFDyah4B6i8Ul6_hvspiJhiWufYt8\n')
+  assert.equal(parsed.port, 43129)
+  assert.equal(parsed.token, 'Iy7FKuPSI5qJKJUFDyah4B6i8Ul6_hvspiJhiWufYt8')
+})
+
+test('tolerates a LAN suffix and surrounding log noise', () => {
+  const log = [
+    'some earlier boot noise',
+    'dsh web: http://127.0.0.1:3080/?token=abcDEF123 (LAN: http://10.0.0.5:3080/?token=abcDEF123)',
+    'dsh web: opening the default browser',
+  ].join('\n')
+  const parsed = parseWebStart(log)
+  assert.equal(parsed.port, 3080)
+  assert.equal(parsed.token, 'abcDEF123')
+})
+
+test('takes the LAST launch line, because a reused log may hold an earlier one', () => {
+  const log = 'dsh web: http://127.0.0.1:1111/?token=OLD\ndsh web: http://127.0.0.1:2222/?token=NEW\n'
+  const parsed = parseWebStart(log)
+  assert.equal(parsed.port, 2222, 'a stale line must never win over the newest')
+  assert.equal(parsed.token, 'NEW')
+})
+
+test('reports "not ready" rather than guessing', () => {
+  for (const input of ['', null, undefined, 'booting...', 'dsh web: not-a-url',
+    'dsh web: http://127.0.0.1:3080', // no token yet
+    'dsh web: http://127.0.0.1:0/?token=x']) {
+    assert.equal(parseWebStart(input), null, `must not parse ${JSON.stringify(input)}`)
+  }
+})
+
+test('detects a remote that died instead of booting', () => {
+  assert.equal(launchFailed('__DSH_REMOTE_DIED__\n...stack...'), true)
+  assert.equal(launchFailed('dsh web: http://127.0.0.1:1/?token=x'), false)
+})
+
+test('extracts the remote pid so the session can stop its own process', () => {
+  assert.equal(parseRemotePid(`noise\n${PID_MARKER}4211\ndsh web: ...`), 4211)
+  assert.equal(parseRemotePid('no pid here'), 0)
+})
+
+// ── launch command ──────────────────────────────────────────────────────────
+
+test('the launch command detaches, bounds its wait, and reports failure', () => {
+  const cmd = buildLaunchCommand({ command: 'dsh', profile: 'web', logPath: '.log-x', waitSeconds: 30 })
+  assert.match(cmd, /setsid/, 'must detach, or the channel close SIGHUPs the server')
+  assert.match(cmd, /nohup/)
+  assert.match(cmd, /--profile web/)
+  assert.match(cmd, /--port 0/, 'port 0 lets the remote pick, and the line reports it')
+  assert.match(cmd, /--no-open/)
+  assert.match(cmd, /i -lt 30/, 'the wait must be bounded')
+  assert.match(cmd, /__DSH_REMOTE_DIED__/, 'a dead process must be distinguishable from a slow one')
+  assert.match(cmd, new RegExp(TAIL_MARKER), 'the log tail must come back for diagnostics')
+  assert.ok(!cmd.includes('\n'), 'must stay a single line for ssh exec')
+})
+
+test('the launch command honours a custom executable, port, and DSH_HOME', () => {
+  const cmd = buildLaunchCommand({
+    command: '/tmp/dshprefix/node_modules/.bin/dsh', profile: 'web',
+    logPath: '.log-y', remotePort: 42080, dshHome: '/tmp/home',
+  })
+  assert.match(cmd, /\/tmp\/dshprefix\/node_modules\/\.bin\/dsh/)
+  assert.match(cmd, /--port 42080/)
+  assert.match(cmd, /DSH_HOME="\/tmp\/home"/, 'an isolated remote home must be honoured')
+})
+
+test('an empty DSH_HOME does not emit an empty assignment', () => {
+  const cmd = buildLaunchCommand({ command: 'dsh', profile: 'web', logPath: '.l' })
+  assert.doesNotMatch(cmd, /DSH_HOME=""/)
+})
+
+// ── listener behaviour ──────────────────────────────────────────────────────
+
+/** A `net` double: servers bind unless the port is listed as taken. */
+function fakeNet({ taken = [] } = {}) {
+  const bound = []
+  return {
+    bound,
+    createServer(onConnection) {
+      const server = new EventEmitter()
+      const sockets = []
+      server.listen = (port, host) => {
+        assert.equal(host, '127.0.0.1', 'the tunnel must be loopback-only')
+        if (taken.includes(port)) {
+          const err = new Error('in use')
+          err.code = 'EADDRINUSE'
+          setImmediate(() => server.emit('error', err))
+          return
+        }
+        bound.push(port)
+        server.port = port
+        setImmediate(() => server.emit('listening'))
+      }
+      server.close = (cb) => { server.closed = true; setImmediate(() => cb && cb()) }
+      server._onConnection = onConnection
+      server._sockets = sockets
+      return server
+    },
+  }
+}
+
+/** A pool double whose exec replies with scripted output. */
+function fakePool(output, { onExec } = {}) {
+  return {
+    execCalls: [],
+    async connect() {
+      return {
+        forwardOut(_a, _b, host, port, cb) {
+          if (onExec) onExec(host, port)
+          const channel = new EventEmitter()
+          channel.close = () => {}
+          channel.pipe = () => channel
+          setImmediate(() => cb(null, channel))
+        },
+      }
+    },
+    async exec(cmd, opts) {
+      this.execCalls.push({ cmd, opts })
+      return { code: 0, stdout: typeof output === 'function' ? output(cmd) : output, stderr: '' }
+    },
+  }
+}
+
+const READY = (port = 43129, token = 'tok123') =>
+  `__DSH_PID__=999\n dsh web: http://127.0.0.1:${port}/?token=${token}\n${TAIL_MARKER}\n`
+
+test('open() binds loopback, records the parsed port/token, and exposes a URL', async () => {
+  const netDouble = fakeNet()
+  const attach = new WebAttach({ net: netDouble, localPortStart: 3088 })
+  const pool = fakePool(READY(43129, 'abc'))
+  const info = await attach.open({ pool, machineId: 'm-1' })
+  assert.deepEqual(netDouble.bound, [3088])
+  assert.equal(info.remotePort, 43129)
+  assert.equal(info.localPort, 3088)
+  assert.equal(info.url, 'http://127.0.0.1:3088/?token=abc')
+  assert.equal(info.machineId, 'm-1')
+  assert.equal(attach.active, true)
+})
+
+test('open() skips local ports already in use', async () => {
+  const netDouble = fakeNet({ taken: [3088, 3089] })
+  const attach = new WebAttach({ net: netDouble, localPortStart: 3088 })
+  await attach.open({ pool: fakePool(READY()) })
+  assert.equal(attach.localPort, 3090, 'must advance past EADDRINUSE')
+})
+
+test('open() fails loudly when every candidate port is taken', async () => {
+  const netDouble = fakeNet({ taken: [3088, 3089] })
+  const attach = new WebAttach({ net: netDouble, localPortStart: 3088, localPortMax: 2 })
+  await assert.rejects(attach.open({ pool: fakePool(READY()) }), /no free local port/)
+})
+
+test('a remote that dies during boot reports its output, not a bare timeout', async () => {
+  const attach = new WebAttach({ net: fakeNet() })
+  const out = `__DSH_REMOTE_DIED__\n${TAIL_MARKER}\nError: Cannot find module 'pty.node'`
+  await assert.rejects(
+    attach.open({ pool: fakePool(out) }),
+    (err) => {
+      assert.match(err.message, /exited during startup/)
+      assert.match(err.message, /pty\.node/, 'the remote error must reach the operator')
+      return true
+    },
+  )
+})
+
+test('a remote that never reports a token explains what to check', async () => {
+  const attach = new WebAttach({ net: fakeNet() })
+  await assert.rejects(
+    attach.open({ pool: fakePool(`noise\n${TAIL_MARKER}\nstill booting`) }),
+    /did not report a startup token/,
+  )
+})
+
+test('an existing remote URL attaches without launching anything', async () => {
+  const pool = fakePool('unused')
+  const attach = new WebAttach({ net: fakeNet(), localPortStart: 3088 })
+  const info = await attach.open({
+    pool, machineId: 'm-2',
+    existingUrl: 'http://127.0.0.1:42080/?token=presetToken',
+  })
+  assert.equal(pool.execCalls.length, 0, 'reusing a running instance must not start another')
+  assert.equal(info.remotePort, 42080)
+  assert.equal(info.url, 'http://127.0.0.1:3088/?token=presetToken')
+})
+
+test('a malformed existing URL is rejected before any connection work', async () => {
+  const attach = new WebAttach({ net: fakeNet() })
+  await assert.rejects(
+    attach.open({ pool: fakePool(READY()), existingUrl: 'http://127.0.0.1:42080/' }),
+    /must look like/,
+  )
+})
+
+test('open() requires a machine', async () => {
+  const attach = new WebAttach({ net: fakeNet() })
+  await assert.rejects(attach.open({}), /machine pool is required/)
+})
+
+// ── proxying ────────────────────────────────────────────────────────────────
+
+test('a local connection is carried to the remote web port over SSH', async () => {
+  const seen = []
+  const netDouble = fakeNet()
+  const attach = new WebAttach({ net: netDouble })
+  await attach.open({
+    pool: fakePool(READY(43129), { onExec: (host, port) => seen.push([host, port]) }),
+  })
+  // Simulate the browser connecting to the local listener.
+  const socket = new EventEmitter()
+  socket.destroy = () => { socket.destroyed = true }
+  socket.pipe = () => socket
+  netDouble.createServer(() => {})
+  attach._pipe(socket)
+  await new Promise((r) => setImmediate(r))
+  assert.deepEqual(seen, [['127.0.0.1', 43129]], 'must target the parsed remote port')
+})
+
+test('a socket with no live client is dropped, not leaked', async () => {
+  const attach = new WebAttach({ net: fakeNet() })
+  let destroyed = false
+  const socket = { destroy() { destroyed = true }, pipe() {} }
+  attach._pipe(socket)
+  assert.equal(destroyed, true)
+})
+
+// ── teardown ────────────────────────────────────────────────────────────────
+
+test('close() stops the listener and drops sockets', async () => {
+  const netDouble = fakeNet()
+  const attach = new WebAttach({ net: netDouble })
+  await attach.open({ pool: fakePool(READY()) })
+  const server = attach.server
+  let socketDestroyed = false
+  attach.sockets.add({ destroy() { socketDestroyed = true } })
+  await attach.close()
+  assert.equal(server.closed, true, 'the listener must be closed')
+  assert.equal(socketDestroyed, true, 'live sockets must be destroyed')
+  assert.equal(attach.active, false)
+})
+
+test('close() does NOT kill the remote process by default', async () => {
+  const attach = new WebAttach({ net: fakeNet() })
+  await attach.open({ pool: fakePool(READY()) })
+  const calls = []
+  await attach.close({ exec: async (cmd) => { calls.push(cmd) } })
+  assert.deepEqual(calls, [], 'a DSH we did not start, or the user still needs, must survive')
+})
+
+test('close({stopRemote}) kills only the process this session started', async () => {
+  const attach = new WebAttach({ net: fakeNet() })
+  await attach.open({ pool: fakePool(READY()) })
+  const calls = []
+  await attach.close({ stopRemote: true, exec: async (cmd) => { calls.push(cmd) } })
+  assert.equal(calls.length, 1)
+  assert.match(calls[0], new RegExp(`\\.dsh-remote-web-${attach.tag}\\.log`),
+    'the kill must be scoped to this session\'s log file, never a bare pkill of dsh')
+})
+
+test('close() is safe to call twice', async () => {
+  const attach = new WebAttach({ net: fakeNet() })
+  await attach.open({ pool: fakePool(READY()) })
+  await attach.close()
+  await attach.close()
+  assert.equal(attach.active, false)
+})
+
+test('describe() reports the full status for the settings UI', async () => {
+  const attach = new WebAttach({ net: fakeNet() })
+  await attach.open({ pool: fakePool(READY(43129, 'tok')), machineId: 'm-9' })
+  const d = attach.describe()
+  assert.equal(d.machineId, 'm-9')
+  assert.equal(d.localPort, 3088)
+  assert.equal(d.remotePort, 43129)
+  assert.equal(d.active, true)
+  assert.match(d.url, /\?token=tok$/, 'the token rides only on the loopback URL')
+  assert.equal(d.cleanUrl, 'http://127.0.0.1:3088/')
+})

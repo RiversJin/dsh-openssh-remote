@@ -91,7 +91,19 @@ test('both transports can arrive late; each removes only its own routes', async 
   pending.get('connection')(inner('connection', { fetch: service }))
   pending.get('webServer')(inner('webServer', service))
   assert.deepEqual([...routes.keys()], ['/api/dsh-remote/example', '/dsh-remote/example'])
-  assert.equal(routes.get('/dsh-remote/example'), route)
+  // The Web registration is deliberately a WRAPPED route (route-fence): the
+  // declaration survives, the handler is replaced by the fence. Identity is no
+  // longer preserved on purpose — asserting it would forbid the security fix.
+  const web = routes.get('/dsh-remote/example')
+  assert.equal(web.path, '/dsh-remote/example')
+  assert.equal(web.kind, route.kind)
+  assert.notEqual(web.handler, route.handler, 'the Web route must be fenced')
+  // The Connection transport must NOT be double-wrapped: it already dispatches
+  // through DSH's own `/api` fence, so it stays a Connection Fetch route (no
+  // `handler` field) rather than gaining a second, weaker fence.
+  const api = routes.get('/api/dsh-remote/example')
+  assert.equal(typeof api.fetch, 'function')
+  assert.equal(api.handler, undefined, 'the /api twin must not gain a second fence')
   await cleanups[0]()
   assert.deepEqual([...routes.keys()], ['/dsh-remote/example'])
   cleanups[1]()
