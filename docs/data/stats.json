@@ -1,12 +1,8 @@
 {
-  "generatedAt": "2026-10-02T12:31:54.721Z",
+  "generatedAt": "2026-10-02T22:12:18.772Z",
   "heartbeat": {
     "ok": true,
     "daily": [
-      {
-        "day": "2026-09-03",
-        "dau": 0
-      },
       {
         "day": "2026-09-04",
         "dau": 0
@@ -121,16 +117,24 @@
       },
       {
         "day": "2026-10-02",
-        "dau": 22
+        "dau": 85
+      },
+      {
+        "day": "2026-10-03",
+        "dau": 47
       }
     ],
-    "installs": 199,
+    "installs": 277,
     "wau": 20,
     "mau": 20,
     "byVersion": [
       {
         "version": "0.8.34",
-        "n": 143
+        "n": 153
+      },
+      {
+        "version": "0.8.35",
+        "n": 79
       },
       {
         "version": "0.8.29",
@@ -138,19 +142,15 @@
       },
       {
         "version": "0.8.31",
-        "n": 11
-      },
-      {
-        "version": "0.8.35",
-        "n": 9
-      },
-      {
-        "version": "0.8.25",
-        "n": 8
+        "n": 10
       },
       {
         "version": "0.8.28",
         "n": 8
+      },
+      {
+        "version": "0.8.25",
+        "n": 7
       },
       {
         "version": "0.8.26",
@@ -172,24 +172,28 @@
     "byPlatform": [
       {
         "platform": "win32",
-        "n": 146
+        "n": 187
       },
       {
         "platform": "linux",
-        "n": 34
+        "n": 53
       },
       {
         "platform": "darwin",
-        "n": 19
+        "n": 36
+      },
+      {
+        "platform": "other",
+        "n": 1
       }
     ],
     "tz": "Asia/Shanghai",
-    "generatedAt": "2026-10-02T12:31:52.034Z"
+    "generatedAt": "2026-10-02T22:12:16.638Z"
   },
   "heartbeatError": null,
   "npm": {
     "package": "dsh-remote",
-    "checkedAt": "2026-10-02T12:31:54.215Z",
+    "checkedAt": "2026-10-02T22:12:18.364Z",
     "latest": "0.8.35",
     "lastWeek": 3619,
     "lastMonth": 9628,
@@ -327,6 +331,6 @@
     "stars": 114,
     "forks": 25,
     "openIssues": 2,
-    "pushedAt": "2026-10-02T11:42:05Z"
+    "pushedAt": "2026-10-02T12:31:55Z"
   }
 }
