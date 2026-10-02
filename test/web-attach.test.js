@@ -19,7 +19,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import {
-  parseWebStart, launchFailed, buildLaunchCommand, parseRemotePid,
+  parseWebStart, launchFailed, buildLaunchCommand, parseRemotePid, buildStopCommand,
   WebAttach, TAIL_MARKER, PID_MARKER,
 } from '../lib/web-attach.js'
 
@@ -90,6 +90,19 @@ test('the launch command honours a custom executable, port, and DSH_HOME', () =>
   assert.match(cmd, /\/tmp\/dshprefix\/node_modules\/\.bin\/dsh/)
   assert.match(cmd, /--port 42080/)
   assert.match(cmd, /DSH_HOME="\/tmp\/home"/, 'an isolated remote home must be honoured')
+})
+
+// Regression (caught only by running against a real host): the statements are
+// joined with `; `, so emitting `while …; do` as its own element produced the
+// literal `do;` — a POSIX syntax error that made every attach fail with
+// "syntax error near unexpected token `;'" while the equivalent script worked.
+test('the shell loop keyword `do` is never emitted as its own `; `-separated statement', () => {
+  const cmd = buildLaunchCommand({ command: 'dsh', profile: 'web', logPath: '.log-z' })
+  assert.doesNotMatch(cmd, /;\s*do\s*;/, '`do;` is a syntax error in POSIX sh')
+  assert.match(cmd, /;\s*do\s+\S/, '`do` must be glued to its first command')
+  // `sh -c` is what sshd runs, so the command must be valid sh even though the
+  // host half often executes through bash.
+  assert.match(cmd, /done$|done;/, 'the loop must be closed')
 })
 
 test('an empty DSH_HOME does not emit an empty assignment', () => {
@@ -274,14 +287,61 @@ test('close() does NOT kill the remote process by default', async () => {
   assert.deepEqual(calls, [], 'a DSH we did not start, or the user still needs, must survive')
 })
 
-test('close({stopRemote}) kills only the process this session started', async () => {
+test('close({stopRemote}) signals the PID this session recorded, not a name pattern', async () => {
   const attach = new WebAttach({ net: fakeNet() })
   await attach.open({ pool: fakePool(READY()) })
   const calls = []
   await attach.close({ stopRemote: true, exec: async (cmd) => { calls.push(cmd) } })
   assert.equal(calls.length, 1)
-  assert.match(calls[0], new RegExp(`\\.dsh-remote-web-${attach.tag}\\.log`),
-    'the kill must be scoped to this session\'s log file, never a bare pkill of dsh')
+  assert.equal(attach.remotePid, 999, 'the launch reported a PID')
+  assert.match(calls[0], /P=999/, 'must signal the recorded PID')
+  assert.match(calls[0], /\/proc\/\$P\/cmdline/, 'must re-verify before signalling')
+  assert.doesNotMatch(calls[0], /pkill/, 'pkill -f cannot match: the log path is not in argv')
+})
+
+// Regression (caught only by running against a real host): stopRemote used to
+// `pkill -f` the session log path, but that path exists only as a shell redirect
+// and never appears in the process argv, so nothing matched and the remote DSH
+// was leaked. Verified live: the process stayed listening.
+//
+// The first fix then matched the PORT in argv — which also never fires, because
+// the launch deliberately uses `--port 0` and only learns the real port from the
+// startup line. Both traps are pinned here.
+test('the stop command refuses to signal a PID that is not our dsh', () => {
+  const cmd = buildStopCommand(1234)
+  assert.match(cmd, /P=1234/)
+  assert.match(cmd, /-d "\/proc\/\$P"/, 'a vanished process must be a no-op')
+  assert.match(cmd, /\*dsh\*/, 'the target must still look like a dsh process')
+  assert.match(cmd, /true$/, 'must always exit 0 so teardown cannot fail the caller')
+})
+
+test('the stop command kills the process GROUP, so --port 0 cannot defeat it', () => {
+  const cmd = buildStopCommand(1234)
+  assert.match(cmd, /kill -- -"\$P"/, 'setsid makes the child a group leader; kill its group')
+  assert.match(cmd, /kill "\$P"/, 'fall back to the single PID when setsid was unavailable')
+  assert.doesNotMatch(cmd, /--port/, 'never rely on the port: we launch with --port 0')
+})
+
+test('the stop command is a no-op without a recorded PID', () => {
+  assert.equal(buildStopCommand(0), 'true')
+  assert.equal(buildStopCommand(undefined), 'true')
+})
+
+test('the stop command also removes this session\'s log, so attaches do not accumulate files', () => {
+  const cmd = buildStopCommand(1234, '.dsh-remote-web-abc.log')
+  assert.match(cmd, /rm -f "\$HOME\/\.dsh-remote-web-abc\.log"/)
+  // A no-op stop must still clean up its own log.
+  assert.match(buildStopCommand(0, '.log-x'), /rm -f "\$HOME\/\.log-x"/)
+  assert.doesNotMatch(buildStopCommand(0), /rm -f/, 'no log path means nothing to remove')
+})
+
+test('close() passes this session\'s log path to the stop command', async () => {
+  const attach = new WebAttach({ net: fakeNet() })
+  await attach.open({ pool: fakePool(READY()) })
+  assert.match(attach.logPath, /^\.dsh-remote-web-.+\.log$/, 'the session records its log file')
+  const calls = []
+  await attach.close({ stopRemote: true, exec: async (cmd) => { calls.push(cmd) } })
+  assert.match(calls[0], new RegExp(attach.logPath.replace(/\./g, '\\.')))
 })
 
 test('close() is safe to call twice', async () => {
