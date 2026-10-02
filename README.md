@@ -105,6 +105,27 @@ dsh plugin add dsh-remote
 
 > **Remote context 是 session 级的**：只有当前 session 的工作区是某个远程镜像时，system prompt 才注入「Remote workspace」段落；普通本地 session 不受影响，模型也不会主动调 `rw_*`。
 
+## 在本地打开远程机器上的 DSH 界面
+
+远程机器上那个 `dsh web` 也可以**当成本机的一个页面打开**（issue #46）。方向仍然是「本地主动连出去」：
+
+> **远端不需要开放任何端口**。DSH 刻意拒绝 `--host 0.0.0.0`（它会把远程代码执行能力暴露到网络上），
+> 所以正确的做法是由本机 SSH 连过去，在远端**只监听 127.0.0.1** 地起一个 `dsh web`，
+> 再把它的端口经 SSH 隧道搬回本机的一个 loopback 端口。
+
+用法：设置 → 远程工作区 → **「远程 DSH 界面」** → 选一台机器 → **连接并打开**。
+浏览器会新开一个标签页，显示的就是**那台远端机器**的完整 DSH 界面（聊天、工具树、设置都在）。
+
+- 界面地址形如 `http://127.0.0.1:3088/?token=…`。那个 token 是远端进程启动时打印的一次性凭据，
+  只在**本机**的这次跳转里用一次：DSH 会把它换成 30 天有效的签名 cookie 并跳转到干净的 `/`。
+  **请不要把这个带 token 的地址外发**。
+- 「断开」只关隧道，**不会**杀掉远端进程（它可能是你在别处也在用的实例）；
+  要连远端进程一起停，用「断开并停止远端」——它只会结束**本次由插件启动**的那个进程。
+- 若远端已经在跑一个界面（比如你自己在终端里起的），可以选机器后把它的
+  `http://127.0.0.1:<端口>/?token=…` 粘进输入框，点「连接已有实例」，插件不会再去启第二个。
+- 远端 `dsh` 不在 SSH 登录 PATH 时，用 `webAttachCommand` 指向它的绝对路径；
+  想让它别污染远端用户自己的会话/设置，用 `webAttachDshHome` 指一个临时目录。
+
 ## 可选：CLI 默认机
 
 可在 `cordis.patch.yml` 提供默认机：
@@ -201,6 +222,10 @@ scripts/dev-run.sh --status    # 是否在运行
 | `updateMode` | string | `auto` | 自更新模式：`auto`=加载时及每 6 小时检查并自动应用、`manual`=仅在手动检查时查、`off`=完全不查。**0.8.27 起默认 `auto`**——之所以现在才安全，是因为 0.8.24 补上了宿主半热切换 |
 | `updateCheckIntervalMs` | int | 21600000（6h） | `auto` 模式检查 npm 的间隔（下限 60000） |
 | `updateAutoReload` | bool | `true` | 更新落地后自动热切换宿主半；`false` 则留到下次启动，设置页会显示 `pendingReload` |
+| `webAttachPortStart` | int | `3088` | 「远程 DSH 界面」在本机监听的起始端口（占用则顺延，仅监听 127.0.0.1） |
+| `webAttachCommand` | string | `dsh` | 在远端启动 `dsh web` 用的命令；远端 `dsh` 不在 SSH 登录 PATH 时改这里 |
+| `webAttachDshHome` | string | `''` | 远端启动时导出的 `DSH_HOME`；留空则复用远端用户自己的 harness home |
+| `webAttachWaitSeconds` | int | `45` | 等待远端 `dsh web` 打印启动令牌的秒数 |
 
 > 权威清单是 `lib/index.js` 里的 `Config` schema，本表与之一致。
 

@@ -2,6 +2,67 @@
 
 All notable changes to **dsh-remote**.
 
+## 未发布
+### 安全修复 + 新能力：把远程机器的 DSH 网页界面挂到本机（issue #46）
+
+**issue #46 问的是「能连接远程的 dsh-web 吗？」，补一句「只当客户端用」—— 这句话决定了方向。**
+它排除"让远端把界面暴露出来给人连"，指向"让本地这个 DSH 主动连出去，把远端那个 `dsh web`
+当目标"。这与插件既有定位完全同构（本来就是把远程机器变成工作区），所以本次把「远程工作区」
+扩展成「远程界面」。
+
+**顺带发现并修掉一个真实安全缺陷（本身独立成立，且是新端点的前置条件）。**
+插件自己注册的 `/dsh-remote/*` 路由**完全没有 DSH 的 Host/Origin 栅栏，也没有浏览器认证** ——
+DSH 的 `requestRejection` 只挂在 `/api` 前缀与 `/api/remote.mux` 升级路由上。在 0.8.35 的实机
+（127.0.0.1:3080）实测：
+
+- `POST /dsh-remote/forwards` 带 `Origin: https://evil.example.com`（且用 `text/plain`，
+  浏览器**不会**发 preflight）返回 **200**，而且那个转发定义**真的落进了 `forwards.json`**；
+- `Host: evil.com` 也返回 200（DNS rebinding 根本不需要 Origin）；
+- `GET /dsh-remote/machines` 直接吐出 host/user/port/workspace。
+
+同样的请求打 DSH 自家的 `/api` 是 403。**能触发就能作恶**：任何用户访问过的网页都可以借此
+建隧道、改机器清单、甚至触发 `update-apply`（装包 + 重载插件）。
+
+修法是复用 DSH 的权威判定而不是另写一套：`lib/http-transport.js` 现在用 `guardRoute()`
+包住每一个 `webServer` 路由，优先问 `connection.requestRejection`，没有该服务时退回到
+**fail-closed** 的兜底（跨站 / Origin 与 Host 不符 / 非 loopback Host 一律拒绝）。
+非浏览器调用方（curl、脚本）与进程内调用方不受影响 —— 与 DSH 自己的语义一致；
+`/api` 那条孪生路由**刻意不重复包一层**。
+
+**新能力：`lib/web-attach.js`。** SSH 连出去，在选定机器上启动（或复用）一个**只监听
+127.0.0.1** 的 `dsh web`，再把它的端口经 SSH 隧道搬到本机的 loopback 端口。在一台真实
+Linux 主机上验证：**一个纯 TCP 转发就够了** —— SPA、静态资源、以及 `/api/remote.mux` 的
+WebSocket 升级（HTTP/1.1 101）全部正常通过，不需要反代、不需要改写 host。原因是 DSH 把
+认证 cookie 绑定在请求 authority 上，所以按 `127.0.0.1:<本地端口>` 签发的 cookie 正好就是
+浏览器随后发回同一 authority 的那一个。
+
+启动令牌**只存在于 stdout**（进程内 `randomBytes`，不落盘、无环境变量入口），所以解析
+`dsh web: http://127.0.0.1:<port>/?token=…` 这一行拿到它；`--port 0` 让远端自己挑端口，
+而同一行会把挑到的端口报回来，两者从同一行读出因而必然一致。默认**不会**杀远端进程，
+要用「断开并停止远端」，且只作用于本次由插件启动的进程。
+
+设置页新增「远程 DSH 界面」卡片：选机器 → 连接并打开 / 打开 / 断开 / 断开并停止远端，
+也可以粘贴远端已在运行的 `http://127.0.0.1:<端口>/?token=…` 直接接上（不会再启第二个）。
+
+**三个只有真机才能发现的缺陷**（单测全都"通过"了，实机第一次跑就露出来，各补了一条回归）：
+
+1. 语句用 `; ` 连接，而 `while …; do` 被当成独立元素 ⇒ 生成出 `do;`，POSIX 语法错误。
+   每次 attach 都失败在 `syntax error near unexpected token ';'`，而等价的手写脚本却是好的。
+   （`sh -c` 正是 sshd 执行命令的方式，所以必须是合法 POSIX sh。）
+2. `stopRemote` 实际什么都没做：它 `pkill -f` 会话日志路径，而那个路径只作为**重定向**出现、
+   从不进入 argv，所以匹配不到任何进程 —— 实机观察到远端 DSH 仍在监听。
+3. 给 (2) 打的第一版补丁改成匹配 argv 里的**端口**，同样永远不会命中：启动刻意用
+   `--port 0`，真实端口是事后才从启动行读到的。
+
+现在改为向记录的 PID 的**进程组**发信号（启动走 `setsid`，子进程即组长，组内正好是我们
+启动的那棵树 —— 不会误伤用户自己的 DSH，也不会误伤另一个 attach 会话），发信号前先用
+`/proc/<pid>/cmdline` 复核它仍然像个 `dsh` 进程，避免 PID 复用误杀；顺带清掉本次的日志文件。
+
+**测试**：346 通过（原 316）。新增 `test/route-fence.test.js`（12 例）做了负对照 ——
+把栅栏去掉后其中 7 例立刻变红，而 5 例"必须仍然可用"的对照保持绿色。
+`scripts/integration-web-attach.mjs`（10 项断言）与
+`scripts/integration-route-web-attach.mjs`（13 项断言）打真实主机，全绿。
+
 ## 0.8.35 — 2026-10-02
 ### 修 issue #44：`rw_search` 大目录搜索会把会话永久卡死；并入 PR #45 的 `rw_edit` 别名
 

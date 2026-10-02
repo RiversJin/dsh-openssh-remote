@@ -115,6 +115,31 @@ Since **v0.8.18** it installs and mounts only itself; the Web sidebar ([dsh-bett
 
 > **Remote context is session-scoped:** the "Remote workspace" system-prompt section appears only when the current session's workspace is a remote mirror; local sessions are unaffected and the model will not call `rw_*` on its own.
 
+## Open a remote machine's DSH Web UI locally
+
+The `dsh web` running on a remote machine can also be opened **as a page on this machine** (issue #46). The direction stays "this machine dials out":
+
+> **The remote opens no port.** DSH deliberately refuses `--host 0.0.0.0` (it would put remote
+> code execution on the network), so the correct shape is: SSH out, start a `dsh web` on the remote
+> that listens on **127.0.0.1 only**, and carry its port back over the SSH connection to a loopback
+> port here.
+
+Usage: Settings → Remote workspaces → **"Remote DSH Web UI"** → pick a machine → **Connect & open**.
+A new tab opens showing that remote machine's full DSH interface (chat, tool tree, settings).
+
+- The URL looks like `http://127.0.0.1:3088/?token=…`. That token is a one-time credential the remote
+  process prints at startup and is used once, on this machine, by that redirect: DSH exchanges it for a
+  30-day signed cookie and lands on a clean `/`. **Do not share that tokenized URL.**
+- "Disconnect" only closes the tunnel and deliberately does **not** kill the remote process (it may be
+  an instance you use elsewhere). "Disconnect & stop remote" also ends the process — but only one this
+  plugin started.
+- If the remote already runs an interface (for example one you started in a terminal), pick the machine
+  and paste its `http://127.0.0.1:<port>/?token=…` into the field, then "Attach to running instance" —
+  no second instance will be started.
+- When the remote `dsh` is not on the SSH login PATH, point `webAttachCommand` at its absolute path; to
+  keep an attached instance out of the remote user's own sessions and settings, point `webAttachDshHome`
+  at a scratch directory.
+
 ## CLI defaults (optional)
 
 Provide a default machine in `cordis.patch.yml`:
@@ -210,6 +235,10 @@ Deploying to a product profile is a separate, explicit action (`./sync.sh`) for 
 | `updateMode` | string | `auto` | self-update behaviour: `auto` checks npm on load and every 6h and applies a newer release; `manual` only checks when asked; `off` disables checks. **Default changed to `auto` in 0.8.27** — safe because 0.8.24 added the host-half hot swap |
 | `updateCheckIntervalMs` | int | 21600000 (6h) | how often `auto` mode checks npm (floor 60000) |
 | `updateAutoReload` | bool | `true` | hot-swap the host half after an update lands; `false` defers it to the next process start and the panel reports `pendingReload` |
+| `webAttachPortStart` | int | `3088` | first local port for the "Remote DSH Web UI" tunnel (later ports are tried when taken; loopback only) |
+| `webAttachCommand` | string | `dsh` | command used to start `dsh web` on the remote; change it when the remote `dsh` is not on the SSH login PATH |
+| `webAttachDshHome` | string | `''` | `DSH_HOME` exported on the remote when attaching; empty reuses the remote user's own harness home |
+| `webAttachWaitSeconds` | int | `45` | how long to wait for a freshly started remote `dsh web` to print its launch token |
 
 > The authoritative list is the `Config` schema in `lib/index.js`; this table mirrors it.
 
