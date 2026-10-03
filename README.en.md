@@ -20,6 +20,8 @@ Manage several SSH machines, then pick a **remote workspace** (or a **local** on
 
 The harness Web UI intentionally binds `127.0.0.1` (the CLI rejects `--host 0.0.0.0` for safety). This plugin goes the other way: **you connect out** to the machines you maintain, pick a workspace, and work in it through the normal DSH workspace + agent fs flows — no changes to `dsh-workspace` or the harness core.
 
+It works the other way too: **you can open the remote machine's own DSH Web UI as a page in your local browser** — again without exposing any port on the remote. And when a connection will not come up, a **one-click health check & deploy** repairs and verifies the remote environment for you.
+
 ## Data collection / telemetry
 
 One anonymous heartbeat per launch (at least 6 hours apart), used only to measure usage: **de-duplicated daily active installs, the version actually running, and platform distribution**. npm download counts are release-driven and include mirrors/crawlers, and GitHub clones include CI, so neither can answer that.
@@ -34,7 +36,7 @@ The heartbeat is fire-and-forget: it never blocks loading and failures are ignor
 
 **Settings → 远程工作区** — machine list, advanced config (key / jump host / agent), connection check, port forwarding, audit log, update:
 
-<img src="docs/shots/settings-panel.png" alt="dsh-remote settings: machine list, advanced config, port forwarding, audit log, update" width="640"/>
+<img src="docs/shots/settings-panel.png" alt="dsh-remote settings: machine list, advanced config, remote DSH Web UI, health check &amp; deploy, port forwarding, audit log, update" width="612"/>
 
 The native **"Add workspace"** flow — a centered modal with two tabs, opening on Local; here switched to **Remote**:
 
@@ -47,7 +49,7 @@ The native **"Add workspace"** flow — a centered modal with two tabs, opening 
 
 ## Features
 
-![Capabilities at a glance — multi-machine SSH, live alias resolution, the two-tab picker, three-way sync, remote @ completion, audit, port forwarding, sidebar editing, self-update, and the 21 rw_* tools](docs/shots/features.png)
+![Capabilities at a glance — multi-machine SSH, live alias resolution, the two-tab picker, three-way sync, remote @ completion, a remote DSH Web UI in your local browser, health check &amp; one-click deploy, audit, port forwarding, sidebar editing, self-update, and the 21 rw_* tools](docs/shots/features.png)
 
 The image above is the overview. What follows is only what the image does not make obvious.
 
@@ -60,11 +62,13 @@ The image above is the overview. What follows is only what the image does not ma
 
 **Settings** (machine list, connection check, port forwarding, audit log, update mode):
 
-<img src="docs/shots/settings-panel.png" alt="dsh-remote settings: machine list, advanced config, port forwarding, audit log, update" width="640"/>
+<img src="docs/shots/settings-panel.png" alt="dsh-remote settings: machine list, advanced config, remote DSH Web UI, health check &amp; deploy, port forwarding, audit log, update" width="612"/>
 
 The rest:
 
-- **20 model tools** (listed so they can be copied or searched): `rw_info`, `rw_connect`, `rw_pick_workspace`, `rw_list_dir`, `rw_stat`, `rw_read_file`, `rw_write_file`, `rw_edit`, `rw_append`, `rw_mkdir`, `rw_remove`, `rw_move`, `rw_exec`, `rw_search`, `rw_download`, `rw_upload`, `rw_sync`, `rw_push`, `rw_forward`, `rw_disconnect`.
+- **21 model tools** (listed so they can be copied or searched): `rw_info`, `rw_connect`, `rw_pick_workspace`, `rw_list_dir`, `rw_stat`, `rw_read_file`, `rw_write_file`, `rw_edit`, `rw_append`, `rw_mkdir`, `rw_remove`, `rw_move`, `rw_exec`, `rw_search`, `rw_download`, `rw_upload`, `rw_sync`, `rw_push`, `rw_forward`, `rw_disconnect`, `rw_deploy_probe`.
+- **Open a remote machine's DSH Web UI locally** (`0.8.36+`) — nothing has to be exposed on the remote: the plugin SSHes out, starts a `dsh web` there that binds **`127.0.0.1` only**, and tunnels its port back to a loopback port on this machine. The URL carries a one-time login token, consumed once by a redirect.
+- **One-click health check & deploy** (`0.8.36+`) — **a failed connection is usually the remote dsh version or environment, not the plugin.** The read-only check reports platform / node / npm / dsh version / **whether the native module can load** / proxy and npm registry, with a suggested fix; "Deploy & verify" installs into a remote **private directory** (no system directory, no PATH change, no replacing the version you use — deleting it is a complete rollback) and verifies step by step. If that still fails, the built-in `dsh-remote-deploy` skill takes over.
 - **Cross-platform remotes** — all file access is SFTP-protocol-level (no POSIX shell), so Linux/macOS/Windows remotes all work.
 - **Windows remotes** — the platform is auto-detected and commands go through `bash -s` over stdin, so quoting and backslash escaping are never an issue (`config.shell` can pin a path or `native` disables wrapping); `C:\Users\dev` and `/c/Users/dev` are both accepted.
 - **Async long tasks** — `rw_sync`/`rw_push` with `async: true` return a `taskId` with progress/result/cancel.

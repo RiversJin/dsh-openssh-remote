@@ -111,6 +111,42 @@ test('the capability overview image is referenced by both READMEs', () => {
   }
 })
 
+test('a rendered doc image is not older than the HTML it is generated from', () => {
+  // 回归（本会话差点发出）：我给能力总览加了新卡片、改了 docs/features.html，
+  // 但忘了重渲染 features.png —— 于是 README 的图注说"有体检与部署"，图上没有，
+  // 图和文字开始互相矛盾。当时**没有任何守卫会拦住这件事**：图片存在、尺寸合理、
+  // 引用也没断，所有既有判据都是绿的。
+  //
+  // 判据：配图的 mtime 不能早于它的渲染源。允许一个小容差，因为 `git checkout`
+  // 会让同一次提交里的文件带上几乎相同的 mtime，顺序不保证。
+  const PAIRS = [
+    ['docs/features.html', 'docs/shots/features.png'],
+    ['docs/cover.html', 'docs/cover.png'],
+  ]
+  const TOLERANCE_MS = 2000
+  const stale = []
+  for (const [src, png] of PAIRS) {
+    const s = path.join(root, src)
+    const p = path.join(root, png)
+    if (!existsSync(s) || !existsSync(p)) continue
+    const sm = statSync(s).mtimeMs
+    const pm = statSync(p).mtimeMs
+    if (pm + TOLERANCE_MS < sm) {
+      stale.push(`${png} (${new Date(pm).toISOString()}) is older than ${src} (${new Date(sm).toISOString()}) `
+        + `— re-render: node scripts/render-doc-image.mjs ${src} ${png}`)
+    }
+  }
+  assert.deepEqual(stale, [], `doc image is stale relative to its source:\n  ${stale.join('\n  ')}`)
+})
+
+test('the freshness check actually detects a stale image', () => {
+  // 负对照：构造一个"源比图新"的情形，检查逻辑必须报出来。
+  const detect = (srcM, pngM, tol = 2000) => (pngM + tol < srcM ? 'stale' : 'fresh')
+  assert.equal(detect(1000, 2000), 'fresh', 'image newer than source is fine')
+  assert.equal(detect(5000, 1000), 'stale', 'source edited 4s later must be reported')
+  assert.equal(detect(1000 + 1000, 1000), 'fresh', 'small mtime skew is tolerated')
+})
+
 test('a width= attribute never upscales the bitmap', () => {
   // 回归：图片重截后尺寸变了（settings 632x1325 -> 535x640、picker 612x308 -> 595x224），
   // 而 README 里的 width 属性还是旧值 —— GitHub 会按属性把位图放大，直接糊掉。

@@ -114,7 +114,13 @@ test('every config key documented in the table exists in the schema', () => {
 
 test('both READMEs list the same rw_* tools', () => {
   assert.deepEqual(tools(zh), tools(en), 'tool lists must agree')
-  assert.equal(tools(zh).length, 20, `expected 20 rw_* tools, found ${tools(zh).length}`)
+  // Compare against the PLUGIN, not a hardcoded number. A literal here only
+  // proves the author updated the test when it bothered them; comparing to the
+  // registered tools proves the docs are actually right.
+  const src = readFileSync(path.join(root, 'lib', 'index.js'), 'utf8')
+  const real = [...new Set([...src.matchAll(/name:\s*'(rw_[a-z_]+)'/g)].map((m) => m[1]))].sort()
+  assert.deepEqual([...tools(zh)].sort(), real,
+    'the README tool list must match the tools the plugin registers')
 })
 
 test('the DSH compatibility section is present in both', () => {

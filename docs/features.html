@@ -155,6 +155,14 @@
         <p>主机指纹 TOFU 校验；每条远程命令写入审计日志；凭据只存本机。</p>
       </div>
       <div class="card">
+        <div class="row"><span class="ic">🖥️</span><h3>远端 DSH 界面挂到本机</h3><span class="badge">0.8.36+</span></div>
+        <p>远端不开任何端口：SSH 连过去起一个<strong>只监听 127.0.0.1</strong> 的 <code>dsh web</code>，再把端口隧道回本机浏览器。</p>
+      </div>
+      <div class="card">
+        <div class="row"><span class="ic">🩺</span><h3>连不上？体检与部署</h3><span class="badge">0.8.36+</span></div>
+        <p>只读体检报出平台 / node / <strong>原生模块能否启动</strong> / 代理与 npm 源；一键装到远端<strong>私有目录</strong>（不写系统目录、不改 PATH、删目录即回滚）并逐步校验。</p>
+      </div>
+      <div class="card">
         <div class="row"><span class="ic">↔️</span><h3>端口转发</h3></div>
         <p>本地与反向 SSH 隧道，定义持久化，断开时停止。</p>
       </div>
