@@ -140,6 +140,33 @@ A new tab opens showing that remote machine's full DSH interface (chat, tool tre
   keep an attached instance out of the remote user's own sessions and settings, point `webAttachDshHome`
   at a scratch directory.
 
+### Cannot connect? Check the environment, then deploy in one click
+
+**A failed connect is usually not the plugin's fault: the remote dsh version or environment is wrong.**
+The classic case: dsh 0.1.0-rc.6 depends on `node-pty@1.1.0`, whose published package ships
+**no `linux-x64` prebuild**, so `dsh web` cannot start on Linux at all. Previously all you saw was
+"the remote DSH did not report a startup token", with no way to tell why.
+
+Settings → Remote workspaces → **"Remote dsh health check & deploy"**:
+
+1. **Check (read-only)** — probes the remote's platform / node / npm / dsh version / **whether the
+   native module can load** / whether it knows `--no-open` / proxy and npm registry, and reports a
+   verdict with a suggested fix. It **writes nothing**, so it is safe to run freely.
+2. **Deploy & verify** — appears only when step 1 says it is both needed and possible. It installs into
+   a **private directory** on the remote (default `~/.dsh-remote/dsh`): **no system directory, no PATH
+   change, no replacing the version you use**; deleting that directory is a complete rollback. It then
+   verifies step by step (binary / native module / `web` subcommand) and, on success, **records the
+   resulting dsh path per machine** so later connects use it.
+3. **Let the AI investigate** — appears only after a failure. It creates a session and hands the problem
+   to the built-in `dsh-remote-deploy` skill, which covers the long tail the deterministic path cannot
+   express (no npm, sudo-only systems, proxies, internal mirrors, Windows remotes). **Nothing is created
+   unless you click it**, because it spends model budget.
+
+Related config: `webInstallPrefix` (where; default `$HOME/.dsh-remote/dsh`), `webInstallVersion`
+(which version; default `0.1.5-rc.2`, the first that can start the web surface on Linux), and
+`webInstallRegistry` (npm registry; **empty keeps the remote's own config**, so an internal mirror is
+never overridden).
+
 ## CLI defaults (optional)
 
 Provide a default machine in `cordis.patch.yml`:
@@ -239,6 +266,9 @@ Deploying to a product profile is a separate, explicit action (`./sync.sh`) for 
 | `webAttachCommand` | string | `dsh` | command used to start `dsh web` on the remote; change it when the remote `dsh` is not on the SSH login PATH |
 | `webAttachDshHome` | string | `''` | `DSH_HOME` exported on the remote when attaching; empty reuses the remote user's own harness home |
 | `webAttachWaitSeconds` | int | `45` | how long to wait for a freshly started remote `dsh web` to print its launch token |
+| `webInstallPrefix` | string | `''` | where an automatic deployment installs dsh; empty means `$HOME/.dsh-remote/dsh` (no system directory, no PATH change) |
+| `webInstallVersion` | string | `0.1.5-rc.2` | dsh version an automatic deployment installs; the default is the first that can start the web surface on Linux |
+| `webInstallRegistry` | string | `''` | npm registry for the install; **empty keeps the remote's own config**, so an internal mirror is never overridden |
 
 > The authoritative list is the `Config` schema in `lib/index.js`; this table mirrors it.
 

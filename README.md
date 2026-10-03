@@ -126,6 +126,28 @@ dsh plugin add dsh-remote
 - 远端 `dsh` 不在 SSH 登录 PATH 时，用 `webAttachCommand` 指向它的绝对路径；
   想让它别污染远端用户自己的会话/设置，用 `webAttachDshHome` 指一个临时目录。
 
+### 连不上？先体检，再一键部署
+
+**连不上大多不是插件的问题，而是远端 dsh 的版本或环境不对。** 最典型的一种：dsh 0.1.0-rc.6
+依赖 `node-pty@1.1.0`，而**那个版本发布的包里没有 `linux-x64` 预编译产物** ⇒ `dsh web`
+在 Linux 上根本起不来。这种情况以前只能看到「没拿到启动令牌」，无从判断。
+
+设置 → 远程工作区 → **「远端 dsh 体检与部署」**：
+
+1. **体检（只读）** —— 探测远端平台/node/npm/dsh 版本/**原生模块能否启动**/是否认识
+   `--no-open`/代理与 npm 源，给出结论与修复建议。**不写任何东西**，可以随便点。
+2. **部署并验证** —— 只在上一步判定「需要且可以自动装」时才出现。它会装到远端
+   **私有目录**（默认 `~/.dsh-remote/dsh`）：**不写系统目录、不改 PATH、不覆盖你在用的版本**，
+   删掉那个目录即完全回滚。装完逐步校验（二进制 / 原生模块 / `web` 子命令），
+   成功后**按机器记住**这条 dsh 路径，之后连接就用它。
+3. **让 AI 排查** —— 只在失败后出现。它会创建一个会话，让内置的 `dsh-remote-deploy`
+   技能去处理确定性流程覆盖不到的长尾（没有 npm、要 sudo、代理、内网镜像源、Windows 远端等）。
+   **只有你点它才会创建**，因为这会消耗模型额度。
+
+相关配置：`webInstallPrefix`（装哪，默认 `$HOME/.dsh-remote/dsh`）、
+`webInstallVersion`（装哪个版本，默认 `0.1.5-rc.2`——第一个在 Linux 上能起 web 的版本）、
+`webInstallRegistry`（npm 源；**留空则沿用远端自己的配置**，不会覆盖你的内网镜像）。
+
 ## 可选：CLI 默认机
 
 可在 `cordis.patch.yml` 提供默认机：
@@ -226,6 +248,9 @@ scripts/dev-run.sh --status    # 是否在运行
 | `webAttachCommand` | string | `dsh` | 在远端启动 `dsh web` 用的命令；远端 `dsh` 不在 SSH 登录 PATH 时改这里 |
 | `webAttachDshHome` | string | `''` | 远端启动时导出的 `DSH_HOME`；留空则复用远端用户自己的 harness home |
 | `webAttachWaitSeconds` | int | `45` | 等待远端 `dsh web` 打印启动令牌的秒数 |
+| `webInstallPrefix` | string | `''` | 自动部署装到远端的哪个目录；留空用 `$HOME/.dsh-remote/dsh`（不写系统目录、不改 PATH） |
+| `webInstallVersion` | string | `0.1.5-rc.2` | 自动部署安装的 dsh 版本；默认值是第一个在 Linux 上能启动 web 的版本 |
+| `webInstallRegistry` | string | `''` | 安装用的 npm 源；**留空沿用远端自己的配置**，不会覆盖内网镜像 |
 
 > 权威清单是 `lib/index.js` 里的 `Config` schema，本表与之一致。
 
