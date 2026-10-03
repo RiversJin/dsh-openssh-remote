@@ -80,6 +80,36 @@ test('the probe is read-only: it never installs, writes or deletes', () => {
   assert.match(cmd, /P_PTY=/, 'probe reports the native-module fact')
 })
 
+// The caller cannot know $HOME before the probe runs, so the DEFAULT prefix must
+// be resolved ON THE REMOTE. Guessing locally reported writability for a
+// directory (/tmp/...) that had nothing to do with the real install location —
+// measured against a real host whose home is a symlink to /data/....
+test('the default prefix is resolved on the remote, not guessed locally', () => {
+  const cmd = buildProbeCommand({ defaultPrefixFor: 'home' })
+  assert.match(cmd, /P_PREFIX=/, 'the remote reports the prefix it resolved')
+  assert.match(cmd, /\$HOME/, 'it must be built from the remote HOME')
+  assert.match(cmd, /DEFAULT|\.dsh-remote\/dsh/, 'the default suffix is applied remotely')
+  // A locally-guessed absolute path must NOT leak into the remote script here.
+  assert.ok(!cmd.includes('"/tmp/'), 'a locally guessed temp path must not be probed')
+})
+
+test('an explicit prefix is probed verbatim, with no home resolution', () => {
+  const cmd = buildProbeCommand({ prefix: '/opt/wherever' })
+  assert.match(cmd, /\/opt\/wherever/)
+  assert.doesNotMatch(cmd, /P_PREFIX=/, 'nothing to resolve when the caller pinned it')
+})
+
+test('the remote-resolved prefix is parsed out of the probe', () => {
+  const f = parseProbe([goodOutput, 'P_PREFIX=/home/dev/.dsh-remote/dsh', 'P_WRITABLE=parent:yes'].join('\n'))
+  assert.equal(f.resolvedPrefix, '/home/dev/.dsh-remote/dsh')
+  assert.equal(parseProbe(goodOutput).resolvedPrefix, '', 'absent when not requested')
+})
+
+test('with no prefix and no default request, writability is unknown rather than guessed', () => {
+  const cmd = buildProbeCommand({})
+  assert.match(cmd, /P_WRITABLE=unknown/)
+})
+
 test('the probe uses newlines, not ; -joined statements (the do; hazard)', () => {
   const cmd = buildProbeCommand()
   assert.ok(cmd.includes('\n'), 'multiline form avoids the POSIX do; failure mode')

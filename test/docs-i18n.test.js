@@ -84,14 +84,29 @@ test('documented rw_* tool names all exist in the plugin', () => {
   // 真名是 rw_pick_workspace / rw_list_dir / rw_read_file / rw_write_file）。
   const indexSrc = read('lib/index.js')
   const real = new Set([...indexSrc.matchAll(/name:\s*'(rw_[a-z_]+)'/g)].map((m) => m[1]))
-  assert.equal(real.size, 20, `expected 20 rw_* tools in the plugin, found ${real.size}`)
 
   const documented = new Set()
   for (const p of PAGES) {
     for (const m of read(p).matchAll(/<code>(rw_[a-z_]+)<\/code>/g)) documented.add(m[1])
+    // 正文里的 `N 个 rw_* 工具` / `N rw_* tools` 也是要维护的断言，而且比工具
+    // 列表更容易漏改（列了工具却没改数字，读者会以为少了工具）。所以把页面里
+    // 出现的每个计数都拿来跟真实数量比对，而不是在这里硬编码一个数字 ——
+    // 硬编码的数字只能证明"作者当时改过测试"，证明不了文档是对的。
+    for (const m of read(p).matchAll(/(\d+)\s*(?:个\s*<code>rw_|<code>rw_|个 rw_| rw_)/g)) {
+      const claimed = Number(m[1])
+      // 只认显然是在说 rw_* 数量的那些数字（避免把别的计数误判）。
+      if (claimed >= 5 && claimed <= 200) {
+        assert.equal(claimed, real.size,
+          `${p}: 页面声称 ${claimed} 个 rw_* 工具，实际 ${real.size} 个`)
+      }
+    }
   }
   const ghosts = [...documented].filter((n) => !real.has(n))
   assert.deepEqual(ghosts, [], `pages document rw_* tools that do not exist: ${ghosts.join(', ')}`)
+
+  // 反过来：每个真实工具都应该被站点列出来（漏列等于少一个卖点）。
+  const missing = [...real].filter((n) => !documented.has(n))
+  assert.deepEqual(missing, [], `pages omit real rw_* tools: ${missing.join(', ')}`)
 })
 
 test('the DAU figure never silently skips a day that has data', () => {

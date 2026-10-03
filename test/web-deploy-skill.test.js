@@ -9,6 +9,7 @@
 //     evidence is the entire reason the deterministic path gave up.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { SKILL_NAME, SKILL_BODY, registerDeploySkill, buildInvestigatePrompt } from '../lib/web-deploy-skill.js'
 import { DEFAULT_INSTALL_VERSION, DEFAULT_PREFIX_SUFFIX } from '../lib/web-deploy.js'
 
@@ -144,4 +145,29 @@ test('the prompt restates the safety constraints', () => {
   assert.match(p, /私有前缀/, 'private prefix, not global')
   assert.match(p, /清理/, 'cleanup')
   assert.match(p, /问我|先问/, 'ask before privilege changes')
+})
+
+// ── the body must not name tools that do not exist ──────────────────────────
+// Found by a review: the body told the agent to call `rw_deploy_probe`, but the
+// tool had never been registered — a hedge ("if available") made it not a crash,
+// just a guaranteed dead end on the agent's first move.
+test('every rw_* tool the skill names is actually registered', () => {
+  const named = new Set([...SKILL_BODY.matchAll(/\brw_[a-z_]+/g)].map((m) => m[0]))
+  assert.ok(named.size > 0, 'the body must point at real tools')
+  const src = readFileSync(new URL('../lib/index.js', import.meta.url), 'utf8')
+  const registered = new Set([...src.matchAll(/name: '(rw_[a-z_]+)'/g)].map((m) => m[1]))
+  const missing = [...named].filter((n) => !registered.has(n))
+  assert.deepEqual(missing, [], `the skill names tools that do not exist: ${missing.join(', ')}`)
+})
+
+test('the tool-name check can actually detect a missing tool', () => {
+  const src = "defineTool({ name: 'rw_exists' })"
+  const registered = new Set([...src.matchAll(/name: '(rw_[a-z_]+)'/g)].map((m) => m[1]))
+  assert.deepEqual(['rw_exists', 'rw_missing'].filter((n) => !registered.has(n)), ['rw_missing'])
+})
+
+test('the body does not hedge about whether rw_deploy_probe exists', () => {
+  // "if available" would silently degrade the agent's first instruction.
+  assert.doesNotMatch(SKILL_BODY, /rw_deploy_probe[^。\n]{0,12}(如果可用|若可用|if available)/)
+  assert.match(SKILL_BODY, /rw_deploy_probe/, 'the primary tool must be named')
 })
