@@ -271,10 +271,67 @@ test('the plan writes a private package.json so npm cannot adopt a parent projec
   assert.match(prepare.command, /package\.json/)
 })
 
-test('the native-module step is skipped on Windows', () => {
-  const win = parseProbe('P_OS=MINGW64_NT-10.0\nP_ARCH=x64\n')
-  const ids = buildInstallPlan({ facts: win, prefix: '/p' }).steps.map((s) => s.id)
-  assert.ok(!ids.includes('verify-pty'))
+test('the native-module step is included for POSIX remotes', () => {
+  const ids = buildInstallPlan({ facts: healthy, prefix: '/p' }).steps.map((s) => s.id)
+  assert.ok(ids.includes('verify-pty'), 'a good install must be provably bootable')
+})
+
+// P4: a Windows remote WITH Git Bash is deployable — pool.exec pipes every
+// command through `bash -s`, so the same POSIX plan works there. Without Git
+// Bash there is no POSIX shell and the plan must not be offered.
+test('a Windows remote with Git Bash is installable; without it, it is not', () => {
+  const withBash = parseProbe('P_OS=MINGW64_NT-10.0\nP_ARCH=x64\nP_NODE=/c/node\nP_NPM=/c/npm\nP_GITBASH=/usr/bin/bash.exe\n')
+  const vWith = judgeProbe(withBash)
+  assert.equal(vWith.canAutoInstall, true, 'Git Bash makes the POSIX plan viable')
+  assert.ok(vWith.findings.some((x) => x.code === 'WINDOWS_REMOTE_GITBASH' && x.severity === 'info'))
+  assert.equal(vWith.findings.some((x) => x.code === 'WINDOWS_REMOTE' && x.severity === 'warn'), false)
+
+  const noBash = parseProbe('P_OS=MINGW64_NT-10.0\nP_ARCH=x64\nP_NODE=/c/node\nP_NPM=/c/npm\nP_GITBASH=\n')
+  const vNo = judgeProbe(noBash)
+  assert.equal(vNo.canAutoInstall, false, 'no shell means we must not promise an install')
+  assert.ok(vNo.findings.some((x) => x.code === 'WINDOWS_REMOTE' && x.severity === 'warn'))
+
+  // The plan itself stays POSIX in both cases; Git Bash is what makes it run.
+  const ids = buildInstallPlan({ facts: withBash, prefix: '/c/Users/dev/.dsh-remote/dsh' }).steps.map((s) => s.id)
+  assert.ok(ids.includes('verify-pty'))
+})
+
+// P4: proxy and a custom registry are REPORTED, never overridden — the operator
+// knows whether their mirror/proxy is correct, and silently replacing a working
+// corporate mirror with the public one would be a regression.
+test('an inherited proxy and a custom registry are reported, not changed', () => {
+  const facts = parseProbe([goodOutput, 'P_PROXY_NAME=HTTPS_PROXY', 'P_REGISTRY=https://npm.corp.example/'].join('\n'))
+  const v = judgeProbe(facts)
+  assert.ok(v.findings.some((x) => x.code === 'PROXY_SET' && x.severity === 'info'))
+  const reg = v.findings.find((x) => x.code === 'CUSTOM_REGISTRY')
+  assert.equal(reg.severity, 'info')
+  assert.match(reg.summary, /npm\.corp\.example/)
+  assert.equal(v.ok, true, 'neither is a problem in itself')
+})
+
+test('the default npm registry is not reported as custom', () => {
+  const facts = parseProbe([goodOutput, 'P_REGISTRY=https://registry.npmjs.org/'].join('\n'))
+  assert.equal(judgeProbe(facts).findings.some((x) => x.code === 'CUSTOM_REGISTRY'), false)
+})
+
+test('a per-install proxy override reaches the install step only', () => {
+  const { steps } = buildInstallPlan({
+    facts: healthy, prefix: '/p', env: { HTTPS_PROXY: 'http://proxy:8080' },
+  })
+  assert.deepEqual(steps.find((s) => s.id === 'install').env, { HTTPS_PROXY: 'http://proxy:8080' })
+  assert.equal(steps.find((s) => s.id === 'verify-binary').env, undefined,
+    'verification does not need the network')
+})
+
+test('no registry flag is passed when none is configured', () => {
+  const install = buildInstallPlan({ facts: healthy, prefix: '/p' }).steps.find((s) => s.id === 'install')
+  assert.doesNotMatch(install.command, /--registry/, 'must not override the remote npm config')
+})
+
+test('the native-module step explains itself on failure instead of failing silently', () => {
+  const step = buildInstallPlan({ facts: healthy, prefix: '/p' }).steps.find((s) => s.id === 'verify-pty')
+  assert.match(step.command, /PTY_MISSING/, 'a bare test -f gives the operator nothing to act on')
+  assert.match(step.command, /exit 1/, 'a missing prebuild must fail the step')
 })
 
 test('stepResult reports success and keeps a bounded diagnostic tail', () => {
