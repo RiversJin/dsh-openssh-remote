@@ -68,3 +68,16 @@ test('the syntax gate actually rejects a broken loop (proves it can fail)', (t) 
   assert.notEqual(syntaxError(sh, 'i=0; while [ $i -lt 3 ]; do; sleep 1; done'), null)
   assert.equal(syntaxError(sh, 'i=0; while [ $i -lt 3 ]; do sleep 1; i=$((i+1)); done'), null)
 })
+
+// A gate that silently skips is worse than no gate: it reports GREEN while an
+// entire class of defect goes unchecked. `t.skip` above is visible in the
+// summary, but a host without sh would quietly reduce this file to nothing — so
+// that condition must be a DECISION, not an accident.
+test('the shell gate did not silently disappear', (t) => {
+  if (process.env.DSH_REMOTE_ALLOW_NO_SH === '1') {
+    return t.skip('DSH_REMOTE_ALLOW_NO_SH=1: the caller accepted running without a shell gate')
+  }
+  assert.ok(sh, 'no POSIX sh was found, so the syntax gate could not run. '
+    + 'Install sh/bash, or set DSH_REMOTE_ALLOW_NO_SH=1 to accept that this whole '
+    + 'class of defect (invalid generated shell) is unchecked on this host.')
+})

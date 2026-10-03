@@ -77,3 +77,15 @@ test('the syntax gate actually rejects the do; defect it exists for', (t) => {
   const fixed = 'i=0; while [ $i -lt 3 ]; do sleep 1; i=$((i+1)); done'
   assert.equal(syntaxError(sh, fixed), null, 'the glued form must be accepted')
 })
+
+// A gate that silently skips reports GREEN while an entire class of defect goes
+// unchecked. A host without sh must therefore be an explicit decision, not an
+// accident that quietly reduces this file to nothing.
+test('the shell gate did not silently disappear', (t) => {
+  if (process.env.DSH_REMOTE_ALLOW_NO_SH === '1') {
+    return t.skip('DSH_REMOTE_ALLOW_NO_SH=1: the caller accepted running without a shell gate')
+  }
+  assert.ok(sh, 'no POSIX sh was found, so the syntax gate could not run. '
+    + 'Install sh/bash, or set DSH_REMOTE_ALLOW_NO_SH=1 to accept that invalid '
+    + 'generated shell is unchecked on this host.')
+})
