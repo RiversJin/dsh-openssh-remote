@@ -47,7 +47,7 @@ The native **"Add workspace"** flow — a centered modal with two tabs, opening 
 
 ## Features
 
-![Capabilities at a glance — multi-machine SSH, live alias resolution, the two-tab picker, three-way sync, remote @ completion, audit, port forwarding, sidebar editing, self-update, and the 20 rw_* tools](docs/shots/features.png)
+![Capabilities at a glance — multi-machine SSH, live alias resolution, the two-tab picker, three-way sync, remote @ completion, audit, port forwarding, sidebar editing, self-update, and the 21 rw_* tools](docs/shots/features.png)
 
 The image above is the overview. What follows is only what the image does not make obvious.
 
