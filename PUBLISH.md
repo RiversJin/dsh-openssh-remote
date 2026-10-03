@@ -28,7 +28,29 @@ Optional: `scripts/boot-smoke.sh` if a desktop harness is installed.
 npm publish    # Granular Access Token with Bypass-2FA (npm 2026 policy)
 ```
 
-GitHub: tag `vX.Y.Z` and paste the CHANGELOG section into the release notes.
+GitHub: tag `vX.Y.Z` and use the CHANGELOG section as the release notes — do not
+retype it. Extract it mechanically so the Release and the CHANGELOG cannot drift:
+
+```bash
+node scripts/extract-release-notes.mjs 0.8.36 > /tmp/notes.md
+gh release create v0.8.36 --title "0.8.36 — <short title>" --notes-file /tmp/notes.md
+```
+
+Then confirm all three places agree:
+
+```bash
+node scripts/check-releases.mjs      # tag <-> GitHub Release <-> npm tarball
+```
+
+**Do not treat a tarball 404 (or `npm view` failing) right after publishing as a
+failure.** The registry packument can list the new version and move `latest`
+while the CDN still 404s the tarball, which makes `npm install <pkg>@<ver>` report
+`ETARGET: No matching version found`. Wait for the artifact, then verify for real:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://registry.npmjs.org/dsh-remote/-/dsh-remote-<ver>.tgz
+npm install dsh-remote@<ver>   # in a scratch dir: the authoritative check
+```
 
 ## 4. Topics / discovery
 
