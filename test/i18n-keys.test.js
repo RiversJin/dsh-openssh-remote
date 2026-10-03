@@ -76,3 +76,77 @@ test('the duplicate detector actually detects a duplicate', () => {
   assert.deepEqual(detect(['a', 'b', 'a']), ['a'])
   assert.deepEqual(detect(['a', 'b']), [])
 })
+
+// A key that is DECLARED but never referenced is invisible at runtime and reads
+// as implemented — exactly how the webAttachTokenWarn string shipped without ever
+// being shown, even though the README promised it.
+//
+// Scope is deliberately narrow, because this codebase references keys in ways a
+// regex cannot see and a too-eager guard would be worse than none:
+//   • `tr('key')` and `tr('key', { … })` — both forms count (the first draft
+//     missed the parameterised one and reported 27 live keys as dead);
+//   • keys reached through a LOOKUP TABLE (an error-message → key map) or a
+//     ternary are counted by matching the bare key text anywhere in the file.
+//
+// So the check is: every declared settings.* key must appear somewhere OTHER
+// than its own declaration lines. That still catches the real defect class (a
+// string written and then never wired up) without pretending to resolve dynamic
+// references.
+// PRE-EXISTING dead strings, not introduced by this work. Listed rather than
+// deleted so the guard still catches NEW ones, and so removing them stays an
+// explicit decision by the maintainer (`settings.updateManual/Auto/Off` look
+// like superseded duplicates of the live `settings.modeManual/Auto/Off`).
+const KNOWN_DEAD_KEYS = new Set([
+  'settings.sshAliasSaved',
+  'settings.updateManual',
+  'settings.updateAuto',
+  'settings.updateOff',
+  'settings.delFail',
+  'settings.addFail',
+])
+
+test('no settings.* key is declared without being referenced anywhere else', () => {
+  const lines = source.split('\n')
+  // Collect EVERY key declared on a line, not just the first: two keys can share
+  // one line, and a single exec() would silently miss the second (which is how
+  // the first draft of this guard produced a false negative).
+  const declaredOn = new Map()
+  lines.forEach((line, i) => {
+    for (const m of line.matchAll(/'settings\.([A-Za-z][\w.]*)':/g)) {
+      const key = 'settings.' + m[1]
+      if (!declaredOn.has(key)) declaredOn.set(key, [])
+      declaredOn.get(key).push(i)
+    }
+  })
+  const unreferenced = []
+  for (const [key, declLines] of declaredOn) {
+    if (KNOWN_DEAD_KEYS.has(key)) continue
+    const referenced = lines.some((line, i) => !declLines.includes(i) && line.includes(key))
+    if (!referenced) unreferenced.push(key)
+  }
+  assert.deepEqual(unreferenced, [], `declared but never referenced: ${unreferenced.join(', ')}`)
+})
+
+test('the reference detector actually detects an unreferenced key', () => {
+  const detect = (src) => {
+    const lines = src.split('\n')
+    const declaredOn = new Map()
+    lines.forEach((line, i) => {
+      for (const m of line.matchAll(/'settings\.([A-Za-z][\w.]*)':/g)) {
+        const key = 'settings.' + m[1]
+        if (!declaredOn.has(key)) declaredOn.set(key, [])
+        declaredOn.get(key).push(i)
+      }
+    })
+    return [...declaredOn]
+      .filter(([key, d]) => !lines.some((l, i) => !d.includes(i) && l.includes(key)))
+      .map(([k]) => k)
+  }
+  // Two declarations on ONE line must both be seen.
+  assert.deepEqual(detect("a: {'settings.x': '1', 'settings.y': '2'}\nb: tr('settings.x')"), ['settings.y'])
+  assert.deepEqual(detect("a: {'settings.x': '1'}\nb: tr('settings.x', { n: 1 })"), [],
+    'the parameterised call shape is a real use')
+  assert.deepEqual(detect("a: {'settings.x': '1'}\nMAP = {'boom': 'settings.x'}"), [],
+    'a lookup table is a real reference')
+  assert.deepEqual(detect("a: {'settings.x': '1'}"), ['settings.x'])
+})
