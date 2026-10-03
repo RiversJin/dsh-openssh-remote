@@ -19,7 +19,7 @@ import { buildLaunchCommand, buildStopCommand } from '../lib/web-attach.js'
 function findSh() {
   for (const candidate of ['/bin/sh', 'sh', 'bash', '/bin/bash']) {
     try {
-      execFileSync(candidate, ['-n', '-c', 'true'], { stdio: 'ignore' })
+      execFileSync(candidate, ['-n'], { input: 'true', stdio: ['pipe', 'pipe', 'pipe'] })
       return candidate
     } catch { /* try the next one */ }
   }
@@ -28,11 +28,19 @@ function findSh() {
 
 const sh = findSh()
 
-/** Syntax-check a command with the real shell. Returns null when OK. */
+/**
+ * Syntax-check a command with the real shell. Returns null when OK.
+ *
+ * Fed on STDIN rather than `-c`: on Windows, argv containing embedded double
+ * quotes is mangled on the way to bash.exe, so a valid script can report
+ * `unexpected EOF while looking for matching '"'`. Verified that stdin accepts
+ * the valid form while still rejecting both an unterminated quote and the
+ * original `do;` defect, so it is both faithful and able to fail.
+ */
 function syntaxError(shBin, command) {
   try {
     // `-n` reads but does not execute: safe for the destructive stop command.
-    execFileSync(shBin, ['-n', '-c', command], { stdio: 'pipe' })
+    execFileSync(shBin, ['-n'], { input: command, stdio: ['pipe', 'pipe', 'pipe'] })
     return null
   } catch (err) {
     return String((err && (err.stderr || err.message)) || err).trim()
