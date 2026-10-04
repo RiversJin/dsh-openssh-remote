@@ -45,13 +45,13 @@
   },
   {
     "day": "2026-10-04",
-    "at": "2026-10-04T12:19:24.094Z",
-    "dau": 218,
+    "at": "2026-10-04T21:22:38.045Z",
+    "dau": 44,
     "wau": 20,
     "mau": 20,
-    "installs": 530,
-    "npmLastWeek": 3676,
+    "installs": 557,
+    "npmLastWeek": 5110,
     "stars": 116,
-    "forks": 25
+    "forks": 26
   }
 ]

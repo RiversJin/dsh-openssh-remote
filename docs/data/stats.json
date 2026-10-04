@@ -1,12 +1,8 @@
 {
-  "generatedAt": "2026-10-04T12:19:24.094Z",
+  "generatedAt": "2026-10-04T21:22:38.045Z",
   "heartbeat": {
     "ok": true,
     "daily": [
-      {
-        "day": "2026-09-05",
-        "dau": 0
-      },
       {
         "day": "2026-09-06",
         "dau": 0
@@ -121,24 +117,28 @@
       },
       {
         "day": "2026-10-04",
-        "dau": 218
+        "dau": 248
+      },
+      {
+        "day": "2026-10-05",
+        "dau": 44
       }
     ],
-    "installs": 530,
+    "installs": 557,
     "wau": 20,
     "mau": 20,
     "byVersion": [
       {
         "version": "0.8.36",
-        "n": 270
+        "n": 307
       },
       {
         "version": "0.8.34",
-        "n": 138
+        "n": 132
       },
       {
         "version": "0.8.35",
-        "n": 79
+        "n": 76
       },
       {
         "version": "0.8.29",
@@ -146,7 +146,7 @@
       },
       {
         "version": "0.8.31",
-        "n": 10
+        "n": 9
       },
       {
         "version": "0.8.28",
@@ -180,15 +180,15 @@
     "byPlatform": [
       {
         "platform": "win32",
-        "n": 358
+        "n": 375
       },
       {
         "platform": "linux",
-        "n": 96
+        "n": 101
       },
       {
         "platform": "darwin",
-        "n": 72
+        "n": 77
       },
       {
         "platform": "other",
@@ -196,14 +196,14 @@
       }
     ],
     "tz": "Asia/Shanghai",
-    "generatedAt": "2026-10-04T12:19:21.912Z"
+    "generatedAt": "2026-10-04T21:22:35.998Z"
   },
   "heartbeatError": null,
   "npm": {
     "package": "dsh-remote",
-    "checkedAt": "2026-10-04T12:19:23.731Z",
+    "checkedAt": "2026-10-04T21:22:37.782Z",
     "latest": "0.8.36",
-    "lastWeek": 3676,
+    "lastWeek": 5110,
     "lastMonth": 11184,
     "daily": [
       {
@@ -336,8 +336,8 @@
   },
   "repo": {
     "stars": 116,
-    "forks": 25,
+    "forks": 26,
     "openIssues": 2,
-    "pushedAt": "2026-10-04T05:51:15Z"
+    "pushedAt": "2026-10-04T12:19:25Z"
   }
 }
