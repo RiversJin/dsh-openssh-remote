@@ -22,16 +22,6 @@ The harness Web UI intentionally binds `127.0.0.1` (the CLI rejects `--host 0.0.
 
 It works the other way too: **you can open the remote machine's own DSH Web UI as a page in your local browser** — again without exposing any port on the remote. And when a connection will not come up, a **one-click health check & deploy** repairs and verifies the remote environment for you.
 
-## Data collection / telemetry
-
-One anonymous heartbeat per launch (at least 6 hours apart), used only to measure usage: **de-duplicated daily active installs, the version actually running, and platform distribution**. npm download counts are release-driven and include mirrors/crawlers, and GitHub clones include CI, so neither can answer that.
-
-Exactly five fields are sent: `idHash` (a pseudonym, `HMAC-SHA256('dsh-remote/telemetry/v1', installId)`), `version`, `platform`, `arch`, `node`. **Not sent:** hostnames, usernames, paths, IPs, SSH hosts/ports/keys, your machine list, session content. The raw `installId` (`<DSH_HOME>/.dsh-remote-install-id`) never leaves your machine — only its HMAC is transmitted.
-
-The heartbeat is fire-and-forget: it never blocks loading and failures are ignored.
-
-[live usage stats](https://flymysql.github.io/dsh-remote/stats/) · [plugin homepage](https://flymysql.github.io/dsh-remote/)
-
 ## Screen previews
 
 **Settings → 远程工作区** — machine list, advanced config (key / jump host / agent), connection check, port forwarding, audit log, update:

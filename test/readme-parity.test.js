@@ -72,7 +72,6 @@ test('each section is paired by position, not merely equal in count', () => {
   // 读者却会看到中英结构错位。这里按位置显式声明配对，任何新增/删除/换序都要
   // 在这里同步更新，从而无法悄悄漂移。
   const PAIRS = [
-    ['数据采集 / 遥测', 'Data collection / telemetry'],
     ['界面预览', 'Screen previews'],
     ['功能', 'Features'],
     ['安装', 'Install'],
@@ -131,13 +130,20 @@ test('the DSH compatibility section is present in both', () => {
   assert.match(en, /0\.8\.29/)
 })
 
-test('the telemetry policy is stated once per README, in its own language', () => {
-  // 回归：英文 README 曾被误插一整段中文遥测（\u003c!--中文--\u003e 分隔），
-  // 于是英文读者看到重复内容、两版也更容易漂移。
-  assert.doesNotMatch(en, /<!--中文-->/, 'the English README must not carry a Chinese duplicate section')
-  assert.doesNotMatch(en, /数据采集 \/ 遥测/, 'the English README must not carry Chinese section headings')
-  assert.match(zh, /数据采集 \/ 遥测/)
-  assert.match(en, /Data collection \/ telemetry/)
+test('the READMEs carry no telemetry section', () => {
+  // 用户要求从 README 与 npm 介绍里移除遥测说明（npm 页面渲染的就是 README.md）。
+  // 这条守卫把"移除"钉住，防止它被重新加回来——历史上一度有两份（英文版还被
+  // 误插过整段中文），正是那种漂移让这节越来越长。
+  //
+  // 注意：这**不是**在否认遥测存在。插件仍会发送匿名心跳，实现与隐私边界在
+  // lib/telemetry.js 的顶部注释里（那里才是改动者该读的地方）。
+  for (const [name, src] of [['README.md', zh], ['README.en.md', en]]) {
+    assert.doesNotMatch(src, /^##\s*数据采集\s*\/\s*遥测\s*$/m, `${name} must not carry a telemetry section`)
+    assert.doesNotMatch(src, /^##\s*Data collection\s*\/\s*telemetry\s*$/m, `${name} must not carry a telemetry section`)
+    // 也不应留下孤立的字段表/短语文案（删了标题忘了正文的典型残留）
+    assert.doesNotMatch(src, /HMAC-SHA256\('dsh-remote\/telemetry\/v1'/, `${name} must not keep the telemetry field table`)
+    assert.doesNotMatch(src, /<!--中文-->/, `${name} must not carry a leftover language-duplicate marker`)
+  }
 })
 
 test('the English README has no untranslated Chinese prose', () => {
