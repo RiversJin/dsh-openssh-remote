@@ -2,6 +2,62 @@
 
 All notable changes to **dsh-remote**.
 
+## 0.8.37 — 2026-10-05
+### 修复自动更新：热切换从未真正执行过（卸载钩子用了 cordis Entry 不存在的名字）
+
+**症状**：自动更新和「立即更新」都不生效。面板一直停在「磁盘已是 v0.8.36，运行中的仍是
+v0.8.35」—— 新版本已经落盘，但运行中的代码永远换不过去。更糟的是它**静默失败**：
+接口如实返回 `scheduled: true`，所以看上去只是「还没重启」。
+
+**根因**：`reloadSelf` 用来卸载运行中插件的那两个名字，cordis 的 `Entry` **一个都没有**：
+
+```js
+if (typeof entry._dispose === 'function') await entry._dispose()            // undefined
+else if (typeof entry.dispose === 'function') await entry.dispose()          // undefined
+else return { ok: false, reason: 'entry exposes no dispose hook' }            // ← 每次都走这里
+```
+
+0.2.0 实测 `Entry` 的方法集是 `constructor / disabledOf / evaluate / _patchContext /
+refresh / update / _commitVolatile / init / _init`，真正的卸载在 `Entry.update()` 里：
+`this.fiber?.dispose()`。所以每次热切换都在**做任何事之前**就返回失败了，而
+`scheduleSelfReload` 里的 `.catch(() => {})` 把它彻底吞掉。`entry.refresh()` 也**不能**替代
+—— 它是 `if (this.fiber) return; await this.init()`，fiber 还活着时直接返回，等于没重启。
+
+**修法三处**：
+1. 卸载回退到 **`entry.fiber.dispose()`**（宿主若真提供 `_dispose`/`dispose` 仍优先用它）；
+2. **不再吞掉失败** —— 新增 `lastSelfReload()`，`/dsh-remote/update-check` 返回 `lastReload`，
+   失败时打一条日志。会静默失败的自动更新是最糟的一种，这次就是它把缺陷藏了整整两个版本；
+3. 补 3 条回归测试，专门覆盖**真实 Entry 形态**。
+
+**为什么原有测试没抓到**：测试桩 `makeEntryLoader` **总是**提供 `_dispose`，于是永远走第一条
+分支，从未测过真实形态。新测试刻意构造「只有 fiber、没有任何 dispose 钩子」的 entry。
+
+**验证（干净 A/B，唯一变量 = 被测的 update.js）**：用真实安装副本（依赖可解析、`selfDir()`
+正确）对真实 cordis Loader 跑：
+
+| | `reloadSelf` 返回 | 热切换后 apply 记录 |
+|---|---|---|
+| 原版 | `{ok:false, reason:'entry exposes no dispose hook'}` | `["0.8.35"]` ❌ 未切换 |
+| 修复版 | `{ok:true, cleared:2}` | `["0.8.35","0.8.36"]` ✅ 新代码生效 |
+
+### README 移除遥测章节
+
+按用户要求，从 `README.md` 与 `README.en.md` 里删掉「数据采集 / 遥测」整节（含字段表、
+隐私段落与看板链接）。npm 页面渲染的是 `README.md`，所以 npm 介绍同步生效；`package.json`
+的 `description` / `keywords` 从未提及遥测，无需改动。
+
+**心跳实现未动**，隐私边界仍在 `lib/telemetry.js` 顶部注释里（改动者该看的地方）。
+`CONTRIBUTING.md` 中「不接受新增遥测」的贡献政策也保留。
+
+`test/readme-parity.test.js` 的守卫**反转**为「不得再有遥测节」，并能同时抓回潮与
+「删了标题忘删字段表」的残留。
+
+### 顺带
+
+- README 与站点补上「远端 DSH 界面 + 一键体检部署」的能力说明，并重做配图
+- `PUBLISH.md` 固化两件事：Release notes 从 CHANGELOG **机械提取**（防漂移），
+  以及「刚发布时 tarball 404 / `ETARGET` 不是失败」的判据
+
 ## 0.8.36 — 2026-10-03
 ### 自动部署远端 dsh 并验证（体检 → 一键装 → 交给 AI 兜底）+ 新增 `rw_deploy_probe`
 
