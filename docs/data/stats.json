@@ -1,12 +1,8 @@
 {
-  "generatedAt": "2026-10-06T06:17:59.503Z",
+  "generatedAt": "2026-10-06T18:20:27.724Z",
   "heartbeat": {
     "ok": true,
     "daily": [
-      {
-        "day": "2026-09-07",
-        "dau": 0
-      },
       {
         "day": "2026-09-08",
         "dau": 0
@@ -121,28 +117,32 @@
       },
       {
         "day": "2026-10-06",
-        "dau": 197
+        "dau": 331
+      },
+      {
+        "day": "2026-10-07",
+        "dau": 48
       }
     ],
-    "installs": 719,
+    "installs": 798,
     "wau": 20,
     "mau": 20,
     "byVersion": [
       {
-        "version": "0.8.36",
-        "n": 249
+        "version": "0.8.37",
+        "n": 361
       },
       {
-        "version": "0.8.37",
-        "n": 246
+        "version": "0.8.36",
+        "n": 223
       },
       {
         "version": "0.8.34",
-        "n": 113
+        "n": 104
       },
       {
         "version": "0.8.35",
-        "n": 67
+        "n": 64
       },
       {
         "version": "0.8.29",
@@ -183,20 +183,28 @@
       {
         "version": "0.8.99",
         "n": 1
+      },
+      {
+        "version": "0.8.38-rc2",
+        "n": 1
+      },
+      {
+        "version": "0.8.38-rc3",
+        "n": 1
       }
     ],
     "byPlatform": [
       {
         "platform": "win32",
-        "n": 469
+        "n": 528
       },
       {
         "platform": "linux",
-        "n": 154
+        "n": 161
       },
       {
         "platform": "darwin",
-        "n": 92
+        "n": 105
       },
       {
         "platform": "other",
@@ -204,12 +212,12 @@
       }
     ],
     "tz": "Asia/Shanghai",
-    "generatedAt": "2026-10-06T06:17:57.241Z"
+    "generatedAt": "2026-10-06T18:20:25.458Z"
   },
   "heartbeatError": null,
   "npm": {
     "package": "dsh-remote",
-    "checkedAt": "2026-10-06T06:17:59.141Z",
+    "checkedAt": "2026-10-06T18:20:27.444Z",
     "latest": "0.8.37",
     "lastWeek": 5212,
     "lastMonth": 11038,
@@ -343,9 +351,9 @@
     "note": "npm daily counts have reporting gaps; zero-value days are flagged and are not real zero usage."
   },
   "repo": {
-    "stars": 120,
-    "forks": 26,
+    "stars": 123,
+    "forks": 27,
     "openIssues": 2,
-    "pushedAt": "2026-10-06T00:02:06Z"
+    "pushedAt": "2026-10-06T06:18:00Z"
   }
 }
