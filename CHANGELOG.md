@@ -2,8 +2,10 @@
 
 All notable changes to **dsh-remote**.
 
-## Unreleased — 工作区压缩备份 / 恢复（`rw_backup` / `rw_backup_list` / `rw_restore`）
-### 新增
+## 0.8.38 — 2026-10-06
+### 工作区压缩备份 / 恢复（`rw_backup` / `rw_backup_list` / `rw_restore`）
+
+**新增**
 
 - **`rw_backup`** —— 把远程工作区（或其子目录）打成 `.tar.gz`，可选拉到本机或**两边都留**。
   归档默认落在远端 `$HOME/.dsh-remote/backups/<工作区><哈希>/`，每个归档配一个
@@ -49,6 +51,45 @@ All notable changes to **dsh-remote**.
   restore(merge) → delete → pull → push`；含**字节级往返一致**（递归 `diff -r` 干净、二进制
   NUL 字节保留）、**损坏归档不破坏目标**、**同名归档不互相覆盖**、**路径含空格**、
   **文件名以 `-` 开头**、以及跨机往返后 **sha256 不变**。
+
+### 坏配置让整机崩溃 + Agent 连不上已配好的机器（issue #48）
+
+**症状**（issue #48 三连）：①机器用**加密私钥**但没填 passphrase 时，整个 DSH 进程直接
+`fatal load failure: Cannot parse privateKey: Encrypted private OpenSSH key detected, but no
+passphrase given`，且**每次重启都再崩一次**（启动恢复会重拨保存的当前机器）；②Agent 侧
+`rw_connect` 只能填 host/username/port/password/privateKeyPath——passphrase / useAgent /
+keyboardInteractive / hostKeyMode 全都给不了，需要这些字段的机器对 Agent 来说**根本连不上**；
+③也没法让 Agent 复用界面上**已经配好**的机器，只能把整张配置重新敲一遍。
+
+**崩溃根因**：ssh2 在 `Client.connect()` 里**同步**解析私钥，解析失败**同步 throw**。这个
+throw 落在 `buildOpts().then(onFulfilled)` 的回调里，而那条 promise 链没人接管 ⇒ 变成
+**unhandled rejection**（Node 默认行为 = 杀进程），同时外层连接 promise **永远挂起**。
+启动恢复那段 `try/catch` 本来写明了"失败要吞掉"，但它 await 的是挂起的外层 promise，
+对孤儿链上的崩溃**完全无效**——所以坏配置才会每次都把整机带走。
+
+**修法**：
+1. **pool.js**：`client.connect(opts)` 包 try/catch，同步 throw 转成正常的 promise 拒绝。
+   一处改动同时治好三件事：不再崩溃、不再挂起、所有调用点（启动恢复 / test-connect /
+   rw_connect）的 try/catch 恢复生效——坏配置现在就是一条普通错误提示；
+2. **rw_connect 补全字段**：新增 `passphrase` / `useAgent` / `keyboardInteractive` /
+   `hostKeyMode` / `name`；upsert 时**未提供的 secret 保留原值**（以前只保 password，
+   passphrase 会被默认空串抹掉）；
+3. **复用已存机器**：`rw_connect(machineId=...)` 直接用注册表里的整条记录（含钥匙串密码、
+   已存 passphrase、跳板机、ssh-config 别名）并设为当前机器；新增 **`rw_machines`** 工具
+   列出已存机器（id / 地址 / 认证方式旗标 / 别名解析 / 当前标记，**只给旗标不给秘密值**）；
+4. **errors.js**：`Cannot parse privateKey / no passphrase given` 归类为 credentials，提示
+   「私钥已加密但未提供 passphrase」。
+
+测试 +13（`test/issue48.test.js`）：崩溃组带**负对照**——回退 pool 修复后 A1/A4/B3 准时变红
+（连接 promise 挂起 + 捕获到 unhandledRejection），恢复修复后全绿；其余覆盖字段透传、
+passphrase 保留、machineId 连接、rw_machines 脱敏。
+
+顺带修一处**测试隔离缺陷**（本机全量套件因此永挂）：`search-cancel.test.js` 的预算用例
+用 schema 默认值挂载真实插件，而默认 `updateMode=auto`（发起真实 registry 检查）、真实
+`DSH_HOME` 注册表里又存着「当前机器」⇒ 启动恢复**真的 SSH 拨号**（keepalive 长连接），
+用例全绿后进程仍存活 10 分钟以上。现钉 `updateMode:'off'` + 隔离 HOME/DSH_HOME；
+`update-default.test.js` 的挂载门禁同步补上**动态 import** 形态（它原先只认静态
+`from '../lib/index.js'`，这个文件正是从缺口溜出去的）。
 
 ## 0.8.37 — 2026-10-05
 ### 修复自动更新：热切换从未真正执行过（卸载钩子用了 cordis Entry 不存在的名字）

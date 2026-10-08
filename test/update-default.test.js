@@ -66,8 +66,11 @@ test('every test that mounts the real plugin pins the update mode', () => {
   for (const f of readdirSync(dir)) {
     if (!f.endsWith('.test.js')) continue
     const s = readFileSync(path.join(dir, f), 'utf8')
-    // only flag files that import the host half (and can therefore run apply)
-    if (!/from '\.\.\/lib\/index\.js'/.test(s)) continue
+    // only flag files that import the host half (and can therefore run apply) —
+    // static AND dynamic import (search-cancel.test.js mounts via a cache-busting
+    // dynamic import and used to slip past the static-only pattern, dialing the
+    // real saved machine on the developer's box).
+    if (!/from '\.\.\/lib\/index\.js'/.test(s) && !/import\(\s*['"]\.\.\/lib\/index\.js/.test(s)) continue
     if (!/\bapply\s*\(/.test(s)) continue
     if (!/updateMode/.test(s)) offenders.push(f)
   }

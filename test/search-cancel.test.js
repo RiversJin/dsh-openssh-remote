@@ -10,7 +10,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { searchTree, searchViaShell, searchRemote } from '../lib/search.js'
 import { SshPool } from '../lib/pool.js'
 import { compileIgnore, DEFAULT_IGNORE, DEFAULT_SEARCH_IGNORE } from '../lib/ignore.js'
@@ -209,18 +211,41 @@ test('rw_search declares a usable timeoutMs and the budget arguments', async () 
   assert.ok(Number.isFinite(resolved.searchMaxEntries) && resolved.searchMaxEntries > 0,
     `schema default for searchMaxEntries must be a positive number, got ${resolved.searchMaxEntries}`)
 
-  const tools = new Map()
-  await mod.apply({
-    effect: () => {}, inject: () => {}, get: () => undefined,
-    tools: { register: (t) => tools.set(t.name, t) },
-    systemPrompt: { section: () => {} },
-  }, resolved)
+  // ★ 隔离 + 钉死更新，否则 apply() 会产生真实外部副作用并挂死测试进程：
+  //   ① schema 默认 updateMode=auto → apply 立即发起一次**真实** registry 检查；
+  //   ② 真实的 DSH_HOME 注册表里若存着「当前机器」，启动恢复会**真的 SSH 拨号**
+  //      过去——连上后是 keepalive 长连接，进程的事件循环永远不清闲
+  //      （实测：本机 `node --test test/search-cancel.test.js` 全部用例通过后
+  //      进程仍存活 10 分钟以上）。同类事故的既有教训见 setup-telemetry-off.mjs。
+  resolved.updateMode = 'off'
+  const fakeHome = mkdtempSync(path.join(tmpdir(), 'dsh-remote-sc-home-'))
+  const fakeDsh = mkdtempSync(path.join(tmpdir(), 'dsh-remote-sc-dsh-'))
+  mkdirSync(path.join(fakeDsh, 'remote-workspaces'), { recursive: true })
+  const savedEnv = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, DSH_HOME: process.env.DSH_HOME }
+  process.env.HOME = fakeHome
+  process.env.USERPROFILE = fakeHome
+  process.env.DSH_HOME = fakeDsh
+  try {
+    const tools = new Map()
+    await mod.apply({
+      effect: () => {}, inject: () => {}, get: () => undefined,
+      tools: { register: (t) => tools.set(t.name, t) },
+      systemPrompt: { section: () => {} },
+    }, resolved)
 
-  const search = tools.get('rw_search')
-  assert.ok(search, 'rw_search must be registered')
-  assert.ok(Number.isFinite(search.timeoutMs) && search.timeoutMs > 0,
-    `rw_search.timeoutMs must be a positive number (the policy validates it), got ${search.timeoutMs}`)
-  for (const key of ['maxEntries', 'maxDurationMs']) {
-    assert.ok(search.parameters.properties[key], `rw_search must accept ${key}`)
+    const search = tools.get('rw_search')
+    assert.ok(search, 'rw_search must be registered')
+    assert.ok(Number.isFinite(search.timeoutMs) && search.timeoutMs > 0,
+      `rw_search.timeoutMs must be a positive number (the policy validates it), got ${search.timeoutMs}`)
+    for (const key of ['maxEntries', 'maxDurationMs']) {
+      assert.ok(search.parameters.properties[key], `rw_search must accept ${key}`)
+    }
+  } finally {
+    for (const [k, v] of Object.entries(savedEnv)) {
+      if (v === undefined) delete process.env[k]
+      else process.env[k] = v
+    }
+    rmSync(fakeHome, { recursive: true, force: true })
+    rmSync(fakeDsh, { recursive: true, force: true })
   }
 })
