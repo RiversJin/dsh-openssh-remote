@@ -55,11 +55,12 @@ function makePool({ create = 'ARCH_VERIFY=ok\nARCH_FILE=/b/x.tar.gz\nARCH_BYTES=
       // RESTORE first: a restore script also contains `tar -tzf` (its own
       // pre-flight verify), so a tzf-first check would answer a restore as if it
       // were a standalone verify and silently drop the action.
+      //
+      // The restore-all script relocates one workspace per `ARCH_ENTRY=` line, so
+      // the reply must carry them — a reply with only a count would let a
+      // "reports every workspace" assertion pass vacuously.
       if (script.includes('tar -xzf')) {
-        // Mirror the mode the script was built for: reporting a fixed mode would
-        // make a mode-plumbing regression invisible.
-        const action = script.includes('ARCH_ACTION=merged') ? 'merged' : 'replaced'
-        return { code: 0, stdout: `ARCH_ACTION=${action}\nARCH_MEMBERS=3\nARCH_OK=1`, stderr: '' }
+        return { code: 0, stdout: 'ARCH_VERIFY=ok\nARCH_ENTRY=/w/a\nARCH_ENTRY=/w/b\nARCH_MEMBERS=2\nARCH_OK=1', stderr: '' }
       }
       if (script.includes('tar -tzf')) return { code: 0, stdout: 'ARCH_VERIFY=ok\nARCH_SHA=aa\nARCH_OK=1', stderr: '' }
       if (script.includes('rm -f "$ARCH_F"')) return { code: 0, stdout: 'ARCH_OK=1', stderr: '' }
@@ -76,7 +77,7 @@ function makePool({ create = 'ARCH_VERIFY=ok\nARCH_FILE=/b/x.tar.gz\nARCH_BYTES=
   }
 }
 
-function build({ config = {}, pool = makePool(), binding, localRoot = path.join(tmpdir(), 'bk-routes-local') } = {}) {
+function build({ config = {}, pool = makePool(), binding, localRoot = path.join(tmpdir(), 'bk-routes-local'), workspaces } = {}) {
   const audited = []
   const routes = createBackupRoutes({
     sendJson: (res, status, body) => { res.statusCode = status; res.end(JSON.stringify(body)) },
@@ -92,6 +93,8 @@ function build({ config = {}, pool = makePool(), binding, localRoot = path.join(
       pool, ws: '/home/dev/proj', host: 'h', username: 'u', port: 22, mirrorDir: '/mirror',
     },
     localRootFor: () => localRoot,
+    // Default to two workspaces so "all workspaces" is actually exercised.
+    workspacesFor: () => (workspaces !== undefined ? workspaces : ['/home/dev/proj', '/home/dev/other']),
   })
   const route = routes.find((r) => r.path === '/dsh-remote/backup')
   return { route, audited, localRoot }
@@ -145,49 +148,53 @@ test('an unknown action is refused with the action named', async () => {
   assert.match(body.error, /unknown action: nope/)
 })
 
-// ── create ──────────────────────────────────────────────────────────────────
+// ── create: ONE archive holding EVERY sidebar workspace ─────────────────────
 
-test('create archives the bound workspace and reports the result', async () => {
+test('create archives ALL of the sidebar workspaces in a single archive', async () => {
   const { route, audited } = build()
-  const { status, body } = await call(route, makeReq({ method: 'POST', body: { action: 'create', excludes: 'node_modules\n/build/' } }))
+  const { status, body } = await call(route, makeReq({ method: 'POST', body: { action: 'create' } }))
   assert.equal(status, 200)
   assert.equal(body.ok, true)
-  // The name comes from the generated archive path (workspace slug + timestamp),
-  // which is what lets rw_backup_list/restore address it by name.
-  assert.match(body.created.name, /^proj-[a-z0-9]+-manual-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.tar\.gz$/)
+  // One archive, both workspaces: the whole point of the simplified panel.
+  assert.equal(body.created.workspaces.length, 2)
   assert.equal(body.created.sha256, 'aa')
   assert.equal(body.created.members, 2)
-  assert.match(body.summary, /created proj-/)
+  assert.match(body.created.name, /^workspaces-.*\.tar\.gz$/)
   assert.ok(audited.some((a) => a.op === 'backup' && a.code === 0), 'audited')
 })
 
-test('create refuses a path outside the workspace', async () => {
-  // Otherwise "backup" could archive an unrelated directory (e.g. the whole home).
-  const { route, audited } = build()
-  const { status, body } = await call(route, makeReq({ method: 'POST', body: { action: 'create', path: '/etc' } }))
+test('create passes every workspace to the archive command, with the default excludes', async () => {
+  const pool = makePool()
+  const { route } = build({ pool, workspaces: ['/w/alpha', '/w/beta', '/w/gamma'] })
+  await call(route, makeReq({ method: 'POST', body: { action: 'create' } }))
+  const script = pool.calls.join('\n')
+  for (const w of ['w/alpha', 'w/beta', 'w/gamma']) {
+    assert.ok(script.includes(w), `${w} must be in the tar member list`)
+  }
+  // The defaults are what makes the archive usable (no node_modules, etc).
+  assert.ok(script.includes("'--exclude=node_modules'"), 'top-level node_modules excluded')
+  assert.ok(script.includes("'--exclude=*/node_modules'"), 'NESTED node_modules excluded')
+  assert.ok(script.includes('paths.tsv'), 'the member↔path map ships in the archive')
+  assert.ok(!/\s-P\b/.test(script), 'no -P (absolute names) is ever passed')
+})
+
+test('create refuses when there is nothing to back up', async () => {
+  const { route, audited } = build({ binding: { pool: makePool(), ws: '', host: 'h', username: 'u', port: 22 }, workspaces: [] })
+  const { status, body } = await call(route, makeReq({ method: 'POST', body: { action: 'create' } }))
   assert.equal(status, 400)
-  assert.match(body.error, /只允许备份当前工作区/)
+  assert.match(body.error, /没有可备份的远程工作区/)
   assert.ok(!audited.some((a) => a.code === 0), 'nothing was archived')
 })
 
-test('create accepts a proper subdirectory of the workspace', async () => {
-  const { route } = build()
-  const { status, body } = await call(route, makeReq({ method: 'POST', body: { action: 'create', path: '/home/dev/proj/src' } }))
+test('create falls back to the bound workspace when the collector finds none', async () => {
+  // A session bound to a workspace must still be backable even if the sidebar
+  // registry has no record of it.
+  const pool = makePool()
+  const { route } = build({ pool, workspaces: [] })
+  const { status, body } = await call(route, makeReq({ method: 'POST', body: { action: 'create' } }))
   assert.equal(status, 200)
   assert.equal(body.ok, true)
-})
-
-test('create with no workspace is refused rather than guessing a directory', async () => {
-  const { route } = build({ binding: { pool: makePool(), ws: '', host: 'h', username: 'u', port: 22 } })
-  const { status, body } = await call(route, makeReq({ method: 'POST', body: { action: 'create' } }))
-  assert.equal(status, 400)
-  assert.match(body.error, /没有远程工作区可备份/)
-})
-
-test('create reports ignores (dropped patterns) instead of silently dropping them', async () => {
-  const { route } = build()
-  const { body } = await call(route, makeReq({ method: 'POST', body: { action: 'create', excludes: '/\nnode_modules' } }))
-  assert.deepEqual(body.droppedExcludes, ['/'])
+  assert.ok(pool.calls.join('\n').includes('home/dev/proj'), 'the bound workspace is archived')
 })
 
 test('a failed create is a 500 that carries the reason', async () => {
@@ -218,41 +225,48 @@ test('restore rejects a traversing filename', async () => {
   }
 })
 
-test('restore runs, reports the mode and member count, and is audited', async () => {
+test('restore reports every restored workspace and is audited', async () => {
   const { route, audited } = build()
-  const { status, body } = await call(route, makeReq({ method: 'POST', body: { action: 'restore', file: 'x.tar.gz', confirm: true, mode: 'merge' } }))
+  const { status, body } = await call(route, makeReq({ method: 'POST', body: { action: 'restore', file: 'x.tar.gz', confirm: true } }))
   assert.equal(status, 200)
   assert.equal(body.ok, true)
-  assert.equal(body.restored.mode, 'merge')
-  assert.equal(body.restored.from, 'remote')
+  assert.equal(body.restored.file, 'x.tar.gz')
+  assert.deepEqual(body.restored.targets, ['/w/a', '/w/b'])
+  assert.equal(body.restored.count, 2)
   assert.ok(audited.some((a) => a.op === 'restore' && a.code === 0))
 })
 
-test('restore of the LOCAL copy uploads it first, then restores', async () => {
-  const { route, localRoot } = build()
-  // A local copy must actually exist: the route uploads it before restoring, so
-  // a missing file is a legitimate 500 and would make this test prove nothing.
-  mkdirSync(localRoot, { recursive: true })
-  const localFile = path.join(localRoot, 'x.tar.gz')
-  writeFileSync(localFile, 'LOCAL-ARCHIVE')
-  try {
-    const { status, body } = await call(route, makeReq({ method: 'POST', body: { action: 'restore', file: 'x.tar.gz', confirm: true, where: 'local' } }))
-    assert.equal(status, 200)
-    assert.equal(body.restored.from, 'local')
-    assert.match(body.uploaded, /x\.tar\.gz$/)
-  } finally {
-    rmSync(localRoot, { recursive: true, force: true })
-  }
+test('restore has no mode option any more (the panel lost that choice)', async () => {
+  // `mode=merge` used to be a UI choice. The simplified panel always replaces,
+  // and the route must ignore a stray mode rather than silently honouring it.
+  const pool = makePool()
+  const { route } = build({ pool })
+  await call(route, makeReq({ method: 'POST', body: { action: 'restore', file: 'x.tar.gz', confirm: true, mode: 'merge' } }))
+  const script = pool.calls.join('\n')
+  assert.ok(!script.includes('ARCH_ACTION=merged'), 'a stray mode must not change the restore script')
+  assert.ok(script.includes('paths.tsv'), 'the member↔path map drives the restore')
+})
+
+test('the local-copy upload/restore pathway is gone from the panel contract', async () => {
+  // `where: 'local'` used to upload then restore. The simplified design keeps
+  // archives on the remote only, so a stray `where` must not change behaviour —
+  // it restores from the remote backup directory.
+  const pool = makePool()
+  const { route } = build({ pool })
+  const { status } = await call(route, makeReq({ method: 'POST', body: { action: 'restore', file: 'x.tar.gz', confirm: true, where: 'local' } }))
+  assert.equal(status, 200)
+  const script = pool.calls.join('\n')
+  assert.ok(script.includes('/home/dev/.dsh-remote/backups/x.tar.gz'), 'restores from the remote backup dir')
+  assert.ok(!script.includes('fastPut'), 'no upload step in the restore path')
 })
 
 test('a refused (corrupt) restore is a 500 carrying the safety reason', async () => {
   const pool = makePool()
   pool.exec = async (script) => {
-    if (script.includes('tar -tzf')) return { code: 1, stdout: 'ARCH_VERIFY=bad\nARCH_OK=0\nARCH_ERROR=archive is corrupt or truncated; nothing was written', stderr: '' }
-    if (script.includes('ARCH_H=$HOME')) return { code: 0, stdout: 'ARCH_HOME=/home/dev', stderr: '' }
+    if (script.includes('ARCH_H=')) return { code: 0, stdout: 'ARCH_HOME=/home/dev', stderr: '' }
     if (script.includes('ARCH_EXISTS')) return { code: 0, stdout: 'ARCH_EXISTS=0', stderr: '' }
-    if (script.includes('tar -xzf')) return { code: 1, stdout: 'ARCH_VERIFY=bad\nARCH_OK=0\nARCH_ERROR=archive is corrupt or truncated; nothing was written', stderr: '' }
-    return { code: 0, stdout: '', stderr: '' }
+    // The restore script's own pre-flight verify reports the corruption.
+    return { code: 1, stdout: 'ARCH_VERIFY=bad\nARCH_OK=0\nARCH_ERROR=archive is corrupt or truncated; nothing was written', stderr: '' }
   }
   const { route, audited } = build({ pool })
   const { status, body } = await call(route, makeReq({ method: 'POST', body: { action: 'restore', file: 'x.tar.gz', confirm: true } }))

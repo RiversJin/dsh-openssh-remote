@@ -46,7 +46,7 @@ DSH 的 Web 界面刻意只监听 `127.0.0.1`（CLI 为安全拒绝 `--host 0.0.
 其余要点：
 
 - **25 个模型工具**（便于复制/检索）：`rw_info`、`rw_connect`、`rw_machines`、`rw_pick_workspace`、`rw_list_dir`、`rw_stat`、`rw_read_file`、`rw_write_file`、`rw_edit`、`rw_append`、`rw_mkdir`、`rw_remove`、`rw_move`、`rw_exec`、`rw_search`、`rw_download`、`rw_upload`、`rw_sync`、`rw_push`、`rw_backup`、`rw_backup_list`、`rw_restore`、`rw_forward`、`rw_disconnect`、`rw_deploy_probe`。
-- **工作区压缩备份 / 恢复**（`rw_backup` / `rw_backup_list` / `rw_restore`）—— 把远程工作区打成 `.tar.gz`（默认全部收录，另可按参数排除 `node_modules`、`/build/`、`*.log` 等）；归档可留在远端 `$HOME/.dsh-remote/backups`，也可拉到本机或**两边都留**。恢复前先校验归档可读，**归档损坏则拒绝执行、目标目录原封不动**；`mode=replace`（默认）整树替换、`mode=merge` 只覆盖不删除。设置页里也有「备份」卡片（新建 / 下载 / 恢复 / 删除）。
+- **工作区备份 / 恢复（一个按钮就够）** —— 设置页里只有「备份」和「恢复」两个按钮：**备份**把侧边栏里的所有远程工作区打包成**一个** `.tar.gz`，**恢复**用选中的那个时间点把全部工作区还原。依赖/构建目录（`node_modules`、`.git`、`dist`、`build`、`target`、`__pycache__`、`.venv`… 顶层与嵌套）自动排除，不需要你配置。模型侧仍可用 `rw_backup` / `rw_backup_list` / `rw_restore` 做同样的事。**恢复前先校验归档可读，归档损坏或截断就拒绝执行、目标一个字节都不动**；每个工作区的旧目录会先移到一旁，换入失败会自动还原。
 - **把远端机器的 DSH 界面挂到本机**（`0.8.36+`）—— 不用在远端开任何端口：插件主动 SSH 连过去，在远端**只监听 `127.0.0.1`** 地起一个 `dsh web`，再把端口经隧道搬回本机的一个 loopback 端口。地址带一次性登录令牌，只在本机这次跳转里用一次。
 - **连不上时一键体检与部署**（`0.8.36+`）—— **连不上大多不是插件的问题，而是远端 dsh 的版本或环境不对**。体检（只读）会报出平台/node/npm/dsh 版本、**原生模块能否启动**、代理与 npm 源，并给出修复建议；「部署并验证」把它装到远端**私有目录**（不写系统目录、不改 PATH、不覆盖你在用的版本，删目录即回滚）并逐步校验。失败还能交给内置的 `dsh-remote-deploy` 技能排查。
 - **远端跨平台** —— 文件访问走 SFTP 协议层（不依赖 POSIX shell），Linux/macOS/Windows 远端都能列/读/写/搜索/同步。
@@ -247,7 +247,7 @@ scripts/dev-run.sh --status    # 是否在运行
 | `webInstallVersion` | string | `0.1.5-rc.2` | 自动部署安装的 dsh 版本；默认值是第一个在 Linux 上能启动 web 的版本 |
 | `webInstallRegistry` | string | `''` | 安装用的 npm 源；**留空沿用远端自己的配置**，不会覆盖内网镜像 |
 | `backupDir` | string | `''` | 备份归档在**远端**的存放目录；留空用 `$HOME/.dsh-remote/backups`（在远端解析，不用本机 home 猜） |
-| `backupExcludes` | string[] | `[]` | 备份默认排除的路径（gitignore 风格）。**默认为空**：静默少打包目录正是「恢复即静默丢数据」的成因 |
+| `backupExcludes` | string[] | `[]` | 在**内置排除集之外**额外排除的路径（gitignore 风格）。设置页不再暴露此项；内置集已覆盖 `node_modules`/`.git`/`dist`/`build`/`target`/`__pycache__`/`.venv` 等（顶层与嵌套） |
 | `maxBackupTransferBytes` | int | `2147483648` | 归档在本机与远端之间搬运的大小上限（字节）；**远端的归档从不截断**，只约束可选的对拷。0 = 不限 |
 
 > 权威清单是 `lib/index.js` 里的 `Config` schema，本表与之一致。
