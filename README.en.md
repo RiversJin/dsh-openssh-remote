@@ -39,7 +39,7 @@ The native **"Add workspace"** flow — a centered modal with two tabs, opening 
 
 ## Features
 
-![Capabilities at a glance — multi-machine SSH, live alias resolution, the two-tab picker, three-way sync, remote @ completion, a remote DSH Web UI in your local browser, health check &amp; one-click deploy, audit, port forwarding, sidebar editing, self-update, and the 21 rw_* tools](docs/shots/features.png)
+![Capabilities at a glance — multi-machine SSH, live alias resolution, the two-tab picker, three-way sync, remote @ completion, a remote DSH Web UI in your local browser, health check &amp; one-click deploy, audit, port forwarding, sidebar editing, self-update, and the 24 rw_* tools](docs/shots/features.png)
 
 The image above is the overview. What follows is only what the image does not make obvious.
 
@@ -56,7 +56,8 @@ The image above is the overview. What follows is only what the image does not ma
 
 The rest:
 
-- **21 model tools** (listed so they can be copied or searched): `rw_info`, `rw_connect`, `rw_pick_workspace`, `rw_list_dir`, `rw_stat`, `rw_read_file`, `rw_write_file`, `rw_edit`, `rw_append`, `rw_mkdir`, `rw_remove`, `rw_move`, `rw_exec`, `rw_search`, `rw_download`, `rw_upload`, `rw_sync`, `rw_push`, `rw_forward`, `rw_disconnect`, `rw_deploy_probe`.
+- **24 model tools** (listed so they can be copied or searched): `rw_info`, `rw_connect`, `rw_pick_workspace`, `rw_list_dir`, `rw_stat`, `rw_read_file`, `rw_write_file`, `rw_edit`, `rw_append`, `rw_mkdir`, `rw_remove`, `rw_move`, `rw_exec`, `rw_search`, `rw_download`, `rw_upload`, `rw_sync`, `rw_push`, `rw_backup`, `rw_backup_list`, `rw_restore`, `rw_forward`, `rw_disconnect`, `rw_deploy_probe`.
+- **Compressed workspace backup / restore** (`rw_backup` / `rw_backup_list` / `rw_restore`) — archive a remote workspace to `.tar.gz` (everything is included by default; pass excludes for `node_modules`, `/build/`, `*.log` and friends). The archive can stay on the remote under `$HOME/.dsh-remote/backups`, be pulled to this machine, or **both**. Before restoring, the archive is verified; **a corrupt archive is refused and the target is left untouched**. `mode=replace` (default) swaps the whole tree, `mode=merge` only overwrites without deleting. The settings page has a **Backup** card too (create / download / restore / delete).
 - **Open a remote machine's DSH Web UI locally** (`0.8.36+`) — nothing has to be exposed on the remote: the plugin SSHes out, starts a `dsh web` there that binds **`127.0.0.1` only**, and tunnels its port back to a loopback port on this machine. The URL carries a one-time login token, consumed once by a redirect.
 - **One-click health check & deploy** (`0.8.36+`) — **a failed connection is usually the remote dsh version or environment, not the plugin.** The read-only check reports platform / node / npm / dsh version / **whether the native module can load** / proxy and npm registry, with a suggested fix; "Deploy & verify" installs into a remote **private directory** (no system directory, no PATH change, no replacing the version you use — deleting it is a complete rollback) and verifies step by step. If that still fails, the built-in `dsh-remote-deploy` skill takes over.
 - **Cross-platform remotes** — all file access is SFTP-protocol-level (no POSIX shell), so Linux/macOS/Windows remotes all work.
@@ -263,6 +264,9 @@ Deploying to a product profile is a separate, explicit action (`./sync.sh`) for 
 | `webInstallPrefix` | string | `''` | where an automatic deployment installs dsh; empty means `$HOME/.dsh-remote/dsh` (no system directory, no PATH change) |
 | `webInstallVersion` | string | `0.1.5-rc.2` | dsh version an automatic deployment installs; the default is the first that can start the web surface on Linux |
 | `webInstallRegistry` | string | `''` | npm registry for the install; **empty keeps the remote's own config**, so an internal mirror is never overridden |
+| `backupDir` | string | `''` | Where backup archives are written **on the remote**; empty means `$HOME/.dsh-remote/backups` (resolved on the remote, never guessed from this machine's home) |
+| `backupExcludes` | string[] | `[]` | Paths excluded from backups by default (gitignore-style). **Empty by default**: silently omitting directories is how a restore becomes silent data loss |
+| `maxBackupTransferBytes` | int | `2147483648` | Cap (bytes) on moving an archive between this machine and the remote; **the remote archive is never truncated** — this only bounds the optional cross-machine copy. 0 = unlimited |
 
 > The authoritative list is the `Config` schema in `lib/index.js`; this table mirrors it.
 
