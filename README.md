@@ -48,7 +48,7 @@ DSH 的 Web 界面刻意只监听 `127.0.0.1`（CLI 为安全拒绝 `--host 0.0.
 - **25 个模型工具**（便于复制/检索）：`rw_info`、`rw_connect`、`rw_machines`、`rw_pick_workspace`、`rw_list_dir`、`rw_stat`、`rw_read_file`、`rw_write_file`、`rw_edit`、`rw_append`、`rw_mkdir`、`rw_remove`、`rw_move`、`rw_exec`、`rw_search`、`rw_download`、`rw_upload`、`rw_sync`、`rw_push`、`rw_backup`、`rw_backup_list`、`rw_restore`、`rw_forward`、`rw_disconnect`、`rw_deploy_probe`。
 - **工作区备份 / 恢复（一个按钮就够）** —— 设置页里只有「备份」和「恢复」两个按钮：**备份**把侧边栏里的所有远程工作区打包成**一个** `.tar.gz`，**恢复**用选中的那个时间点把全部工作区还原。依赖/构建目录（`node_modules`、`.git`、`dist`、`build`、`target`、`__pycache__`、`.venv`… 顶层与嵌套）自动排除，不需要你配置。模型侧仍可用 `rw_backup` / `rw_backup_list` / `rw_restore` 做同样的事。**恢复前先校验归档可读，归档损坏或截断就拒绝执行、目标一个字节都不动**；每个工作区的旧目录会先移到一旁，换入失败会自动还原。
 - **把远端机器的 DSH 界面挂到本机**（`0.8.36+`）—— 不用在远端开任何端口：插件主动 SSH 连过去，在远端**只监听 `127.0.0.1`** 地起一个 `dsh web`，再把端口经隧道搬回本机的一个 loopback 端口。地址带一次性登录令牌，只在本机这次跳转里用一次。
-- **连不上时一键体检与部署**（`0.8.36+`）—— **连不上大多不是插件的问题，而是远端 dsh 的版本或环境不对**。体检（只读）会报出平台/node/npm/dsh 版本、**原生模块能否启动**、代理与 npm 源，并给出修复建议；「部署并验证」把它装到远端**私有目录**（不写系统目录、不改 PATH、不覆盖你在用的版本，删目录即回滚）并逐步校验。失败还能交给内置的 `dsh-remote-deploy` 技能排查。
+- **连不上时一键体检与部署**（`0.8.36+`）—— **连不上大多不是插件的问题，而是远端 dsh 的版本或环境不对**。体检（只读）会报出平台/node/npm/dsh 版本、**原生模块能否启动**、代理与 npm 源，并给出修复建议；「部署并验证」把它装到远端**私有目录**（不写系统目录、不改 PATH、不覆盖你在用的版本，删目录即回滚）并逐步校验。按钮**不再需要先体检**——直接点即可（`0.8.40+`），部署过程自己会重新体检。失败还能交给内置的 `dsh-remote-deploy` 技能排查。
 - **远端跨平台** —— 文件访问走 SFTP 协议层（不依赖 POSIX shell），Linux/macOS/Windows 远端都能列/读/写/搜索/同步。
 - **Windows 主机** —— 自动探测平台并定位 Git Bash，命令经 `bash -s` 走 stdin 执行，不受引号/反斜杠转义困扰（`config.shell` 可指定或设 `native` 关闭）；`C:\Users\dev` 与 `/c/Users/dev` 两种写法都接受。
 - **长任务异步化** —— `rw_sync`/`rw_push` 传 `async: true` 返回 `taskId`，可查询进度/结果/取消。
