@@ -2,6 +2,11 @@
 
 All notable changes to **dsh-remote**.
 
+## 0.8.39 — 2026-10-08
+### 热更新不再丢掉设置页
+
+DSH 0.2 在插件 fiber 被卸载时会把该行写成 `disabled: true` 并写回配置。客户端扫描会跳过禁用行，所以热切换之后宿主还在、设置页的 client 不再下发。`reloadSelf` 现在只清掉卸载期间新打上的禁用标记，再重新挂上；用户本来就禁用的行保持禁用。
+
 ## 0.8.38 — 2026-10-06
 ### 工作区压缩备份 / 恢复（`rw_backup` / `rw_backup_list` / `rw_restore`）
 

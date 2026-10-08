@@ -357,6 +357,42 @@ test('clearSelfModuleCache honours an explicit package dir', () => {
   }
 })
 
+test('reloadSelf clears the disabled flag DSH 0.2 writes when a fiber is disposed', async () => {
+  // DSH 0.2 loader: disposing a fiber sets options.disabled and writes the
+  // tree. The client scanner then skips that row, so a hot reload brings the
+  // host back without the settings page. A reload is not an uninstall.
+  const calls = []
+  const entry = {
+    options: { id: 'dsh-remote', name: 'dsh-remote' },
+    parent: { tree: { write() { calls.push('write') } } },
+    fiber: {
+      dispose: async () => {
+        calls.push('fiber.dispose')
+        entry.options.disabled = true
+      },
+    },
+    init: async () => { calls.push('init') },
+  }
+  const res = await reloadSelf({ internal: { loadCache: new Map() }, entries: () => [entry] })
+  assert.equal(res.ok, true, JSON.stringify(res))
+  assert.equal(entry.options.disabled, undefined)
+  assert.deepEqual(calls, ['fiber.dispose', 'write', 'init'])
+})
+
+test('reloadSelf leaves an entry that was already disabled disabled', async () => {
+  let wrote = false
+  const entry = {
+    options: { id: 'dsh-remote', name: 'dsh-remote', disabled: true },
+    parent: { tree: { write() { wrote = true } } },
+    fiber: { dispose: async () => {} },
+    init: async () => {},
+  }
+  const res = await reloadSelf({ internal: { loadCache: new Map() }, entries: () => [entry] })
+  assert.equal(res.ok, true, JSON.stringify(res))
+  assert.equal(entry.options.disabled, true)
+  assert.equal(wrote, false)
+})
+
 test('reloadSelf disposes via entry.fiber when the entry has no dispose hook', async () => {
   // ★ 回归：cordis 的 Entry **没有** dispose/_dispose（0.2.0 实测方法集：
   //   constructor/disabledOf/evaluate/_patchContext/refresh/update/_commitVolatile/
