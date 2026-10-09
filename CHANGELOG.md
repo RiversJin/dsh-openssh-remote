@@ -2,6 +2,30 @@
 
 All notable changes to **dsh-remote**.
 
+## 0.8.41 — 2026-10-09
+### 工作区备份能力整体下线
+
+应用户要求，把 0.8.38 引入、0.8.40 简化的「工作区压缩备份 / 恢复」**整个能力移除**：
+
+- 工具：`rw_backup` / `rw_backup_list` / `rw_restore` 不再注册（25 → **22** 个 `rw_*` 工具）。
+- 设置页「工作区备份」卡片删除；相关 i18n 键（中英各 26 个）全部移除。
+- 路由 `/dsh-remote/backup` 与 `lib/archive.js`、`lib/backup.js`、`lib/routes-backup.js` 三个模块删除。
+- 配置项 `backupDir` / `backupExcludes` / `maxBackupTransferBytes` 从 schema 移除（profile 里残留的这几个键会被 schemastery 忽略，无需清理）。
+- 测试：备份相关 4 个测试文件删除；`settings-render` 改为**断言备份 UI 不再出现**（展开所有折叠区后仍无残留），防止能力回潮。
+
+保留：**远程 dsh 体检/部署**（0.8.40 起部署按钮不再需要先体检）与「远程 DSH 界面挂到本机」。
+
+### 修复：远程 dsh 部署链路上两个真实缺陷（E2E 实测发现）
+
+把「部署 → 在本机窗口打开」在真实远端跑通时抓到两个 bug，均已修复并带回归测试：
+
+1. **`truncate()` 遇到缺失上限会摧毁整个输出**。裸 `new SshPool({...})`（没传 `maxOutputChars`，生产 `apply()` 路径有 schema 默认值所以不触发，但所有直接建池的调用方都中招）时：`'x'.length <= undefined` 恒为 `false` ⇒ 永远走截断分支 ⇒ `s.length - undefined` 打出 `NaN` ⇒ **每一条远程命令的 stdout 都被毁成 29 个字符的截断标记**。后果链条：probe 的 facts 全空 → 装到 `/tmp` 而非 `$HOME` → web-attach 的启动 token 解析不出来 →「90 秒内未报告 token」。修法：非法上限（undefined/NaN/≤0）直接**不截断**返回原串。
+2. **attach 超时路径泄漏远程进程**。等 token 超时抛错时，PID 已解析但清理发生在抛错**之后**且实际不会执行 ⇒ 每次失败重试都在远端多漏一个 `dsh --port 0`（实测连挂三次漏了三个）。修法：抛错**前**先 kill 已记录的 PID（进程自己死掉的场景不 kill，避免无谓指令）。
+
+### 验证
+
+真实远端（Linux）端到端全绿：**体检 → 部署到 `$HOME/.dsh-remote/dsh`（5 步全过）→ 启动远程 `dsh web` → SSH 隧道拉回本机 → 真实 HTTP 303 token 交换 → 真实 WebSocket 升级 `/api/remote.mux` 成功 → 干净关闭（远程进程停止、无残留）**。这就是「远程的 dsh 在本机窗口打开」的完整证明。全量单测 **448 pass / 0 fail**。
+
 ## 0.8.40 — 2026-10-08
 ### 备份简化成两个按钮 + 远程 dsh 部署不再只给体检
 
