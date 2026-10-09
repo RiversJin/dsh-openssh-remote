@@ -1,4 +1,4 @@
-// Verify rw_deploy_probe actually works when invoked as a TOOL (not just that it
+// Verify orw_deploy_probe actually works when invoked as a TOOL (not just that it
 // is registered): drive the plugin, grab the registered tool, call execute(), and
 // check the report it produces against a real machine.
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
@@ -12,20 +12,20 @@ const key = process.argv[5] || (process.env.USERPROFILE + '\\.ssh\\id_rsa')
 
 const home = mkdtempSync(path.join(tmpdir(), 'probe-tool-'))
 process.env.DSH_HOME = home
-mkdirSync(path.join(home, 'remote-workspaces'), { recursive: true })
+mkdirSync(path.join(home, 'openssh-remote-workspaces'), { recursive: true })
 // The tool resolves its target through `requireBinding`, which (correctly)
 // refuses without a bound remote workspace. So construct the same on-disk state
-// a real `rw_connect` + `rw_pick_workspace` leaves behind: a mirror directory
-// carrying `.dsh-remote-meta.json` (that file is what resolveMirror reads).
+// a real `orw_connect` + `orw_pick_workspace` leaves behind: a mirror directory
+// carrying `.dsh-openssh-remote-meta.json` (that file is what resolveMirror reads).
 const remoteWs = `/home/${username}`
-writeFileSync(path.join(home, 'remote-workspaces', 'machines.json'), JSON.stringify({
+writeFileSync(path.join(home, 'openssh-remote-workspaces', 'machines.json'), JSON.stringify({
   list: [{ id: 'm1', name: 't', host, port: sshPort, username, password: '', privateKeyPath: key,
     passphrase: '', workspace: remoteWs, useAgent: false, keyboardInteractive: false, hostKeyMode: 'accept-new' }],
   currentId: 'm1',
 }))
-const mirrorDir = path.join(home, 'remote-workspaces', `t-${username}-${sshPort}`, 'ws')
+const mirrorDir = path.join(home, 'openssh-remote-workspaces', `t-${username}-${sshPort}`, 'ws')
 mkdirSync(mirrorDir, { recursive: true })
-writeFileSync(path.join(mirrorDir, '.dsh-remote-meta.json'), JSON.stringify({
+writeFileSync(path.join(mirrorDir, '.dsh-openssh-remote-meta.json'), JSON.stringify({
   host, port: sshPort, username, remotePath: remoteWs, alias: '',
 }))
 
@@ -52,8 +52,8 @@ const results = []
 const check = (n, ok, d = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${n}${d ? '  - ' + d : ''}`) }
 
 try {
-  const tool = tools.get('rw_deploy_probe')
-  check('rw_deploy_probe is registered as a tool', !!tool)
+  const tool = tools.get('orw_deploy_probe')
+  check('orw_deploy_probe is registered as a tool', !!tool)
   // It declares no params, but the framework fills in defaults for an empty
   // schema object, so assert the INTENT (nothing is required of the caller)
   // rather than that the object is literally empty.

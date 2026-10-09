@@ -1,4 +1,4 @@
-// Regression: the legacy `/dsh-remote/*` routes are registered directly on
+// Regression: the legacy `/dsh-openssh-remote/*` routes are registered directly on
 // `webServer`, which applies NO Host/Origin fence and NO browser authentication
 // (DSH's `requestRejection` is wired only to `/api` and the `/api/remote.mux`
 // upgrade). That made every mutating route reachable cross-site as a "simple
@@ -7,9 +7,9 @@
 // or trigger `update-apply` (install a package + reload the plugin).
 //
 // Measured before the fix (dsh 0.1.5-rc.2, live 127.0.0.1:3080):
-//   POST /dsh-remote/forwards  Origin: https://evil.example.com  ->  200, and
+//   POST /dsh-openssh-remote/forwards  Origin: https://evil.example.com  ->  200, and
 //   the definition really landed in forwards.json.
-//   GET  /dsh-remote/machines  Host: evil.com                    ->  200, leaking
+//   GET  /dsh-openssh-remote/machines  Host: evil.com                    ->  200, leaking
 //   host/user/port/workspace (DNS rebinding needs no Origin at all).
 // For contrast the same requests against DSH's own `/api` returned 403.
 //
@@ -33,7 +33,7 @@ function makeRes() {
 }
 
 /** A request double carrying real headers, like node:http delivers. */
-function makeReq({ method = 'GET', url = '/dsh-remote/status', headers = {}, body } = {}) {
+function makeReq({ method = 'GET', url = '/dsh-openssh-remote/status', headers = {}, body } = {}) {
   const req = Readable.from(body === undefined ? [] : [Buffer.from(JSON.stringify(body))])
   req.method = method
   req.url = url
@@ -48,7 +48,7 @@ function route(connection) {
   let calls = 0
   const inner = {
     kind: 'exact',
-    path: '/dsh-remote/forwards',
+    path: '/dsh-openssh-remote/forwards',
     handler: async (_req, res) => {
       calls++
       res.writeHead(200)
@@ -182,9 +182,9 @@ test('the fence is resolved per request, so a late Connection still protects', a
 })
 
 test('guardRoute preserves the route declaration (kind/path/methods)', () => {
-  const inner = { kind: 'exact', path: '/dsh-remote/status', methods: ['GET'], handler: async () => {} }
+  const inner = { kind: 'exact', path: '/dsh-openssh-remote/status', methods: ['GET'], handler: async () => {} }
   const guarded = guardRoute(inner, () => undefined)
   assert.equal(guarded.kind, 'exact')
-  assert.equal(guarded.path, '/dsh-remote/status')
+  assert.equal(guarded.path, '/dsh-openssh-remote/status')
   assert.deepEqual(guarded.methods, ['GET'])
 })

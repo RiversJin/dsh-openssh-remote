@@ -58,8 +58,8 @@ test('file patterns do not match directories of the same name', () => {
 
 test('loadIgnore merges defaults with a user file', () => {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'dsh-ignore-'))
-  writeFileSync(path.join(dir, '.dsh-remote-ignore'), '# custom\nsecret/\n*.secret', 'utf8')
-  const { patterns, fromFile, matcher } = loadIgnore(path.join(dir, '.dsh-remote-ignore'))
+  writeFileSync(path.join(dir, '.dsh-openssh-remote-ignore'), '# custom\nsecret/\n*.secret', 'utf8')
+  const { patterns, fromFile, matcher } = loadIgnore(path.join(dir, '.dsh-openssh-remote-ignore'))
   assert.deepEqual(fromFile, ['secret/', '*.secret'])
   assert.equal(patterns.length > DEFAULT_IGNORE.length, true)
   assert.equal(matcher('secret', true), true)

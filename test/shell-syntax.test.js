@@ -63,7 +63,7 @@ test('buildLaunchCommand emits POSIX-valid shell', (t) => {
 
 test('buildStopCommand emits POSIX-valid shell', (t) => {
   if (!sh) return t.skip('no POSIX sh on this host; cannot syntax-check the remote command')
-  for (const cmd of [buildStopCommand(1234), buildStopCommand(1234, '.dsh-remote-web-x.log'), buildStopCommand(0)]) {
+  for (const cmd of [buildStopCommand(1234), buildStopCommand(1234, '.dsh-openssh-remote-web-x.log'), buildStopCommand(0)]) {
     const err = syntaxError(sh, cmd)
     assert.equal(err, null, `invalid shell: ${cmd}\n${err}`)
   }

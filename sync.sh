@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# dsh-remote —— 开发同步脚本（桌面版 Harness 专用）
+# dsh-openssh-remote —— 开发同步脚本（桌面版 Harness 专用）
 #
 # 零构建插件：宿主半 lib/index.js 由 cordis Loader 直接加载，
 # 浏览器半 lib/client.js 由 dsh-client-modules 直接提供。
@@ -11,7 +11,7 @@
 #   PROFILE=xxx ./sync.sh        # 指定其他 profile 名
 #
 # ⚠️ 重要（v0.6.5 起）：这是**部署到产品**的脚本，日常迭代请勿直接用。
-#   产品 profile 的 package.json 把 dsh-remote 声明为 `^0.5.10`，任何
+#   产品 profile 的 package.json 把 dsh-openssh-remote 声明为 `^0.5.10`，任何
 #   npm / dsh plugin 重装都会把这里手工同步的文件覆盖回发行版
 #   （v0.6.4 曾被重装回 0.5.10 顶掉的实证）。日常开发请用沙箱：
 #     scripts/dev-run.sh          # 开发/沙箱模式，改源码即加载，不碰产品
@@ -39,7 +39,7 @@ case "$MODE" in
 esac
 
 SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
-INSTALL_DIR="$BASE_HOME/profiles/$PROFILE/node_modules/dsh-remote"
+INSTALL_DIR="$BASE_HOME/profiles/$PROFILE/node_modules/dsh-openssh-remote"
 
 # ── 部署前静态闸门：违反框架约束（如命令名带点号）会搞崩整个桌面 ──
 if [ -f "$SRC_DIR/check.mjs" ]; then
@@ -49,7 +49,7 @@ fi
 
 if [ ! -d "$INSTALL_DIR" ]; then
   echo "❌ 未找到 profile 安装目录: $INSTALL_DIR"
-  echo "   请先执行（在桌面版内）: dsh plugin --profile $PROFILE add dsh-remote"
+  echo "   请先执行（在桌面版内）: dsh plugin --profile $PROFILE add dsh-openssh-remote"
   exit 1
 fi
 

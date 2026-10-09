@@ -66,14 +66,14 @@ async function main() {
   const { Loader } = await importLoader()
 
   // ── fixture "install" on disk ──────────────────────────────────────────
-  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-remote-e2e-'))
+  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-e2e-'))
   const libDir = path.join(dir, 'lib')
   mkdirSync(libDir, { recursive: true })
   const indexPath = path.join(libDir, 'index.js')
   const clientPath = path.join(libDir, 'client.js')
   writeFileSync(indexPath, pluginBody('v1'))
   writeFileSync(clientPath, 'client-v1')
-  writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'dsh-remote', version: '0.1.0' }, null, 2))
+  writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'dsh-openssh-remote', version: '0.1.0' }, null, 2))
 
   try {
     // Mount it exactly the way a profile does: by absolute path specifier.
@@ -86,10 +86,10 @@ async function main() {
     await ctx.plugin(Loader)
     const loader = ctx.get('loader')
 
-    const entry = await loader.create({ name: specifier, id: 'dsh-remote' })
+    const entry = await loader.create({ name: specifier, id: 'dsh-openssh-remote' })
     await loader.await()
 
-    const loaded = loader.resolve('dsh-remote')
+    const loaded = loader.resolve('dsh-openssh-remote')
     const fx = () => globalThis.__FX
     check('entry mounts and apply() runs', fx()?.tags?.join(',') === 'v1' && fx()?.applied === 1,
       `tags=[${fx()?.tags}] applied=${fx()?.applied}`)
@@ -115,7 +115,7 @@ async function main() {
     check('the running module is now the new code (not a cached module)', fx().tags.at(-1) === 'v2', `tags=[${fx().tags}]`)
     check('the new code was actually applied', fx().applied === appliedBefore + 1, `applied ${appliedBefore} → ${fx().applied}`)
     check('the old fiber was disposed (effects released)', fx().disposed === disposedBefore + 1, `disposed ${disposedBefore} → ${fx().disposed}`)
-    check('the loader entry survived the swap', loader.resolve('dsh-remote') === loaded)
+    check('the loader entry survived the swap', loader.resolve('dsh-openssh-remote') === loaded)
 
     // ── negative control: without clearing the cache the swap is a no-op ──
     // This is the whole reason clearSelfModuleCache exists. ESM caches modules by

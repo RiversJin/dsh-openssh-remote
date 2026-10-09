@@ -29,14 +29,14 @@ test('registration uses a valid kebab-case name and a real description', () => {
   assert.ok(captured.description.length > 0, 'a description is required')
   assert.equal(typeof captured.content, 'string')
   assert.ok(captured.content.length > 500, 'the body must carry real guidance, not a stub')
-  assert.equal(captured.source, 'dsh-remote')
+  assert.equal(captured.source, 'dsh-openssh-remote')
 })
 
 test('the skill is reachable by BOTH the model and the settings button', () => {
   let captured
   registerDeploySkill(ctxWith({ register: (s) => { captured = s } }))
   // The button starts a session that must be able to load it; the model should
-  // also be able to reach for it when an rw_* call fails in a deploy-shaped way.
+  // also be able to reach for it when an orw_* call fails in a deploy-shaped way.
   assert.deepEqual(captured.invocation, { modelInvocable: true, userInvocable: true })
 })
 
@@ -148,26 +148,26 @@ test('the prompt restates the safety constraints', () => {
 })
 
 // ── the body must not name tools that do not exist ──────────────────────────
-// Found by a review: the body told the agent to call `rw_deploy_probe`, but the
+// Found by a review: the body told the agent to call `orw_deploy_probe`, but the
 // tool had never been registered — a hedge ("if available") made it not a crash,
 // just a guaranteed dead end on the agent's first move.
-test('every rw_* tool the skill names is actually registered', () => {
-  const named = new Set([...SKILL_BODY.matchAll(/\brw_[a-z_]+/g)].map((m) => m[0]))
+test('every orw_* tool the skill names is actually registered', () => {
+  const named = new Set([...SKILL_BODY.matchAll(/\borw_[a-z_]+/g)].map((m) => m[0]))
   assert.ok(named.size > 0, 'the body must point at real tools')
   const src = readFileSync(new URL('../lib/index.js', import.meta.url), 'utf8')
-  const registered = new Set([...src.matchAll(/name: '(rw_[a-z_]+)'/g)].map((m) => m[1]))
+  const registered = new Set([...src.matchAll(/name: '(orw_[a-z_]+)'/g)].map((m) => m[1]))
   const missing = [...named].filter((n) => !registered.has(n))
   assert.deepEqual(missing, [], `the skill names tools that do not exist: ${missing.join(', ')}`)
 })
 
 test('the tool-name check can actually detect a missing tool', () => {
-  const src = "defineTool({ name: 'rw_exists' })"
-  const registered = new Set([...src.matchAll(/name: '(rw_[a-z_]+)'/g)].map((m) => m[1]))
-  assert.deepEqual(['rw_exists', 'rw_missing'].filter((n) => !registered.has(n)), ['rw_missing'])
+  const src = "defineTool({ name: 'orw_exists' })"
+  const registered = new Set([...src.matchAll(/name: '(orw_[a-z_]+)'/g)].map((m) => m[1]))
+  assert.deepEqual(['orw_exists', 'orw_missing'].filter((n) => !registered.has(n)), ['orw_missing'])
 })
 
-test('the body does not hedge about whether rw_deploy_probe exists', () => {
+test('the body does not hedge about whether orw_deploy_probe exists', () => {
   // "if available" would silently degrade the agent's first instruction.
-  assert.doesNotMatch(SKILL_BODY, /rw_deploy_probe[^。\n]{0,12}(如果可用|若可用|if available)/)
-  assert.match(SKILL_BODY, /rw_deploy_probe/, 'the primary tool must be named')
+  assert.doesNotMatch(SKILL_BODY, /orw_deploy_probe[^。\n]{0,12}(如果可用|若可用|if available)/)
+  assert.match(SKILL_BODY, /orw_deploy_probe/, 'the primary tool must be named')
 })

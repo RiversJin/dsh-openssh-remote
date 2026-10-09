@@ -409,8 +409,8 @@ test('the stop command is a no-op without a recorded PID', () => {
 })
 
 test('the stop command also removes this session\'s log, so attaches do not accumulate files', () => {
-  const cmd = buildStopCommand(1234, '.dsh-remote-web-abc.log')
-  assert.match(cmd, /rm -f "\$HOME\/\.dsh-remote-web-abc\.log"/)
+  const cmd = buildStopCommand(1234, '.dsh-openssh-remote-web-abc.log')
+  assert.match(cmd, /rm -f "\$HOME\/\.dsh-openssh-remote-web-abc\.log"/)
   // A no-op stop must still clean up its own log.
   assert.match(buildStopCommand(0, '.log-x'), /rm -f "\$HOME\/\.log-x"/)
   assert.doesNotMatch(buildStopCommand(0), /rm -f/, 'no log path means nothing to remove')
@@ -419,7 +419,7 @@ test('the stop command also removes this session\'s log, so attaches do not accu
 test('close() passes this session\'s log path to the stop command', async () => {
   const attach = new WebAttach({ net: fakeNet() })
   await attach.open({ pool: fakePool(READY()) })
-  assert.match(attach.logPath, /^\.dsh-remote-web-.+\.log$/, 'the session records its log file')
+  assert.match(attach.logPath, /^\.dsh-openssh-remote-web-.+\.log$/, 'the session records its log file')
   const calls = []
   await attach.close({ stopRemote: true, exec: async (cmd) => { calls.push(cmd) } })
   assert.match(calls[0], new RegExp(attach.logPath.replace(/\./g, '\\.')))

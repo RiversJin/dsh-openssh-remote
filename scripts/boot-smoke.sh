@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 启动冒烟测试（Boot smoke test）—— dsh-remote 部署后必跑
+# 启动冒烟测试（Boot smoke test）—— dsh-openssh-remote 部署后必跑
 #
 # 背景：v0.6.1 曾因命令名 `remote.forget-key` 违反 dsh-commands 约束
 # （/^[a-z][a-z0-9_-]*$/u）导致插件树加载失败、整个 DSH Desktop 无法启动。

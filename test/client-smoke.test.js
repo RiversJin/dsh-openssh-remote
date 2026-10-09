@@ -76,7 +76,7 @@ test('lib/client.js registers through the module loader and its apply() runs', (
   const run = new Function('window', 'document', 'setTimeout', 'clearTimeout', 'console', 'require', src)
   run(sandbox.window, sandbox.document, setTimeout, clearTimeout, console, requireStub)
   assert.ok(loaded, 'the script must register a module')
-  assert.equal(loaded.id, 'dsh-remote')
+  assert.equal(loaded.id, 'dsh-openssh-remote')
   assert.equal(typeof loaded.factory, 'function')
 
   const mod = loaded.factory(requireStub)

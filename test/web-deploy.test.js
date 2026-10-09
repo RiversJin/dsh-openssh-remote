@@ -71,7 +71,7 @@ test('recognizes Windows remotes through their emulated uname', () => {
 })
 
 test('the probe is read-only: it never installs, writes or deletes', () => {
-  const cmd = buildProbeCommand({ prefix: '/home/dev/.dsh-remote/dsh' })
+  const cmd = buildProbeCommand({ prefix: '/home/dev/.dsh-openssh-remote/dsh' })
   // The only permitted write-ish verb is a printf into a variable we never use
   // for mutation; there must be no install/mkdir/rm/mv/curl/wget/eval.
   for (const forbidden of ['npm install', 'mkdir', 'rm ', 'mv ', 'curl', 'wget', 'git clone', 'sudo']) {
@@ -88,7 +88,7 @@ test('the default prefix is resolved on the remote, not guessed locally', () => 
   const cmd = buildProbeCommand({ defaultPrefixFor: 'home' })
   assert.match(cmd, /P_PREFIX=/, 'the remote reports the prefix it resolved')
   assert.match(cmd, /\$HOME/, 'it must be built from the remote HOME')
-  assert.match(cmd, /DEFAULT|\.dsh-remote\/dsh/, 'the default suffix is applied remotely')
+  assert.match(cmd, /DEFAULT|\.dsh-openssh-remote\/dsh/, 'the default suffix is applied remotely')
   // A locally-guessed absolute path must NOT leak into the remote script here.
   assert.ok(!cmd.includes('"/tmp/'), 'a locally guessed temp path must not be probed')
 })
@@ -100,8 +100,8 @@ test('an explicit prefix is probed verbatim, with no home resolution', () => {
 })
 
 test('the remote-resolved prefix is parsed out of the probe', () => {
-  const f = parseProbe([goodOutput, 'P_PREFIX=/home/dev/.dsh-remote/dsh', 'P_WRITABLE=parent:yes'].join('\n'))
-  assert.equal(f.resolvedPrefix, '/home/dev/.dsh-remote/dsh')
+  const f = parseProbe([goodOutput, 'P_PREFIX=/home/dev/.dsh-openssh-remote/dsh', 'P_WRITABLE=parent:yes'].join('\n'))
+  assert.equal(f.resolvedPrefix, '/home/dev/.dsh-openssh-remote/dsh')
   assert.equal(parseProbe(goodOutput).resolvedPrefix, '', 'absent when not requested')
 })
 
@@ -185,7 +185,7 @@ const outputWithInstalled = (installedPty, installedWeb) => [
   `P_INSTALLED_PTY=${installedPty}`, `P_INSTALLED_WEB=${installedWeb}`,
 ].join('\n')
 
-const INSTALLED_CMD = '/home/dev/.dsh-remote/dsh/node_modules/.bin/dsh'
+const INSTALLED_CMD = '/home/dev/.dsh-openssh-remote/dsh/node_modules/.bin/dsh'
 
 test('a verified deployment is chosen and clears the PATH dsh blocker', () => {
   const facts = parseProbe(outputWithInstalled('yes', 'yes'))
@@ -245,7 +245,7 @@ test('a Windows remote is a warning and is not auto-installed', () => {
 })
 
 test('an installed command is only trusted once its facts verify it', () => {
-  const cmd = '/home/dev/.dsh-remote/dsh/node_modules/.bin/dsh'
+  const cmd = '/home/dev/.dsh-openssh-remote/dsh/node_modules/.bin/dsh'
   // Recorded but NOT probed as usable: the healthy PATH dsh is used instead.
   const v1 = judgeProbe(healthy, { installedCommand: cmd })
   assert.equal(v1.useCommand, '/usr/local/bin/dsh',
@@ -270,12 +270,12 @@ test('resolvePrefix prefers explicit > $HOME > /tmp', () => {
 })
 
 test('the install plan is private-prefix based and never global', () => {
-  const { steps, command } = buildInstallPlan({ facts: healthy, prefix: '/home/dev/.dsh-remote/dsh' })
+  const { steps, command } = buildInstallPlan({ facts: healthy, prefix: '/home/dev/.dsh-openssh-remote/dsh' })
   const all = steps.map((s) => s.command).join('\n')
   assert.ok(!/\s-g\s|\s--global\s/.test(all), 'a global install would touch the user PATH and system prefix')
   assert.ok(!all.includes('sudo'), 'never escalate privileges on the user\'s behalf')
   assert.match(all, /--prefix/, 'must install into the private prefix')
-  assert.equal(command, '/home/dev/.dsh-remote/dsh/node_modules/.bin/dsh')
+  assert.equal(command, '/home/dev/.dsh-openssh-remote/dsh/node_modules/.bin/dsh')
   assert.deepEqual(steps.map((s) => s.id), ['prepare', 'install', 'verify-binary', 'verify-pty', 'verify-web'])
 })
 
@@ -322,7 +322,7 @@ test('a Windows remote with Git Bash is installable; without it, it is not', () 
   assert.ok(vNo.findings.some((x) => x.code === 'WINDOWS_REMOTE' && x.severity === 'warn'))
 
   // The plan itself stays POSIX in both cases; Git Bash is what makes it run.
-  const ids = buildInstallPlan({ facts: withBash, prefix: '/c/Users/dev/.dsh-remote/dsh' }).steps.map((s) => s.id)
+  const ids = buildInstallPlan({ facts: withBash, prefix: '/c/Users/dev/.dsh-openssh-remote/dsh' }).steps.map((s) => s.id)
   assert.ok(ids.includes('verify-pty'))
 })
 

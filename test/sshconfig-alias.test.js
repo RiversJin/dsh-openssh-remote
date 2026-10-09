@@ -276,11 +276,11 @@ async function call(routes, routePath, { method = 'POST', body = {} } = {}) {
 
 /** Fake home carrying a ~/.ssh/config, plus a scratch DSH_HOME. */
 function makeEnv(sshConfigText) {
-  const fakeHome = mkdtempSync(path.join(tmpdir(), 'dsh-remote-sshhome-'))
+  const fakeHome = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-sshhome-'))
   mkdirSync(path.join(fakeHome, '.ssh'), { recursive: true })
   writeFileSync(path.join(fakeHome, '.ssh', 'config'), sshConfigText)
-  const dshHome = mkdtempSync(path.join(tmpdir(), 'dsh-remote-sshh-'))
-  mkdirSync(path.join(dshHome, 'remote-workspaces'), { recursive: true })
+  const dshHome = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-sshh-'))
+  mkdirSync(path.join(dshHome, 'openssh-remote-workspaces'), { recursive: true })
   return { fakeHome, dshHome }
 }
 
@@ -302,12 +302,12 @@ async function withPlugin(sshConfigText, machines, fn) {
     process.env.USERPROFILE = env.fakeHome
     process.env.DSH_HOME = env.dshHome
     if (machines) {
-      writeFileSync(path.join(env.dshHome, 'remote-workspaces', 'machines.json'), JSON.stringify(machines, null, 2))
+      writeFileSync(path.join(env.dshHome, 'openssh-remote-workspaces', 'machines.json'), JSON.stringify(machines, null, 2))
     }
     const mod = await import(`../lib/index.js?alias=${Math.random()}`)
     const { ctx, routes, tools } = makeCtx()
     await mod.apply(ctx, { ...CONFIG })
-    return await fn({ routes, tools, env, machinesFile: path.join(env.dshHome, 'remote-workspaces', 'machines.json') })
+    return await fn({ routes, tools, env, machinesFile: path.join(env.dshHome, 'openssh-remote-workspaces', 'machines.json') })
   } finally {
     for (const [k, v] of [['HOME', savedHome], ['USERPROFILE', savedProfile], ['DSH_HOME', savedDsh]]) {
       if (v === undefined) delete process.env[k]
@@ -342,7 +342,7 @@ test('sshConfigPath/expandHome follow the current home', () => {
 
 test('the machines route exposes where an alias resolves to', async () => {
   await withPlugin(ALIAS_CONFIG, { list: [{ id: 'm1', name: 'build', host: 'build', port: 22, username: 'root', useSshConfig: true }], currentId: 'm1' }, async ({ routes }) => {
-    const { status, json } = await call(routes, '/dsh-remote/machines', { method: 'GET' })
+    const { status, json } = await call(routes, '/dsh-openssh-remote/machines', { method: 'GET' })
     assert.equal(status, 200)
     const m = json.machines[0]
     assert.equal(m.useSshConfig, true)
@@ -356,7 +356,7 @@ test('the machines route exposes where an alias resolves to', async () => {
 
 test('saving an alias machine stores ONLY the alias (no HostName/user/port/key copy)', async () => {
   await withPlugin(ALIAS_CONFIG, null, async ({ routes, machinesFile }) => {
-    const { status, json } = await call(routes, '/dsh-remote/machines', {
+    const { status, json } = await call(routes, '/dsh-openssh-remote/machines', {
       body: { action: 'add', name: 'build', host: 'build', useSshConfig: true, port: 22, username: 'root' },
     })
     assert.equal(status, 200)
@@ -374,7 +374,7 @@ test('saving an alias machine stores ONLY the alias (no HostName/user/port/key c
 
 test('editing ~/.ssh/config retargets an existing alias machine without re-importing it', async () => {
   await withPlugin(ALIAS_CONFIG, { list: [{ id: 'm1', name: 'build', host: 'build', port: 22, username: 'root', useSshConfig: true }], currentId: 'm1' }, async ({ routes, env, machinesFile }) => {
-    const before = await call(routes, '/dsh-remote/machines', { method: 'GET' })
+    const before = await call(routes, '/dsh-openssh-remote/machines', { method: 'GET' })
     assert.equal(before.json.machines[0].sshConfigResolved.host, '127.0.0.1')
 
     // The user edits ~/.ssh/config (new host, new port, new user) — exactly the
@@ -384,7 +384,7 @@ test('editing ~/.ssh/config retargets an existing alias machine without re-impor
     // The resolver memoises the file text for a couple of seconds.
     await new Promise((r) => setTimeout(r, 2200))
 
-    const after = await call(routes, '/dsh-remote/machines', { method: 'GET' })
+    const after = await call(routes, '/dsh-openssh-remote/machines', { method: 'GET' })
     const resolved = after.json.machines[0].sshConfigResolved
     assert.equal(resolved.host, '10.20.30.40')
     assert.equal(resolved.username, 'ops')
@@ -396,15 +396,15 @@ test('editing ~/.ssh/config retargets an existing alias machine without re-impor
   })
 })
 
-test('rw_connect dials the RESOLVED host of an alias, and the registry keeps the alias', async () => {
+test('orw_connect dials the RESOLVED host of an alias, and the registry keeps the alias', async () => {
   await withPlugin(ALIAS_CONFIG, null, async ({ routes, tools, machinesFile }) => {
-    const connect = tools.get('rw_connect')
+    const connect = tools.get('orw_connect')
     const err = await connect.execute({ host: 'build', useSshConfig: true, save: true }, {}).then(() => null, (e) => e)
     assert.ok(err, 'connecting to port 1 with no credentials must fail')
 
     // Where did it actually dial? The active-machine status is built from the
     // resolved identity of ~/.ssh/config (127.0.0.1:1), not from the alias.
-    const st = await call(routes, '/dsh-remote/status', { method: 'GET' })
+    const st = await call(routes, '/dsh-openssh-remote/status', { method: 'GET' })
     assert.equal(st.json.host, '127.0.0.1')
     assert.equal(st.json.port, 1)
     assert.equal(st.json.username, 'mmdev')
@@ -419,13 +419,13 @@ test('rw_connect dials the RESOLVED host of an alias, and the registry keeps the
   })
 })
 
-test('rw_connect without useSshConfig keeps the literal host (no accidental alias lookup)', async () => {
+test('orw_connect without useSshConfig keeps the literal host (no accidental alias lookup)', async () => {
   // A saved ALIAS machine name used literally must NOT be resolved: the flag is
   // the only switch, so an existing setup cannot change behaviour underneath.
   await withPlugin(ALIAS_CONFIG, null, async ({ routes, tools }) => {
-    const connect = tools.get('rw_connect')
+    const connect = tools.get('orw_connect')
     await connect.execute({ host: 'build', save: true }, {}).catch(() => {})
-    const st = await call(routes, '/dsh-remote/status', { method: 'GET' })
+    const st = await call(routes, '/dsh-openssh-remote/status', { method: 'GET' })
     assert.equal(st.json.host, 'build')
     assert.equal(st.json.port, 22)
   })

@@ -16,8 +16,8 @@
 
 import { execFileSync } from 'node:child_process'
 
-const REPO = 'flymysql/dsh-remote'
-const PKG = 'dsh-remote'
+const REPO = 'flymysql/dsh-openssh-remote'
+const PKG = 'dsh-openssh-remote'
 
 const args = process.argv.slice(2)
 const wantJson = args.includes('--json')

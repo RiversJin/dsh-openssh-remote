@@ -2,14 +2,14 @@
 //
 // 为什么需要它：README.md（中文）与 README.en.md（英文）是**面向不同读者的同一份
 // 承诺**，但它们历史上已经漂移过——英文版缺 `passphrase`/`maxOutputChars`，
-// 两版对 `rw_search` 的实现描述互相矛盾（一个说"SFTP 遍历"，真源是
+// 两版对 `orw_search` 的实现描述互相矛盾（一个说"SFTP 遍历"，真源是
 // "rg → grep -R → SFTP 回退"），中文版还缺整张配置表的部分行。
 // 人工同步会持续腐坏，所以把"必须一致"的部分交给机器检查。
 //
 // 需要一致的三类东西：
 //   1) 章节骨架（`##` 标题的**数量**与顺序位置）——防止一边漏了一整节；
 //   2) 配置表的键集合——两个表的行数/键必须完全相同；
-//   3) 工具清单——`rw_*` 名字集合必须相同。
+//   3) 工具清单——`orw_*` 名字集合必须相同。
 // 刻意**不**检查正文措辞（中英表达本就不同），那会逼出为了过测而写的僵硬文案。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -40,10 +40,10 @@ function tableKeys(src) {
   return keys
 }
 
-/** 正文里出现的全部 `rw_*` 工具名。 */
+/** 正文里出现的全部 `orw_*` 工具名。 */
 const tools = (src) => {
   const found = new Set()
-  for (const m of src.matchAll(/`(rw_[a-z_]+)/g)) found.add(m[1])
+  for (const m of src.matchAll(/`(orw_[a-z_]+)/g)) found.add(m[1])
   return [...found].sort()
 }
 
@@ -111,13 +111,13 @@ test('every config key documented in the table exists in the schema', () => {
   assert.deepEqual(ghosts, [], `documented but not in the Config schema: ${ghosts.join(', ')}`)
 })
 
-test('both READMEs list the same rw_* tools', () => {
+test('both READMEs list the same orw_* tools', () => {
   assert.deepEqual(tools(zh), tools(en), 'tool lists must agree')
   // Compare against the PLUGIN, not a hardcoded number. A literal here only
   // proves the author updated the test when it bothered them; comparing to the
   // registered tools proves the docs are actually right.
   const src = readFileSync(path.join(root, 'lib', 'index.js'), 'utf8')
-  const real = [...new Set([...src.matchAll(/name:\s*'(rw_[a-z_]+)'/g)].map((m) => m[1]))].sort()
+  const real = [...new Set([...src.matchAll(/name:\s*'(orw_[a-z_]+)'/g)].map((m) => m[1]))].sort()
   assert.deepEqual([...tools(zh)].sort(), real,
     'the README tool list must match the tools the plugin registers')
 })
@@ -141,7 +141,7 @@ test('the READMEs carry no telemetry section', () => {
     assert.doesNotMatch(src, /^##\s*数据采集\s*\/\s*遥测\s*$/m, `${name} must not carry a telemetry section`)
     assert.doesNotMatch(src, /^##\s*Data collection\s*\/\s*telemetry\s*$/m, `${name} must not carry a telemetry section`)
     // 也不应留下孤立的字段表/短语文案（删了标题忘了正文的典型残留）
-    assert.doesNotMatch(src, /HMAC-SHA256\('dsh-remote\/telemetry\/v1'/, `${name} must not keep the telemetry field table`)
+    assert.doesNotMatch(src, /HMAC-SHA256\('dsh-openssh-remote\/telemetry\/v1'/, `${name} must not keep the telemetry field table`)
     assert.doesNotMatch(src, /<!--中文-->/, `${name} must not carry a leftover language-duplicate marker`)
   }
 })

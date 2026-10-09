@@ -1,4 +1,4 @@
-// Issue #44: `rw_search` over a large tree must be interruptible and bounded.
+// Issue #44: `orw_search` over a large tree must be interruptible and bounded.
 //
 // The reported failure: a search over a whole home directory never returned, the
 // turn stayed `running` forever, and cancel/steer had no effect because DSH tool
@@ -198,7 +198,7 @@ test('searchViaShell reports cancellation instead of throwing (so no slow fallba
   assert.equal(r.matches.length, 1, 'partial remote output is still returned')
 })
 
-test('rw_search declares a usable timeoutMs and the budget arguments', async () => {
+test('orw_search declares a usable timeoutMs and the budget arguments', async () => {
   // The tool-call-timeout-policy only protects tools that declare a positive
   // `timeoutMs` (it validates it), and the declaration is what turns exec.signal
   // into a real timeout. Config must therefore come from the plugin's own schema
@@ -218,9 +218,9 @@ test('rw_search declares a usable timeoutMs and the budget arguments', async () 
   //      （实测：本机 `node --test test/search-cancel.test.js` 全部用例通过后
   //      进程仍存活 10 分钟以上）。同类事故的既有教训见 setup-telemetry-off.mjs。
   resolved.updateMode = 'off'
-  const fakeHome = mkdtempSync(path.join(tmpdir(), 'dsh-remote-sc-home-'))
-  const fakeDsh = mkdtempSync(path.join(tmpdir(), 'dsh-remote-sc-dsh-'))
-  mkdirSync(path.join(fakeDsh, 'remote-workspaces'), { recursive: true })
+  const fakeHome = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-sc-home-'))
+  const fakeDsh = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-sc-dsh-'))
+  mkdirSync(path.join(fakeDsh, 'openssh-remote-workspaces'), { recursive: true })
   const savedEnv = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, DSH_HOME: process.env.DSH_HOME }
   process.env.HOME = fakeHome
   process.env.USERPROFILE = fakeHome
@@ -233,12 +233,12 @@ test('rw_search declares a usable timeoutMs and the budget arguments', async () 
       systemPrompt: { section: () => {} },
     }, resolved)
 
-    const search = tools.get('rw_search')
-    assert.ok(search, 'rw_search must be registered')
+    const search = tools.get('orw_search')
+    assert.ok(search, 'orw_search must be registered')
     assert.ok(Number.isFinite(search.timeoutMs) && search.timeoutMs > 0,
-      `rw_search.timeoutMs must be a positive number (the policy validates it), got ${search.timeoutMs}`)
+      `orw_search.timeoutMs must be a positive number (the policy validates it), got ${search.timeoutMs}`)
     for (const key of ['maxEntries', 'maxDurationMs']) {
-      assert.ok(search.parameters.properties[key], `rw_search must accept ${key}`)
+      assert.ok(search.parameters.properties[key], `orw_search must accept ${key}`)
     }
   } finally {
     for (const [k, v] of Object.entries(savedEnv)) {

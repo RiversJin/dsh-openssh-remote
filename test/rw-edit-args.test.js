@@ -1,8 +1,8 @@
-// rw_edit argument aliases: old/new vs old_string/new_string (+ file_path).
+// orw_edit argument aliases: old/new vs old_string/new_string (+ file_path).
 //
 // Models habitually write old_string/new_string, matching the host's native edit
 // tool (`dsh-tool-fs` declares file_path/old_string/new_string — verified in its
-// lib/index.js:750-762). rw_edit only declared old/new, so defineTool's
+// lib/index.js:750-762). orw_edit only declared old/new, so defineTool's
 // pre-execute schema validation rejected those calls with
 //   `invalid arguments: missing required property "old"; missing required property "new"`
 // and the model had to retry, usually with the other spelling.
@@ -19,8 +19,8 @@ import path from 'node:path'
 
 /** Build an isolated DSH_HOME with a machine registry and one mirror. */
 function makeHome() {
-  const home = mkdtempSync(path.join(tmpdir(), 'dsh-remote-edit-'))
-  const root = path.join(home, 'remote-workspaces')
+  const home = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-edit-'))
+  const root = path.join(home, 'openssh-remote-workspaces')
   mkdirSync(root, { recursive: true })
 
   const machines = [
@@ -30,7 +30,7 @@ function makeHome() {
 
   const cwd = path.join(root, '127.0.0.11-lucas-1', 'proj')
   mkdirSync(cwd, { recursive: true })
-  writeFileSync(path.join(cwd, '.dsh-remote-meta.json'), JSON.stringify({ host: '127.0.0.11', port: 1, username: 'lucas', remotePath: '/home/lucas/proj' }))
+  writeFileSync(path.join(cwd, '.dsh-openssh-remote-meta.json'), JSON.stringify({ host: '127.0.0.11', port: 1, username: 'lucas', remotePath: '/home/lucas/proj' }))
   return { home, cwd }
 }
 
@@ -67,7 +67,7 @@ async function loadTools(home) {
   return tools
 }
 
-/** Run rw_edit and report the message it rejects with. */
+/** Run orw_edit and report the message it rejects with. */
 const runEdit = (edit, args, cwd) =>
   edit.execute(args, execFor(cwd)).then(() => null, (e) => String(e.message))
 
@@ -82,12 +82,12 @@ const assertPassedValidation = (err, label) => {
   assert.match(err, /127\.0\.0\.11/, `${label}: must proceed to the SSH stage, got: ${err}`)
 }
 
-test('rw_edit accepts old_string/new_string aliases without an INVALID_ARGS failure', async () => {
+test('orw_edit accepts old_string/new_string aliases without an INVALID_ARGS failure', async () => {
   const { home, cwd } = makeHome()
   try {
     const tools = await loadTools(home)
-    const edit = tools.get('rw_edit')
-    assert.ok(edit, 'rw_edit must be registered')
+    const edit = tools.get('orw_edit')
+    assert.ok(edit, 'orw_edit must be registered')
     assertPassedValidation(
       await runEdit(edit, { path: '/home/lucas/proj/a.txt', old_string: 'x', new_string: 'y' }, cwd),
       'old_string/new_string',
@@ -98,11 +98,11 @@ test('rw_edit accepts old_string/new_string aliases without an INVALID_ARGS fail
   }
 })
 
-test('rw_edit still accepts the original old/new names', async () => {
+test('orw_edit still accepts the original old/new names', async () => {
   const { home, cwd } = makeHome()
   try {
     const tools = await loadTools(home)
-    const edit = tools.get('rw_edit')
+    const edit = tools.get('orw_edit')
     assertPassedValidation(
       await runEdit(edit, { path: '/home/lucas/proj/a.txt', old: 'x', new: 'y' }, cwd),
       'old/new',
@@ -113,14 +113,14 @@ test('rw_edit still accepts the original old/new names', async () => {
   }
 })
 
-test('rw_edit accepts file_path as a path alias', async () => {
+test('orw_edit accepts file_path as a path alias', async () => {
   // The host edit tool spells the path `file_path`; a model that mirrors the
   // native tool writes all three aliases together, so `path` must not be the
   // only accepted spelling.
   const { home, cwd } = makeHome()
   try {
     const tools = await loadTools(home)
-    const edit = tools.get('rw_edit')
+    const edit = tools.get('orw_edit')
     assertPassedValidation(
       await runEdit(edit, { file_path: '/home/lucas/proj/a.txt', old_string: 'x', new_string: 'y' }, cwd),
       'file_path + old_string/new_string',
@@ -131,11 +131,11 @@ test('rw_edit accepts file_path as a path alias', async () => {
   }
 })
 
-test('rw_edit names the missing argument clearly when neither spelling is given', async () => {
+test('orw_edit names the missing argument clearly when neither spelling is given', async () => {
   const { home, cwd } = makeHome()
   try {
     const tools = await loadTools(home)
-    const edit = tools.get('rw_edit')
+    const edit = tools.get('orw_edit')
 
     const noOld = await runEdit(edit, { path: '/home/lucas/proj/a.txt', new: 'y' }, cwd)
     assert.match(noOld, /old text is required.*old_string/, `got: ${noOld}`)
@@ -155,7 +155,7 @@ test('rw_edit names the missing argument clearly when neither spelling is given'
   }
 })
 
-test('rw_edit schema declares both spellings and keeps them out of required', async () => {
+test('orw_edit schema declares both spellings and keeps them out of required', async () => {
   // The mechanism, pinned: an alias only works if it is declared in `properties`
   // AND its counterpart is NOT in `required` — because defineTool validates
   // against the compiled schema *before* execute runs. Putting `required: true`
@@ -163,7 +163,7 @@ test('rw_edit schema declares both spellings and keeps them out of required', as
   const { home } = makeHome()
   try {
     const tools = await loadTools(home)
-    const schema = tools.get('rw_edit').parameters
+    const schema = tools.get('orw_edit').parameters
     const props = schema.properties || {}
     const required = schema.required || []
 

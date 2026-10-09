@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>dsh-remote — 把任意 SSH 机器变成真正的 DSH 工作区</title>
-<meta name="description" content="为 DeepSeek Harness（DSH）打造的远程工作助手：多机 SSH、远程工作区选择、22 个 rw_* 工具、冲突感知镜像同步、端口转发。"/>
-<meta property="og:title" content="dsh-remote — 把任意 SSH 机器变成真正的 DSH 工作区"/>
-<meta property="og:description" content="多机 SSH 列表、远程工作区选择器、22 个 rw_* 工具、三路冲突检测镜像同步、端口转发。"/>
-<meta property="og:image" content="https://flymysql.github.io/dsh-remote/cover.png"/>
+<title>dsh-openssh-remote — 把任意 SSH 机器变成真正的 DSH 工作区</title>
+<meta name="description" content="为 DeepSeek Harness（DSH）打造的远程工作助手：多机 SSH、远程工作区选择、22 个 orw_* 工具、冲突感知镜像同步、端口转发。"/>
+<meta property="og:title" content="dsh-openssh-remote — 把任意 SSH 机器变成真正的 DSH 工作区"/>
+<meta property="og:description" content="多机 SSH 列表、远程工作区选择器、22 个 orw_* 工具、三路冲突检测镜像同步、端口转发。"/>
+<meta property="og:image" content="https://flymysql.github.io/dsh-openssh-remote/cover.png"/>
 <meta name="theme-color" content="#07070b"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>"/>
 <style>
@@ -162,20 +162,20 @@
 
     <div class="cta">
       <a class="btn primary" href="#install"><span class="t" data-zh="开始使用" data-en="Get started">开始使用</span></a>
-      <a class="btn" href="https://github.com/flymysql/dsh-remote">GitHub ↗</a>
-      <a class="btn" href="https://www.npmjs.com/package/dsh-remote">npm ↗</a>
+      <a class="btn" href="https://github.com/flymysql/dsh-openssh-remote">GitHub ↗</a>
+      <a class="btn" href="https://www.npmjs.com/package/dsh-openssh-remote">npm ↗</a>
       <a class="btn" href="./stats/"><span class="t" data-zh="用量统计 ↗" data-en="Usage stats ↗">用量统计 ↗</span></a>
     </div>
 
     <div class="install" id="install-cmd" title="点击复制 / click to copy">
-      <span><span class="dollar">$</span> dsh plugin --profile web add dsh-remote</span>
+      <span><span class="dollar">$</span> dsh plugin --profile web add dsh-openssh-remote</span>
       <span class="copy" id="copy-label">复制</span>
     </div>
 
     <div class="hero-stats" id="hero-stats">
-      <a href="https://www.npmjs.com/package/dsh-remote"><b id="v-version">—</b><span class="t" data-zh="最新版本" data-en="latest version">最新版本</span></a>
-      <a href="https://www.npmjs.com/package/dsh-remote"><b id="v-week">—</b><span class="t" data-zh="周下载" data-en="downloads / week">周下载</span></a>
-      <a href="https://github.com/flymysql/dsh-remote"><b id="v-stars">—</b><span class="t" data-zh="GitHub star" data-en="GitHub stars">GitHub star</span></a>
+      <a href="https://www.npmjs.com/package/dsh-openssh-remote"><b id="v-version">—</b><span class="t" data-zh="最新版本" data-en="latest version">最新版本</span></a>
+      <a href="https://www.npmjs.com/package/dsh-openssh-remote"><b id="v-week">—</b><span class="t" data-zh="周下载" data-en="downloads / week">周下载</span></a>
+      <a href="https://github.com/flymysql/dsh-openssh-remote"><b id="v-stars">—</b><span class="t" data-zh="GitHub star" data-en="GitHub stars">GitHub star</span></a>
       <a href="./stats/"><b id="v-dau">—</b><span class="t" data-zh="日活装机" data-en="daily active installs">日活装机</span></a>
     </div>
   </div>
@@ -195,7 +195,7 @@
         <h3 class="t" data-zh="远程工作区选择器" data-en="Remote workspace picker">远程工作区选择器</h3>
         <p class="t" data-zh="在原生弹窗里选本地或远程工作区。远程路径走 SFTP 实时补全，逐字符延迟保持在几十毫秒级。" data-en="Pick a local or remote workspace from the native modal. Remote paths autocomplete over SFTP with per-keystroke latency kept in the tens of milliseconds.">在原生弹窗里选本地或远程工作区。远程路径走 SFTP 实时补全，逐字符延迟保持在几十毫秒级。</p></div>
       <div class="card"><span class="ic">🛠️</span>
-        <h3 class="t" data-zh="22 个 <code>rw_*</code> 工具" data-en="22 <code>rw_*</code> tools">22 个 <code>rw_*</code> 工具</h3>
+        <h3 class="t" data-zh="22 个 <code>orw_*</code> 工具" data-en="22 <code>orw_*</code> tools">22 个 <code>orw_*</code> 工具</h3>
         <p class="t" data-zh="读 / 写 / 编辑 / 追加 / 建目录 / 删除 / 移动 / stat / 执行 / 搜索 / 上传 / 下载 / 同步 / 推送 / 转发……全部是一等 Agent 工具。" data-en="read / write / edit / append / mkdir / remove / move / stat / exec / search / upload / download / sync / push / forward and more — all as first-class agent tools.">读 / 写 / 编辑 / 追加 / 建目录 / 删除 / 移动 / stat / 执行 / 搜索 / 上传 / 下载 / 同步 / 推送 / 转发……全部是一等 Agent 工具。</p></div>
       <div class="card"><span class="ic">🔄</span>
         <h3 class="t" data-zh="冲突感知的镜像同步" data-en="Conflict-aware mirror">冲突感知的镜像同步</h3>
@@ -221,28 +221,28 @@
     <h2 class="t" data-zh="工具面" data-en="The tool surface">工具面</h2>
     <p class="sub t" data-zh="每个能力都是普通的 Agent 工具，模型用起来和本地文件工具完全一样。" data-en="Every capability is a normal agent tool, so the model uses it the same way it uses local file tools.">每个能力都是普通的 Agent 工具，模型用起来和本地文件工具完全一样。</p>
     <div class="tool-list">
-      <code>rw_info</code>
-      <code>rw_connect</code>
-      <code>rw_machines</code>
-      <code>rw_pick_workspace</code>
-      <code>rw_list_dir</code>
-      <code>rw_stat</code>
-      <code>rw_read_file</code>
-      <code>rw_write_file</code>
-      <code>rw_edit</code>
-      <code>rw_append</code>
-      <code>rw_mkdir</code>
-      <code>rw_remove</code>
-      <code>rw_move</code>
-      <code>rw_exec</code>
-      <code>rw_search</code>
-      <code>rw_download</code>
-      <code>rw_upload</code>
-      <code>rw_sync</code>
-      <code>rw_push</code>
-      <code>rw_forward</code>
-      <code>rw_disconnect</code>
-      <code>rw_deploy_probe</code>
+      <code>orw_info</code>
+      <code>orw_connect</code>
+      <code>orw_machines</code>
+      <code>orw_pick_workspace</code>
+      <code>orw_list_dir</code>
+      <code>orw_stat</code>
+      <code>orw_read_file</code>
+      <code>orw_write_file</code>
+      <code>orw_edit</code>
+      <code>orw_append</code>
+      <code>orw_mkdir</code>
+      <code>orw_remove</code>
+      <code>orw_move</code>
+      <code>orw_exec</code>
+      <code>orw_search</code>
+      <code>orw_download</code>
+      <code>orw_upload</code>
+      <code>orw_sync</code>
+      <code>orw_push</code>
+      <code>orw_forward</code>
+      <code>orw_disconnect</code>
+      <code>orw_deploy_probe</code>
     </div>
   </div>
 </section>
@@ -257,7 +257,7 @@
          所以拆开：能力总览单独全宽，两张界面图并排（各自图注说明）。 -->
     <figure class="wide">
       <img src="./shots/features.png" alt="核心能力总览" loading="lazy"/>
-      <figcaption class="t" data-zh="<b>能力总览</b> —— 多机 SSH / 别名实时解析 / 三路同步 / 远程 @ 补全 / <b>远端 DSH 界面挂到本机</b> / <b>体检与一键部署</b> / 端口转发 / 自动更新，以及 22 个 <code>rw_*</code> 工具。" data-en="<b>Capabilities</b> — multi-machine SSH, live alias resolution, three-way sync, remote @ completion, <b>a remote DSH Web UI in your local browser</b>, <b>health check &amp; one-click deploy</b>, port forwarding, self-update, and the 22 rw_* tools."><b>能力总览</b> —— 多机 SSH / 别名实时解析 / 三路同步 / 远程 @ 补全 / <b>远端 DSH 界面挂到本机</b> / <b>体检与一键部署</b> / 端口转发 / 自动更新，以及 22 个 <code>rw_*</code> 工具。</figcaption>
+      <figcaption class="t" data-zh="<b>能力总览</b> —— 多机 SSH / 别名实时解析 / 三路同步 / 远程 @ 补全 / <b>远端 DSH 界面挂到本机</b> / <b>体检与一键部署</b> / 端口转发 / 自动更新，以及 22 个 <code>orw_*</code> 工具。" data-en="<b>Capabilities</b> — multi-machine SSH, live alias resolution, three-way sync, remote @ completion, <b>a remote DSH Web UI in your local browser</b>, <b>health check &amp; one-click deploy</b>, port forwarding, self-update, and the 22 orw_* tools."><b>能力总览</b> —— 多机 SSH / 别名实时解析 / 三路同步 / 远程 @ 补全 / <b>远端 DSH 界面挂到本机</b> / <b>体检与一键部署</b> / 端口转发 / 自动更新，以及 22 个 <code>orw_*</code> 工具。</figcaption>
     </figure>
 
     <!-- 竖向排列，各自原始比例（不并排、不放大：两张比例差太大，并排会一高一矮） -->
@@ -279,13 +279,13 @@
     <h2 class="t" data-zh="安装" data-en="Install">安装</h2>
     <p class="sub t" data-zh="需要已安装 DeepSeek Harness。本插件是普通的 profile bundle。" data-en="Requires DeepSeek Harness. The plugin is a normal profile bundle.">需要已安装 DeepSeek Harness。本插件是普通的 profile bundle。</p>
 <pre><span class="c"># 1. 装进 web profile / add it to the web profile</span>
-<span class="k">dsh</span> plugin --profile web add dsh-remote
+<span class="k">dsh</span> plugin --profile web add dsh-openssh-remote
 
 <span class="c"># 2. 启动 harness（或先重启一次）</span>
 <span class="k">dsh</span> web
 
 <span class="c"># 以后升级 / update later</span>
-<span class="k">dsh</span> plugin --profile web add dsh-remote@latest</pre>
+<span class="k">dsh</span> plugin --profile web add dsh-openssh-remote@latest</pre>
 
     <div class="note">
       <b class="t" data-zh="从旧版本升级？" data-en="Upgrading an old install?">从旧版本升级？</b>
@@ -294,7 +294,7 @@
 
     <div class="note warn">
       <b class="t" data-zh="插件在升级 DSH 后整个不见了？" data-en="Did the plugin vanish after a DSH upgrade?">插件在升级 DSH 后整个不见了？</b>
-      <span class="t" data-zh="DSH 会在导入前校验所有 <code>@deepseek-ai/dsh-*</code> 的 peer 版本范围，只要有一条不匹配就<b>整包丢弃</b>（没有设置页、没有 <code>rw_*</code> 工具）。0.8.29 起改为跨线区间，同时兼容 0.1.x 与 0.2.x；请升到 0.8.29 或更高。" data-en="DSH validates every <code>@deepseek-ai/dsh-*</code> peer range before importing a bundle and drops the whole bundle if any range does not match. Since 0.8.29 the ranges are cross-line intervals covering both 0.1.x and 0.2.x — upgrade to 0.8.29 or newer.">DSH 会在导入前校验所有 <code>@deepseek-ai/dsh-*</code> 的 peer 版本范围，只要有一条不匹配就<b>整包丢弃</b>（没有设置页、没有 <code>rw_*</code> 工具）。0.8.29 起改为跨线区间，同时兼容 0.1.x 与 0.2.x；请升到 0.8.29 或更高。</span>
+      <span class="t" data-zh="DSH 会在导入前校验所有 <code>@deepseek-ai/dsh-*</code> 的 peer 版本范围，只要有一条不匹配就<b>整包丢弃</b>（没有设置页、没有 <code>orw_*</code> 工具）。0.8.29 起改为跨线区间，同时兼容 0.1.x 与 0.2.x；请升到 0.8.29 或更高。" data-en="DSH validates every <code>@deepseek-ai/dsh-*</code> peer range before importing a bundle and drops the whole bundle if any range does not match. Since 0.8.29 the ranges are cross-line intervals covering both 0.1.x and 0.2.x — upgrade to 0.8.29 or newer.">DSH 会在导入前校验所有 <code>@deepseek-ai/dsh-*</code> 的 peer 版本范围，只要有一条不匹配就<b>整包丢弃</b>（没有设置页、没有 <code>orw_*</code> 工具）。0.8.29 起改为跨线区间，同时兼容 0.1.x 与 0.2.x；请升到 0.8.29 或更高。</span>
     </div>
 
     <h2 style="margin-top:44px;font-size:19px" class="t" data-zh="配置" data-en="Configuration">配置</h2>
@@ -327,10 +327,10 @@
   <div class="wrap" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;width:100%">
     <span class="t" data-zh="MIT 许可 · 由 @flymysql 维护" data-en="MIT licensed · maintained by @flymysql">MIT 许可 · 由 @flymysql 维护</span>
     <span class="flinks">
-      <a href="https://github.com/flymysql/dsh-remote">GitHub</a>
-      <a href="https://www.npmjs.com/package/dsh-remote">npm</a>
+      <a href="https://github.com/flymysql/dsh-openssh-remote">GitHub</a>
+      <a href="https://www.npmjs.com/package/dsh-openssh-remote">npm</a>
       <a href="./stats/"><span class="t" data-zh="统计" data-en="Stats">统计</span></a>
-      <a href="https://github.com/flymysql/dsh-remote/issues"><span class="t" data-zh="问题反馈" data-en="Issues">问题反馈</span></a>
+      <a href="https://github.com/flymysql/dsh-openssh-remote/issues"><span class="t" data-zh="问题反馈" data-en="Issues">问题反馈</span></a>
       <a href="https://gitpull.cn"><span class="t" data-zh="博客" data-en="Blog">博客</span></a>
     </span>
   </div>
@@ -340,7 +340,7 @@
 // ── 语言：默认中文 ──────────────────────────────────────────────────────────
 // 需求是"优先显示中文"，所以中文必须是**无脚本、无 localStorage 时的默认渲染结果**：
 // 页面骨架本身写的是中文，脚本只在用户点 EN 后才替换成英文，首屏不会闪英文。
-const LANG_KEY = 'dsh-remote-site-lang'
+const LANG_KEY = 'dsh-openssh-remote-site-lang'
 const COPY_DEFAULT = { zh: '复制', en: 'copy', okZh: '已复制', okEn: 'copied!' }
 
 function applyLang (lang) {
@@ -360,8 +360,8 @@ function applyLang (lang) {
   document.getElementById('lang-zh').setAttribute('aria-pressed', String(zh))
   document.getElementById('lang-en').setAttribute('aria-pressed', String(!zh))
   document.title = zh
-    ? 'dsh-remote — 把任意 SSH 机器变成真正的 DSH 工作区'
-    : 'dsh-remote — make any SSH machine a real DSH workspace'
+    ? 'dsh-openssh-remote — 把任意 SSH 机器变成真正的 DSH 工作区'
+    : 'dsh-openssh-remote — make any SSH machine a real DSH workspace'
   const label = document.getElementById('copy-label')
   if (label && !label.dataset.done) label.textContent = zh ? COPY_DEFAULT.zh : COPY_DEFAULT.en
 }
@@ -376,7 +376,7 @@ applyLang(LANG)
 const cmd = document.getElementById('install-cmd')
 cmd.addEventListener('click', async () => {
   try {
-    await navigator.clipboard.writeText('dsh plugin --profile web add dsh-remote')
+    await navigator.clipboard.writeText('dsh plugin --profile web add dsh-openssh-remote')
     cmd.classList.add('copied')
     const label = document.getElementById('copy-label')
     label.dataset.done = '1'
@@ -417,15 +417,15 @@ async function loadNumbers () {
   // 兜底：只补齐快照里没有的字段，不覆盖已有值
   const missing = (id) => { const el = document.getElementById(id); return el && el.textContent === '—' }
   if (missing('v-version')) {
-    fetch('https://registry.npmjs.org/dsh-remote/latest').then(r => r.json())
+    fetch('https://registry.npmjs.org/dsh-openssh-remote/latest').then(r => r.json())
       .then(d => set('v-version', d?.version ?? '—')).catch(() => {})
   }
   if (missing('v-week')) {
-    fetch('https://api.npmjs.org/downloads/point/last-week/dsh-remote').then(r => r.json())
+    fetch('https://api.npmjs.org/downloads/point/last-week/dsh-openssh-remote').then(r => r.json())
       .then(d => set('v-week', d ? fmt(d.downloads) : '—')).catch(() => {})
   }
   if (missing('v-stars')) {
-    fetch('https://api.github.com/repos/flymysql/dsh-remote')
+    fetch('https://api.github.com/repos/flymysql/dsh-openssh-remote')
       .then(r => r.ok ? r.json() : null).then(d => set('v-stars', fmt(d?.stargazers_count))).catch(() => {})
   }
 }

@@ -1,6 +1,6 @@
-# Promotion kit (author notes) — dsh-remote
+# Promotion kit (author notes) — dsh-openssh-remote
 
-Copy-paste helpers for publishing and sharing `dsh-remote` on GitHub / npm.
+Copy-paste helpers for publishing and sharing `dsh-openssh-remote` on GitHub / npm.
 This file is for the author; nothing here is shown in the README install flow.
 
 ---
@@ -9,7 +9,7 @@ This file is for the author; nothing here is shown in the README install flow.
 
 | Channel | Status |
 |---|---|
-| npm `dsh-remote` | latest **0.8.21** (history 0.1.0→0.8.21, 58 versions) |
+| npm `dsh-openssh-remote` | latest **0.8.21** (history 0.1.0→0.8.21, 58 versions) |
 | GitHub topics (`dsh-plugin`, `deepseek-harness`, `remote`, `ssh`, `tunnel`, `plugin`) | set |
 | GitHub Releases | **all 32 tags have a release** (was 18/32; 14 back-filled 2026-09-22) |
 | awesome-dsh-plugin | listed (EN+zh) |
@@ -23,7 +23,7 @@ This file is for the author; nothing here is shown in the README install flow.
 
 ## 0. GitHub repo — set Topics
 
-`github.com/flymysql/dsh-remote` → repo **About** (gear top-right) → **Topics**, add:
+`github.com/flymysql/dsh-openssh-remote` → repo **About** (gear top-right) → **Topics**, add:
 
 ```
 dsh-plugin  deepseek-harness  remote  ssh  tunnel  plugin
@@ -36,7 +36,7 @@ CONTRIBUTING.md discovery channel).
 
 Topic cards (and Explore) only thumbnail **images that live in the repository**
 and are referenced from the default README with a **relative path**, e.g.
-`![dsh-remote](docs/cover.png)`. External CDNs (`cdn.jsdelivr.net`,
+`![dsh-openssh-remote](docs/cover.png)`. External CDNs (`cdn.jsdelivr.net`,
 `raw.githubusercontent.com`) are skipped, which is why the jsDelivr README
 previews never showed a cover next to plugins that use `docs/foo.png`.
 
@@ -79,7 +79,7 @@ Tag: `v0.5.4` · Title: `v0.5.4 — publish metadata`
 - npm manifest now carries `homepage` / `repository` / `author` for discoverability.
 
 ## Install
-dsh plugin add dsh-remote
+dsh plugin add dsh-openssh-remote
 ```
 
 ---
@@ -99,25 +99,25 @@ Post to: `https://github.com/deepseek-ai/deepseek-harness/discussions`
 > → New discussion, category **Show and tell** (or General).
 
 ```markdown
-## Showcase: dsh-remote — a remote-work assistant plugin
+## Showcase: dsh-openssh-remote — a remote-work assistant plugin
 
 Hi team & community 👋
 
-[dsh-remote](https://github.com/flymysql/dsh-remote) lets the agent work on machines outside the
+[dsh-openssh-remote](https://github.com/flymysql/dsh-openssh-remote) lets the agent work on machines outside the
 harness: manage several SSH hosts right in Settings, pick a **remote workspace** in the native
 "Add workspace" dialog (machine → directory, with a path field that auto-fills `/` and
 live-completes directories OS/VSCode-style), and operate there with tools
-(`rw_connect`, `rw_list_dir`, `rw_read_file`, `rw_write_file`, `rw_exec`, `rw_sync`/`rw_push`,
-`rw_disconnect`). The remote directory is mirrored to a real local workspace object, so the
+(`orw_connect`, `orw_list_dir`, `orw_read_file`, `orw_write_file`, `orw_exec`, `orw_sync`/`orw_push`,
+`orw_disconnect`). The remote directory is mirrored to a real local workspace object, so the
 normal workspace + agent-fs flows just work.
 
 It deliberately follows the harness safety design — the web GUI stays loopback-only; this plugin
 opens **out** to machines *you* maintain, and does not patch `dsh-workspace` core (it fills the
 directory-flow holes at priority −100).
 
-- Repo: https://github.com/flymysql/dsh-remote
-- npm: https://www.npmjs.com/package/dsh-remote
-- Install: `dsh plugin add dsh-remote`
+- Repo: https://github.com/flymysql/dsh-openssh-remote
+- npm: https://www.npmjs.com/package/dsh-openssh-remote
+- Install: `dsh plugin add dsh-openssh-remote`
 
 Happy to take feedback, issues, or PRs. Thanks!
 ```
@@ -125,20 +125,20 @@ Happy to take feedback, issues, or PRs. Thanks!
 ### 中文
 
 ```markdown
-- Showcase：dsh-remote —— 让 Agent 直达远程机器工作
+- Showcase：dsh-openssh-remote —— 让 Agent 直达远程机器工作
 
 给 DeepSeek Harness 加一个远程工作助手：在 Settings 维护多台 SSH 主机，在原生
 「添加工作区」弹窗里（默认本地 tab；切「远程」后可输入远程路径、路径框自动预填 `/`
-并逐级自动补全目录），用 `rw_list_dir` / `rw_read_file` / `rw_write_file` / `rw_exec` /
-`rw_sync` / `rw_push` / `rw_disconnect` 直接操作远端。远程目录会被镜像成真实本地工作区，
+并逐级自动补全目录），用 `orw_list_dir` / `orw_read_file` / `orw_write_file` / `orw_exec` /
+`orw_sync` / `orw_push` / `orw_disconnect` 直接操作远端。远程目录会被镜像成真实本地工作区，
 普通 workspace / agent 流程即可直接使用。
 
 它遵循 harness 的安全设计：Web UI 仍只绑定 loopback，插件是“向外连你自己维护的机器”，
 不修改 dsh-workspace 核心（在 priority −100 填充目录流程插槽）。
 
-- 仓库：https://github.com/flymysql/dsh-remote
-- npm：https://www.npmjs.com/package/dsh-remote
-- 安装：`dsh plugin add dsh-remote`
+- 仓库：https://github.com/flymysql/dsh-openssh-remote
+- npm：https://www.npmjs.com/package/dsh-openssh-remote
+- 安装：`dsh plugin add dsh-openssh-remote`
 ```
 
 ---

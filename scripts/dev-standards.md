@@ -8,15 +8,15 @@
 
 - **默认迭代方式**：改源码 → `scripts/dev-run.sh`（沙箱）验证 → 页面刷新
   （client 半）或 `--restart`（host 半）→ 全绿后才谈部署。
-- **禁止** `cp` 进产品 `profiles/web/node_modules/dsh-remote` 当常规手段：
-  产品 package.json 把 `dsh-remote` 声明为 `^0.5.10`，任何 npm / `dsh plugin`
+- **禁止** `cp` 进产品 `profiles/web/node_modules/dsh-openssh-remote` 当常规手段：
+  产品 package.json 把 `dsh-openssh-remote` 声明为 `^0.5.10`，任何 npm / `dsh plugin`
   重装都会把手改的文件覆盖回发行版。实证：v0.6.4 部署后 4 小时（8-19 20:48）
   被重装回 0.5.10 顶掉，本机目录选择器 bug 复发。
 - 产品发布=受控动作：先 git 提交干净基线、跑 `check.mjs` + `boot-smoke.sh`，
   再 `./sync.sh`，并提醒用户重启桌面后**复查**是否又被重装（若被顶掉，说明
   触发了一次 plugin 同步，需改产品 profile 依赖声明——属产品模式，先问用户）。
 - 沙箱布局：`dev-harness/harness`（隔离 DSH_HOME）+ 硬链接 profile +
-  `node_modules/dsh-remote` symlink 指向源码目录；数据种子 machines.json /
+  `node_modules/dsh-openssh-remote` symlink 指向源码目录；数据种子 machines.json /
   known_hosts.json 从产品拷入一次，之后独立。
 
 ## 1. 铁律：框架注册约束，先验证、再写、再守

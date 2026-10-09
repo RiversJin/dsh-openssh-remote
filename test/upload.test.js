@@ -1,4 +1,4 @@
-// Regression test for rw_upload (0.8.10).
+// Regression test for orw_upload (0.8.10).
 //
 // Root cause of the reported bug ("ENOENT ... open 'C:\home\…'"): the
 // tool called sftp.fastPut(remotePath, localPath) — swapped vs ssh2's real
@@ -33,7 +33,7 @@ ssh2.Client.prototype.sftp = function (cb) {
   setImmediate(() => cb(null, sftp))
 }
 
-/** Boot the real plugin against a throwaway DSH_HOME and return rw_upload. */
+/** Boot the real plugin against a throwaway DSH_HOME and return orw_upload. */
 async function setup(t) {
   const home = mkdtempSync(path.join(tmpdir(), 'dsh-upload-test-'))
   t.after(() => rmSync(home, { recursive: true, force: true }))
@@ -58,14 +58,14 @@ async function setup(t) {
       updateMode: 'off',
     },
   )
-  const upload = tools['rw_upload']
-  assert.ok(upload, 'rw_upload is registered')
+  const upload = tools['orw_upload']
+  assert.ok(upload, 'orw_upload is registered')
   recorded.fastPut.length = 0
   recorded.mkdir.length = 0
   return { upload }
 }
 
-test('rw_upload passes (localPath, remotePath) to fastPut — the C:\\home\\… ENOENT regression', async (t) => {
+test('orw_upload passes (localPath, remotePath) to fastPut — the C:\\home\\… ENOENT regression', async (t) => {
   const { upload } = await setup(t)
   const localFile = path.join(tmpdir(), `dsh-upload-src-${process.pid}.md`)
   writeFileSync(localFile, '# real local file')
@@ -86,7 +86,7 @@ test('rw_upload passes (localPath, remotePath) to fastPut — the C:\\home\\… 
   assert.ok(recorded.mkdir.includes(ws), 'remote parent dir created (not the file path)')
 })
 
-test('rw_upload still rejects a missing local file with the original error', async (t) => {
+test('orw_upload still rejects a missing local file with the original error', async (t) => {
   const { upload } = await setup(t)
   const missing = path.join(tmpdir(), `dsh-upload-missing-${process.pid}.txt`)
   await assert.rejects(

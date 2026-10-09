@@ -51,11 +51,11 @@ function routesFor(sftp, binding) {
 }
 
 test('native resource addresses are session-scoped', () => {
-  assert.match(src, /dsh-resource:\/\/dsh-remote\/' \+ encodeURIComponent\(sessionId\)/)
+  assert.match(src, /dsh-resource:\/\/dsh-openssh-remote\/' \+ encodeURIComponent\(sessionId\)/)
   assert.match(src, /withSessionBody\(\{ path, content: draft/)
   assert.match(src, /expectedMtime: data && data.mtime/)
-  assert.match(src, /withSessionQuery\('\/dsh-remote\/ls\?path='/)
-  assert.match(src, /withSessionQuery\('\/dsh-remote\/status'/)
+  assert.match(src, /withSessionQuery\('\/dsh-openssh-remote\/ls\?path='/)
+  assert.match(src, /withSessionQuery\('\/dsh-openssh-remote\/status'/)
   assert.match(src, /scope: \{ sessionId: props\.sessionId \}/)
 })
 
@@ -66,20 +66,20 @@ test('sidebar write 409 on mtime mismatch, then save after re-read (Desktop edit
   const binding = { ws: '/proj', host: '10.0.0.1', username: 'dev', port: 22, bound: true, mirrorDir: '/tmp/m' }
   const routes = routesFor(sftp, binding)
 
-  const first = await call(routes['/dsh-remote/read'], { body: { path: '/proj/a.txt', sessionId: 's1' } })
+  const first = await call(routes['/dsh-openssh-remote/read'], { body: { path: '/proj/a.txt', sessionId: 's1' } })
   assert.equal(first.status, 200)
   assert.equal(first.json.content, 'v1')
   const mtime = first.json.mtime
 
   fs.writeFileSync('/proj/a.txt', 'v2-remote')
-  const conflict = await call(routes['/dsh-remote/write'], {
+  const conflict = await call(routes['/dsh-openssh-remote/write'], {
     body: { path: '/proj/a.txt', content: 'v1-edited', expectedMtime: mtime, sessionId: 's1' },
   })
   assert.equal(conflict.status, 409)
   assert.equal(fs.readFileSync('/proj/a.txt').toString(), 'v2-remote')
 
-  const reread = await call(routes['/dsh-remote/read'], { body: { path: '/proj/a.txt', sessionId: 's1' } })
-  const saved = await call(routes['/dsh-remote/write'], {
+  const reread = await call(routes['/dsh-openssh-remote/read'], { body: { path: '/proj/a.txt', sessionId: 's1' } })
+  const saved = await call(routes['/dsh-openssh-remote/write'], {
     body: { path: '/proj/a.txt', content: 'merged', expectedMtime: reread.json.mtime, sessionId: 's1' },
   })
   assert.equal(saved.status, 200)
@@ -93,7 +93,7 @@ test('sidebar /ls returns session-bound listing from the resolved pool', async (
   fs.mkdirSync('/proj/src')
   const sftp = makeSftp(fs)
   const routes = routesFor(sftp, { ws: '/proj', host: '10.0.0.1', username: 'dev', port: 22, bound: true })
-  const r = await call(routes['/dsh-remote/ls'], { method: 'GET', url: '/dsh-remote/ls?path=/proj&sessionId=s1' })
+  const r = await call(routes['/dsh-openssh-remote/ls'], { method: 'GET', url: '/dsh-openssh-remote/ls?path=/proj&sessionId=s1' })
   assert.equal(r.status, 200)
   assert.equal(r.json.bound, true)
   assert.ok(r.json.items.some((it) => it.name === 'src'))

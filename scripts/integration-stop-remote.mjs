@@ -32,7 +32,7 @@ async function remoteCount() {
     'for pid in $(pgrep -x node 2>/dev/null)',
     'do',
     `  CMD=$(tr '\\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)`,
-    `  case "$CMD" in *dshprefix*|*dsh-remote*|*"--profile web"*) C=$((C+1));; esac`,
+    `  case "$CMD" in *dshprefix*|*dsh-openssh-remote*|*"--profile web"*) C=$((C+1));; esac`,
     'done',
     `echo "${marker}$C"`,
   ].join('\n')
@@ -64,7 +64,7 @@ try {
   // carry stale logs from an earlier run (as this one did), and "zero logs" would
   // then fail for a reason that has nothing to do with this session.
   const thisLog = attach.logPath
-  check('the session recorded its log path', /^\.dsh-remote-web-.+\.log$/.test(thisLog), thisLog)
+  check('the session recorded its log path', /^\.dsh-openssh-remote-web-.+\.log$/.test(thisLog), thisLog)
   const gone = await pool.exec(`test -f "$HOME/${thisLog}" && echo PRESENT || echo GONE`, { timeoutMs: 20000 })
   check('this session\'s log was removed by stopRemote',
     String((gone && gone.stdout) || '').trim() === 'GONE',

@@ -85,8 +85,8 @@ test('a launch that died by itself is NOT sent a stop command', async () => {
 })
 
 test('buildStopCommand still targets the process group and re-verifies the cmdline', () => {
-  const cmd = buildStopCommand(4242, '.dsh-remote-web-x.log')
+  const cmd = buildStopCommand(4242, '.dsh-openssh-remote-web-x.log')
   assert.match(cmd, /kill -- -"\$P"/, 'signals the group (setsid makes PGID==PID)')
   assert.match(cmd, /case "\$C" in \*dsh\*\)/, 're-verifies the PID still looks like dsh before killing')
-  assert.match(cmd, /rm -f "\$HOME\/\.dsh-remote-web-x\.log"/, 'removes the session log')
+  assert.match(cmd, /rm -f "\$HOME\/\.dsh-openssh-remote-web-x\.log"/, 'removes the session log')
 })

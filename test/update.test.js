@@ -82,11 +82,11 @@ function makeFetch({ version, tarball }) {
 
 /** A temp install dir seeded with an older version of the package. */
 function makeInstall({ index = 'OLD INDEX', client = 'OLD CLIENT', version = '0.1.0' } = {}) {
-  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-remote-update-'))
+  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-update-'))
   mkdirSync(path.join(dir, 'lib'), { recursive: true })
   writeFileSync(path.join(dir, 'lib', 'index.js'), index)
   writeFileSync(path.join(dir, 'lib', 'client.js'), client)
-  writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'dsh-remote', version }, null, 2))
+  writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'dsh-openssh-remote', version }, null, 2))
   return dir
 }
 
@@ -96,7 +96,7 @@ const NEW_INDEX = '// NEW INDEX\n' + 'x'.repeat(180) + '\n'
 const NEW_FILES = {
   'lib/index.js': NEW_INDEX,
   'lib/client.js': '// NEW CLIENT\n' + 'y'.repeat(180) + '\n',
-  'package.json': JSON.stringify({ name: 'dsh-remote', version: '0.2.0' }, null, 2),
+  'package.json': JSON.stringify({ name: 'dsh-openssh-remote', version: '0.2.0' }, null, 2),
 }
 
 // ── applyUpdate ──────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ test('applyUpdate installs the tarball and marks the version', async () => {
     assert.equal(readFileSync(path.join(dir, 'lib', 'client.js'), 'utf8'), NEW_FILES['lib/client.js'])
     assert.equal(JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8')).version, '0.2.0')
     // The marker is what tells the UI a swap is still owed.
-    assert.equal(readFileSync(path.join(dir, '.dsh-remote-updated'), 'utf8'), '0.2.0')
+    assert.equal(readFileSync(path.join(dir, '.dsh-openssh-remote-updated'), 'utf8'), '0.2.0')
     assert.deepEqual(res.changed.sort(), ['lib/client.js', 'lib/index.js', 'package.json'])
   } finally {
     rmSync(dir, { recursive: true, force: true })
@@ -137,7 +137,7 @@ test('applyUpdate leaves no temp files and skips byte-identical files', async ()
 
     const leftovers = readdirSync(path.join(dir, 'lib')).filter((n) => n.includes('dsh-tmp'))
     assert.deepEqual(leftovers, [])
-    assert.deepEqual(readdirSync(dir).filter((n) => n.startsWith('.dsh-remote-update-')), [])
+    assert.deepEqual(readdirSync(dir).filter((n) => n.startsWith('.dsh-openssh-remote-update-')), [])
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -147,14 +147,14 @@ test('applyUpdate refuses a version mismatch without touching the install', asyn
   const dir = makeInstall()
   try {
     // Tarball claims 0.3.0 while 0.2.0 was requested.
-    const wrong = makeTarball({ ...NEW_FILES, 'package.json': JSON.stringify({ name: 'dsh-remote', version: '0.3.0' }, null, 2) })
+    const wrong = makeTarball({ ...NEW_FILES, 'package.json': JSON.stringify({ name: 'dsh-openssh-remote', version: '0.3.0' }, null, 2) })
     await assert.rejects(
       () => applyUpdate('0.2.0', { dir, fetchImpl: makeFetch({ version: '0.3.0', tarball: wrong }) }),
       /version mismatch/,
     )
     assert.equal(readFileSync(path.join(dir, 'lib', 'index.js'), 'utf8'), 'OLD INDEX')
     assert.equal(JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8')).version, '0.1.0')
-    assert.equal(existsSync(path.join(dir, '.dsh-remote-updated')), false)
+    assert.equal(existsSync(path.join(dir, '.dsh-openssh-remote-updated')), false)
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -174,7 +174,7 @@ test('applyUpdate surfaces a failed download as update failed', async () => {
 })
 
 test('writeFileAtomic replaces content and cleans up its temp file', () => {
-  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-remote-atomic-'))
+  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-atomic-'))
   try {
     const dest = path.join(dir, 'client.js')
     writeFileSync(dest, 'v1')
@@ -273,7 +273,7 @@ test('the update check still reports local state when the registry fails', () =>
   // 回归：registry 失败时若整条响应 ok:false，客户端就不会 setUpd，面板会永远停在
   // 「版本信息加载中…」——看起来像卡死，而本地版本/更新模式其实都已知。
   const src = readFileSync(path.join(root, 'lib', 'index.js'), 'utf8')
-  const route = src.slice(src.indexOf("path: '/dsh-remote/update-check'"))
+  const route = src.slice(src.indexOf("path: '/dsh-openssh-remote/update-check'"))
   const body = route.slice(0, route.indexOf('kind: \'exact\'', 10))
   assert.match(body, /if \(probe\.error\)/, 'the route must branch on a probe error')
   assert.match(body, /ok: true, \.\.\.base/, 'a registry failure must still return local state with ok:true')
@@ -295,10 +295,10 @@ test('isInstalledCopy distinguishes a node_modules install from a checkout', () 
   // 安装时 selfDir() 指向的是**源码仓库**。auto 默认开启后，一次自动更新就会
   // 用 npm 包覆盖它（丢改动、脏工作树）——所以必须能识别出来并拒绝。
   // 两条分支都要真被测到（用参数注入，而不是只测当前运行位置那一条）。
-  assert.equal(isInstalledCopy('C:\\Users\\x\\.dsh\\profiles\\web\\node_modules\\dsh-remote'), true)
-  assert.equal(isInstalledCopy('/home/x/.dsh/profiles/web/node_modules/dsh-remote'), true)
-  assert.equal(isInstalledCopy('D:\\work\\dsh_work\\dsh-remote'), false, 'a checkout must not count as installed')
-  assert.equal(isInstalledCopy('/home/x/src/dsh-remote'), false)
+  assert.equal(isInstalledCopy('C:\\Users\\x\\.dsh\\profiles\\web\\node_modules\\dsh-openssh-remote'), true)
+  assert.equal(isInstalledCopy('/home/x/.dsh/profiles/web/node_modules/dsh-openssh-remote'), true)
+  assert.equal(isInstalledCopy('D:\\work\\dsh_work\\dsh-openssh-remote'), false, 'a checkout must not count as installed')
+  assert.equal(isInstalledCopy('/home/x/src/dsh-openssh-remote'), false)
   // 本测试进程从仓库运行 ⇒ 走真实 selfDir() 也应是 false
   assert.equal(isInstalledCopy(), false)
 })
@@ -344,7 +344,7 @@ test('clearSelfModuleCache tolerates a loader with no loadCache', () => {
 test('clearSelfModuleCache honours an explicit package dir', () => {
   // The swap is exercised against a fixture install in the E2E script, so the
   // lib/ to evict must be overridable rather than pinned to selfDir().
-  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-remote-clear-'))
+  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-clear-'))
   try {
     mkdirSync(path.join(dir, 'lib'), { recursive: true })
     writeFileSync(path.join(dir, 'lib', 'index.js'), 'export const a = 1\n')
@@ -363,7 +363,7 @@ test('reloadSelf clears the disabled flag DSH 0.2 writes when a fiber is dispose
   // host back without the settings page. A reload is not an uninstall.
   const calls = []
   const entry = {
-    options: { id: 'dsh-remote', name: 'dsh-remote' },
+    options: { id: 'dsh-openssh-remote', name: 'dsh-openssh-remote' },
     parent: { tree: { write() { calls.push('write') } } },
     fiber: {
       dispose: async () => {
@@ -382,7 +382,7 @@ test('reloadSelf clears the disabled flag DSH 0.2 writes when a fiber is dispose
 test('reloadSelf leaves an entry that was already disabled disabled', async () => {
   let wrote = false
   const entry = {
-    options: { id: 'dsh-remote', name: 'dsh-remote', disabled: true },
+    options: { id: 'dsh-openssh-remote', name: 'dsh-openssh-remote', disabled: true },
     parent: { tree: { write() { wrote = true } } },
     fiber: { dispose: async () => {} },
     init: async () => {},
@@ -405,7 +405,7 @@ test('reloadSelf disposes via entry.fiber when the entry has no dispose hook', a
   //   于是永远走第一条分支。这里刻意用真实形态（只有 fiber）来钉住。
   const calls = []
   const entry = {
-    options: { id: 'dsh-remote', name: 'dsh-remote' },
+    options: { id: 'dsh-openssh-remote', name: 'dsh-openssh-remote' },
     // 刻意不提供 _dispose / dispose —— 与真实 cordis Entry 一致
     fiber: { dispose: async () => { calls.push('fiber.dispose') } },
     init: async () => { calls.push('init') },
@@ -418,7 +418,7 @@ test('reloadSelf disposes via entry.fiber when the entry has no dispose hook', a
 
 test('an entry with no dispose path at all is still reported, not silently ignored', async () => {
   // 两面性：真的没有任何卸载入口时要如实报错（而不是假装成功）。
-  const entry = { options: { id: 'dsh-remote' }, init: async () => {} }
+  const entry = { options: { id: 'dsh-openssh-remote' }, init: async () => {} }
   const res = await reloadSelf({ internal: { loadCache: new Map() }, entries: () => [entry] })
   assert.equal(res.ok, false)
   assert.match(res.reason, /no dispose hook/)
@@ -428,7 +428,7 @@ test('reloadSelf prefers an explicit hook over the fiber when both exist', async
   // 宿主若提供扩展钩子，优先用它（fiber 作为后备）。
   const calls = []
   const entry = {
-    options: { id: 'dsh-remote' },
+    options: { id: 'dsh-openssh-remote' },
     _dispose: async () => { calls.push('_dispose') },
     fiber: { dispose: async () => { calls.push('fiber.dispose') } },
     init: async () => { calls.push('init') },
@@ -438,11 +438,11 @@ test('reloadSelf prefers an explicit hook over the fiber when both exist', async
   assert.deepEqual(calls, ['_dispose', 'init'])
 })
 
-/** A loader stub exposing one dsh-remote entry, recording dispose/init calls. */
+/** A loader stub exposing one dsh-openssh-remote entry, recording dispose/init calls. */
 function makeEntryLoader(overrides = {}) {
   const calls = []
   const entry = {
-    options: { id: 'dsh-remote', name: 'dsh-remote' },
+    options: { id: 'dsh-openssh-remote', name: 'dsh-openssh-remote' },
     _dispose: async () => { calls.push('dispose') },
     init: async () => { calls.push('init') },
     ...overrides,

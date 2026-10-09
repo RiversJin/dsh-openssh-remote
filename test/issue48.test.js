@@ -13,13 +13,13 @@
 //     The negative control IS the assertion shape: pre-fix the connect promise
 //     never settles (the race timeout fires) AND an unhandledRejection lands.
 //
-//  B. rw_connect exposed only host/username/port/password/privateKeyPath —
+//  B. orw_connect exposed only host/username/port/password/privateKeyPath —
 //     the agent could not supply passphrase/useAgent/keyboardInteractive/
 //     hostKeyMode, so a machine that needs them was impossible to connect.
 //
 //  C. There was no way to connect with an ALREADY SAVED machine's full stored
-//     settings: rw_machines lists them (secrets stripped) and
-//     rw_connect(machineId=...) reuses the record wholesale.
+//     settings: orw_machines lists them (secrets stripped) and
+//     orw_connect(machineId=...) reuses the record wholesale.
 //
 // The fixture below is a THROWAWAY test-only ed25519 key (passphrase
 // "test-passphrase"), generated with ssh-keygen and never used anywhere else.
@@ -86,7 +86,7 @@ async function withoutUnhandledRejections(fn) {
 // ── A. the crash ────────────────────────────────────────────────────────────
 
 test('A1: encrypted key without passphrase rejects NORMALLY (no hang, no unhandled rejection)', async () => {
-  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-remote-i48-'))
+  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-i48-'))
   try {
     await withoutUnhandledRejections(async () => {
       const pool = new SshPool(poolConfig({ privateKeyPath: writeKey(dir) }))
@@ -107,7 +107,7 @@ test('A1: encrypted key without passphrase rejects NORMALLY (no hang, no unhandl
 })
 
 test('A2: the same pool WITH the passphrase gets past key parsing (fails later at the network)', async () => {
-  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-remote-i48-'))
+  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-i48-'))
   try {
     const pool = new SshPool(poolConfig({ privateKeyPath: writeKey(dir), passphrase: KEY_PASSPHRASE }))
     const err = await pool.connect().then(() => null, (e) => e)
@@ -167,10 +167,10 @@ async function call(routes, routePath, { method = 'POST', body = {} } = {}) {
 }
 
 async function withPlugin(machines, fn) {
-  const fakeHome = mkdtempSync(path.join(tmpdir(), 'dsh-remote-i48home-'))
+  const fakeHome = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-i48home-'))
   mkdirSync(path.join(fakeHome, '.ssh'), { recursive: true })
-  const dshHome = mkdtempSync(path.join(tmpdir(), 'dsh-remote-i48dsh-'))
-  mkdirSync(path.join(dshHome, 'remote-workspaces'), { recursive: true })
+  const dshHome = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-i48dsh-'))
+  mkdirSync(path.join(dshHome, 'openssh-remote-workspaces'), { recursive: true })
   const savedHome = process.env.HOME
   const savedProfile = process.env.USERPROFILE
   const savedDsh = process.env.DSH_HOME
@@ -179,12 +179,12 @@ async function withPlugin(machines, fn) {
     process.env.USERPROFILE = fakeHome
     process.env.DSH_HOME = dshHome
     if (machines) {
-      writeFileSync(path.join(dshHome, 'remote-workspaces', 'machines.json'), JSON.stringify(machines, null, 2))
+      writeFileSync(path.join(dshHome, 'openssh-remote-workspaces', 'machines.json'), JSON.stringify(machines, null, 2))
     }
     const mod = await import(`../lib/index.js?i48=${Math.random()}`)
     const { ctx, routes, tools } = makeCtx()
     await mod.apply(ctx, { ...CONFIG })
-    return await fn({ routes, tools, fakeHome, dshHome, machinesFile: path.join(dshHome, 'remote-workspaces', 'machines.json') })
+    return await fn({ routes, tools, fakeHome, dshHome, machinesFile: path.join(dshHome, 'openssh-remote-workspaces', 'machines.json') })
   } finally {
     for (const [k, v] of [['HOME', savedHome], ['USERPROFILE', savedProfile], ['DSH_HOME', savedDsh]]) {
       if (v === undefined) delete process.env[k]
@@ -206,10 +206,10 @@ const KEY_MACHINE = {
 test('A4: boot-restore re-dialing a machine with a broken key fails quietly (the restart crash loop)', async () => {
   await withoutUnhandledRejections(async () => {
     await withPlugin(null, async ({ dshHome }) => {
-      const keyDir = mkdtempSync(path.join(tmpdir(), 'dsh-remote-i48key-'))
+      const keyDir = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-i48key-'))
       try {
         const bad = { ...KEY_MACHINE, privateKeyPath: writeKey(keyDir), passphrase: '' }
-        writeFileSync(path.join(dshHome, 'remote-workspaces', 'machines.json'), JSON.stringify({ list: [bad], currentId: 'm-key' }, null, 2))
+        writeFileSync(path.join(dshHome, 'openssh-remote-workspaces', 'machines.json'), JSON.stringify({ list: [bad], currentId: 'm-key' }, null, 2))
         const mod = await import(`../lib/index.js?i48boot=${Math.random()}`)
         const { ctx } = makeCtx()
         // apply() itself resolves — the restore dial happens in a setImmediate.
@@ -224,12 +224,12 @@ test('A4: boot-restore re-dialing a machine with a broken key fails quietly (the
   })
 })
 
-// ── C. rw_machines + rw_connect(machineId) ──────────────────────────────────
+// ── C. orw_machines + orw_connect(machineId) ──────────────────────────────────
 
-test('C1: rw_machines lists saved machines with auth flags and NO secret values', async () => {
+test('C1: orw_machines lists saved machines with auth flags and NO secret values', async () => {
   await withPlugin({ list: [{ ...KEY_MACHINE, password: 'hunter2' }], currentId: 'm-key' }, async ({ tools }) => {
-    const list = tools.get('rw_machines')
-    assert.ok(list, 'rw_machines must be registered')
+    const list = tools.get('orw_machines')
+    assert.ok(list, 'orw_machines must be registered')
     const out = (await list.execute({}, {})).text
     assert.match(out, /m-key/)
     assert.match(out, /encrypted-key-box/)
@@ -243,40 +243,40 @@ test('C1: rw_machines lists saved machines with auth flags and NO secret values'
   })
 })
 
-test('C2: rw_machines on an empty registry explains how to add one', async () => {
+test('C2: orw_machines on an empty registry explains how to add one', async () => {
   await withPlugin(null, async ({ tools }) => {
-    const out = (await tools.get('rw_machines').execute({}, {})).text
+    const out = (await tools.get('orw_machines').execute({}, {})).text
     assert.match(out, /No saved machines/)
   })
 })
 
-test('C3: rw_connect(machineId) adopts the stored machine wholesale and makes it current', async () => {
+test('C3: orw_connect(machineId) adopts the stored machine wholesale and makes it current', async () => {
   await withPlugin({ list: [{ ...KEY_MACHINE, privateKeyPath: '' }], currentId: null }, async ({ routes, tools, machinesFile }) => {
-    const connect = tools.get('rw_connect')
+    const connect = tools.get('orw_connect')
     // Dialing 192.0.2.7 times out fast here (connectTimeoutMs=800) — the point
     // is WHICH identity got applied, not the network outcome.
     await connect.execute({ machineId: 'm-key' }, {}).catch(() => {})
     const saved = JSON.parse(readFileSync(machinesFile, 'utf8'))
     assert.equal(saved.currentId, 'm-key', 'the named machine becomes current')
-    const st = await call(routes, '/dsh-remote/status', { method: 'GET' })
+    const st = await call(routes, '/dsh-openssh-remote/status', { method: 'GET' })
     assert.equal(st.json.host, '192.0.2.7')
     assert.equal(st.json.port, 2222)
     assert.equal(st.json.username, 'ops')
   })
 })
 
-test('C4: rw_connect(machineId) with an unknown id fails with a pointer to rw_machines', async () => {
+test('C4: orw_connect(machineId) with an unknown id fails with a pointer to orw_machines', async () => {
   await withPlugin({ list: [{ ...KEY_MACHINE }], currentId: null }, async ({ tools }) => {
-    const err = await tools.get('rw_connect').execute({ machineId: 'm-nope' }, {}).then(() => null, (e) => e)
+    const err = await tools.get('orw_connect').execute({ machineId: 'm-nope' }, {}).then(() => null, (e) => e)
     assert.ok(err)
     assert.match(err.message, /m-nope/)
-    assert.match(err.message, /rw_machines/)
+    assert.match(err.message, /orw_machines/)
   })
 })
 
-test('C5: rw_connect with neither host nor machineId explains both options', async () => {
+test('C5: orw_connect with neither host nor machineId explains both options', async () => {
   await withPlugin(null, async ({ tools }) => {
-    const err = await tools.get('rw_connect').execute({}, {}).then(() => null, (e) => e)
+    const err = await tools.get('orw_connect').execute({}, {}).then(() => null, (e) => e)
     assert.ok(err, 'must fail')
     assert.match(err.message, /host is required/)
     assert.match(err.message, /machineId/)
@@ -285,9 +285,9 @@ test('C5: rw_connect with neither host nor machineId explains both options', asy
 
 // ── B. the full field set + secret preservation on upsert ───────────────────
 
-test('B1: rw_connect passes passphrase/useAgent/keyboardInteractive/hostKeyMode/name into the registry', async () => {
+test('B1: orw_connect passes passphrase/useAgent/keyboardInteractive/hostKeyMode/name into the registry', async () => {
   await withPlugin(null, async ({ tools, machinesFile }) => {
-    await tools.get('rw_connect').execute({
+    await tools.get('orw_connect').execute({
       host: '192.0.2.9', port: 22, username: 'ops',
       privateKeyPath: '/home/ops/.ssh/id', passphrase: 'pp',
       useAgent: true, keyboardInteractive: true, hostKeyMode: 'strict', name: 'my box',
@@ -305,7 +305,7 @@ test('B2: re-connecting WITHOUT a passphrase keeps the stored one (and never clo
   await withPlugin({ list: [{ ...KEY_MACHINE, privateKeyPath: '/k' }], currentId: 'm-key' }, async ({ tools, machinesFile }) => {
     // Same identity, only a new password — the agent "reconnects" the way it
     // always did. The stored passphrase must survive.
-    await tools.get('rw_connect').execute({ host: '192.0.2.7', port: 2222, username: 'ops', password: 'newpw' }, {}).catch(() => {})
+    await tools.get('orw_connect').execute({ host: '192.0.2.7', port: 2222, username: 'ops', password: 'newpw' }, {}).catch(() => {})
     const rec = JSON.parse(readFileSync(machinesFile, 'utf8')).list[0]
     assert.equal(rec.passphrase, KEY_PASSPHRASE, 'stored passphrase preserved')
     assert.equal(rec.password, 'newpw', 'supplied password updated')
@@ -313,7 +313,7 @@ test('B2: re-connecting WITHOUT a passphrase keeps the stored one (and never clo
   })
 })
 
-test('B3: legacy rw_connect arguments preserve an existing OpenSSH alias machine', async () => {
+test('B3: legacy orw_connect arguments preserve an existing OpenSSH alias machine', async () => {
   const machine = {
     id: 'm-open', name: 'company', host: 'company-alias', port: 22, username: 'ops',
     password: '', privateKeyPath: '', workspace: '/work', useSshConfig: true,
@@ -321,7 +321,7 @@ test('B3: legacy rw_connect arguments preserve an existing OpenSSH alias machine
   }
   await withPlugin({ list: [machine], currentId: null }, async ({ tools, machinesFile }) => {
     // Deliberately omit useSshConfig/transport/opensshPath, as an older caller does.
-    await tools.get('rw_connect').execute({ host: 'company-alias', port: 22, username: 'ops' }, {}).catch(() => {})
+    await tools.get('orw_connect').execute({ host: 'company-alias', port: 22, username: 'ops' }, {}).catch(() => {})
     const rec = JSON.parse(readFileSync(machinesFile, 'utf8')).list[0]
     assert.equal(rec.useSshConfig, true)
     assert.equal(rec.transport, 'openssh')
@@ -332,11 +332,11 @@ test('B3: legacy rw_connect arguments preserve an existing OpenSSH alias machine
 // ── end-to-end through the test-connect route (pool + classification) ───────
 
 test('B3: /test-connect with an encrypted key + no passphrase returns the friendly credentials error (no crash)', async () => {
-  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-remote-i48tc-'))
+  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-i48tc-'))
   try {
     await withoutUnhandledRejections(async () => {
       await withPlugin(null, async ({ routes }) => {
-        const r = await call(routes, '/dsh-remote/test-connect', {
+        const r = await call(routes, '/dsh-openssh-remote/test-connect', {
           body: { host: '127.0.0.1', port: 1, username: 'x', privateKeyPath: writeKey(dir), passphrase: '' },
         })
         assert.equal(r.status, 200, 'probe failures are 200 + ok:false, never a crash')
@@ -350,10 +350,10 @@ test('B3: /test-connect with an encrypted key + no passphrase returns the friend
 })
 
 test('B4: /test-connect with the passphrase gets PAST parsing to the network error', async () => {
-  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-remote-i48tc-'))
+  const dir = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-i48tc-'))
   try {
     await withPlugin(null, async ({ routes }) => {
-      const r = await call(routes, '/dsh-remote/test-connect', {
+      const r = await call(routes, '/dsh-openssh-remote/test-connect', {
         body: { host: '127.0.0.1', port: 1, username: 'x', privateKeyPath: writeKey(dir), passphrase: KEY_PASSPHRASE },
       })
       assert.equal(r.status, 200)

@@ -10,8 +10,8 @@ import path from 'node:path'
 
 const home = mkdtempSync(path.join(tmpdir(), 'skill-it-'))
 process.env.DSH_HOME = home
-mkdirSync(path.join(home, 'remote-workspaces'), { recursive: true })
-writeFileSync(path.join(home, 'remote-workspaces', 'machines.json'), JSON.stringify({ list: [], currentId: null }))
+mkdirSync(path.join(home, 'openssh-remote-workspaces'), { recursive: true })
+writeFileSync(path.join(home, 'openssh-remote-workspaces', 'machines.json'), JSON.stringify({ list: [], currentId: null }))
 
 const mod = await import('../lib/index.js')
 const { SKILL_NAME, SKILL_BODY } = await import('../lib/web-deploy-skill.js')

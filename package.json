@@ -1,18 +1,18 @@
 {
-  "name": "dsh-remote",
-  "version": "0.8.41",
-  "description": "Remote-work assistant for DeepSeek Harness: connect SSH (password/key/agent/keyboard-interactive/proxy jump), pick a remote workspace, operate on it with 22 rw_* tools (incl. rw_edit/rw_stat/rw_mkdir/rw_remove/rw_move/rw_forward), conflict-aware mirror sync, one-click remote dsh deploy + web UI attach, port forwarding, optional side-bar remote file editing, audit log, keychain passwords.",
+  "name": "dsh-openssh-remote",
+  "version": "0.1.0",
+  "description": "OpenSSH-first remote workspace plugin for DeepSeek Harness, with SSH config and Kerberos/GSSAPI support plus an ssh2 fallback.",
   "license": "MIT",
-  "author": "flymysql <flyphp@outlook.com>",
+  "author": "Rivers <11208747+RiversJin@users.noreply.github.com>",
   "readme": "README.md",
   "readmeFilename": "README.md",
-  "homepage": "https://github.com/flymysql/dsh-remote",
+  "homepage": "https://github.com/RiversJin/dsh-openssh-remote",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/flymysql/dsh-remote.git"
+    "url": "git+https://github.com/RiversJin/dsh-openssh-remote.git"
   },
   "bugs": {
-    "url": "https://github.com/flymysql/dsh-remote/issues"
+    "url": "https://github.com/RiversJin/dsh-openssh-remote/issues"
   },
   "keywords": [
     "deepseek-harness",

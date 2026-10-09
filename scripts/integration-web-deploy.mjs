@@ -27,7 +27,7 @@ const results = []
 const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  - ' + detail : ''}`) }
 
 const home = mkdtempSync(path.join(tmpdir(), 'deploy-it-'))
-const root = path.join(home, 'remote-workspaces'); mkdirSync(root, { recursive: true })
+const root = path.join(home, 'openssh-remote-workspaces'); mkdirSync(root, { recursive: true })
 writeFileSync(path.join(root, 'machines.json'), JSON.stringify({
   list: [{ id: 'm-it', name: 'target', host, port: sshPort, username, password: '', privateKeyPath,
     passphrase: '', workspace: `/home/${username}`, useAgent: false, keyboardInteractive: false, hostKeyMode: 'accept-new' }],
@@ -52,12 +52,12 @@ await mod.apply(ctx, {
   webInstallPrefix: explicitPrefix, webInstallVersion: '0.1.5-rc.2',
 })
 
-const route = routes.get('/dsh-remote/web-attach')
+const route = routes.get('/dsh-openssh-remote/web-attach')
 check('route is registered', !!route)
 
 function call(method, body) {
   const req = Readable.from(body === undefined ? [] : [Buffer.from(JSON.stringify(body))])
-  req.method = method; req.url = '/dsh-remote/web-attach'; req.headers = {}
+  req.method = method; req.url = '/dsh-openssh-remote/web-attach'; req.headers = {}
   const res = { statusCode: 0, payload: '', setHeader() {}, writeHead(c) { this.statusCode = c }, end(c) { this.payload += c == null ? '' : String(c) } }
   return route.handler(req, res).then(() => ({ status: res.statusCode, json: JSON.parse(res.payload || '{}') }))
 }

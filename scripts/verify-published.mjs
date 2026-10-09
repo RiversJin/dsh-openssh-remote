@@ -2,8 +2,8 @@
 //
 // 目的：确认发布产物里 issue #44 的修复真的生效。这是"发布并验证"的最后一环 ——
 // 前面 npm install 只证明包装上了，这里证明装出来的代码**行为正确**。
-const PKG = process.argv[2]  // node_modules/dsh-remote 的绝对路径
-if (!PKG) { console.error('usage: node verify-published.mjs <path/to/node_modules/dsh-remote>'); process.exit(2) }
+const PKG = process.argv[2]  // node_modules/dsh-openssh-remote 的绝对路径
+if (!PKG) { console.error('usage: node verify-published.mjs <path/to/node_modules/dsh-openssh-remote>'); process.exit(2) }
 
 const { pathToFileURL } = await import('node:url')
 const path = await import('node:path')
@@ -107,7 +107,7 @@ console.log('\n--- 修复 3：搜索忽略缓存树，但同步不忽略（防�
   check('镜像同步**不**跳过 .npm（避免静默漏同步）', sync('.npm', true) === false)
 }
 
-console.log('\n--- 修复 4：rw_search 声明了 timeoutMs 与预算参数 ---')
+console.log('\n--- 修复 4：orw_search 声明了 timeoutMs 与预算参数 ---')
 {
   const resolved = typeof idx.Config === 'function' ? new idx.Config({}) : idx.Config
   const tools = new Map()
@@ -116,13 +116,13 @@ console.log('\n--- 修复 4：rw_search 声明了 timeoutMs 与预算参数 ---'
     tools: { register: (t) => tools.set(t.name, t) },
     systemPrompt: { section: () => {} },
   }, resolved)
-  const search = tools.get('rw_search')
-  check('rw_search 存在且 timeoutMs 为正数', !!search && Number.isFinite(search.timeoutMs) && search.timeoutMs > 0, `timeoutMs=${search?.timeoutMs}`)
+  const search = tools.get('orw_search')
+  check('orw_search 存在且 timeoutMs 为正数', !!search && Number.isFinite(search.timeoutMs) && search.timeoutMs > 0, `timeoutMs=${search?.timeoutMs}`)
   check('接受 maxEntries / maxDurationMs 参数',
     !!search?.parameters?.properties?.maxEntries && !!search?.parameters?.properties?.maxDurationMs)
 }
 
-console.log('\n--- PR #45：rw_edit 别名 ---')
+console.log('\n--- PR #45：orw_edit 别名 ---')
 {
   const resolved = typeof idx.Config === 'function' ? new idx.Config({}) : idx.Config
   const tools = new Map()
@@ -131,7 +131,7 @@ console.log('\n--- PR #45：rw_edit 别名 ---')
     tools: { register: (t) => tools.set(t.name, t) },
     systemPrompt: { section: () => {} },
   }, resolved)
-  const edit = tools.get('rw_edit')
+  const edit = tools.get('orw_edit')
   const props = edit?.parameters?.properties || {}
   const required = edit?.parameters?.required || []
   check('声明 old_string / new_string / file_path',

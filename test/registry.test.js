@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { loadMachines, saveMachines, sanitizeMachine, applyMachine, machineId } from '../lib/registry.js'
 
-const tmp = () => mkdtempSync(path.join(tmpdir(), 'dsh-remote-reg-'))
+const tmp = () => mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-reg-'))
 const file = (dir) => path.join(dir, 'machines.json')
 const machine = (id, host) => ({ id, name: host, host, port: 22, username: 'root', password: 'secret', workspace: '/home/root/proj', proxy: { host: 'jump', password: 'pp' } })
 

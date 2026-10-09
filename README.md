@@ -2,17 +2,19 @@
 
 ---
 
-# dsh-remote
+# dsh-openssh-remote
 
-[![npm version](https://img.shields.io/npm/v/dsh-remote)](https://www.npmjs.com/package/dsh-remote)
-[![downloads](https://img.shields.io/npm/dw/dsh-remote)](https://www.npmjs.com/package/dsh-remote)
-[![downloads](https://img.shields.io/npm/dm/dsh-remote)](https://www.npmjs.com/package/dsh-remote)
-[![license](https://img.shields.io/github/license/flymysql/dsh-remote)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/dsh-openssh-remote)](https://www.npmjs.com/package/dsh-openssh-remote)
+[![downloads](https://img.shields.io/npm/dw/dsh-openssh-remote)](https://www.npmjs.com/package/dsh-openssh-remote)
+[![downloads](https://img.shields.io/npm/dm/dsh-openssh-remote)](https://www.npmjs.com/package/dsh-openssh-remote)
+[![license](https://img.shields.io/github/license/RiversJin/dsh-openssh-remote)](LICENSE)
 [![dsh-plugin](https://img.shields.io/badge/topic-dsh--plugin-7a3ef3)](https://github.com/topics/dsh-plugin)
 
-由 [@flymysql](https://github.com/flymysql) 维护 · [主页](https://flymysql.github.io/dsh-remote/) · [用量统计](https://flymysql.github.io/dsh-remote/stats/) · [博客](https://gitpull.cn) · [讨论区](https://github.com/flymysql/dsh-remote/discussions) · [Issue](https://github.com/flymysql/dsh-remote/issues) · [English](./README.en.md)
+由 [@RiversJin](https://github.com/RiversJin) 维护 · [仓库](https://github.com/RiversJin/dsh-openssh-remote) · [Issue](https://github.com/RiversJin/dsh-openssh-remote/issues) · [English](./README.en.md)
 
-![dsh-remote —— 把任意 SSH 机器变成真正的 DSH 工作区](docs/cover.png)
+本项目 fork 自 [flymysql/dsh-remote](https://github.com/flymysql/dsh-remote)，已将包、API、UI、资源、数据目录及工具前缀完整隔离，以便两个插件并存。首次启动时，若新数据目录为空，会从旧插件复制机器配置与镜像数据；旧数据不会被删除或继续共享。
+
+![dsh-openssh-remote —— 把任意 SSH 机器变成真正的 DSH 工作区](docs/cover.png)
 
 **为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（DSH）打造的远程工作助手。**
 
@@ -26,7 +28,7 @@ DSH 的 Web 界面刻意只监听 `127.0.0.1`（CLI 为安全拒绝 `--host 0.0.
 
 **设置 → 远程工作区** —— 多机列表、高级配置（私钥/跳板机/agent）、连接体检、远程 DSH 界面、端口转发、审计日志、更新：
 
-<img src="docs/shots/settings-panel.png" alt="dsh-remote 设置页：机器列表、高级配置、远程 DSH 界面、体检与部署、端口转发、审计日志、更新" width="612"/>
+<img src="docs/shots/settings-panel.png" alt="dsh-openssh-remote 设置页：机器列表、高级配置、远程 DSH 界面、体检与部署、端口转发、审计日志、更新" width="612"/>
 
 原生 **「Add workspace / 选择工作区」** 流程 —— 居中弹窗、两个 tab，默认落在「本机」；切到**「远程」**：
 
@@ -39,29 +41,29 @@ DSH 的 Web 界面刻意只监听 `127.0.0.1`（CLI 为安全拒绝 `--host 0.0.
 
 ## 功能
 
-![核心能力总览 — 多机 SSH / 别名实时解析 / 双 tab 选择器 / 三路同步 / 远程 @ 补全 / 远端 DSH 界面挂到本机 / 体检与一键部署 / 安全审计 / 端口转发 / 侧栏编辑 / 自动更新，以及 22 个 rw_* 工具](docs/shots/features.png)
+![核心能力总览 — 多机 SSH / 别名实时解析 / 双 tab 选择器 / 三路同步 / 远程 @ 补全 / 远端 DSH 界面挂到本机 / 体检与一键部署 / 安全审计 / 端口转发 / 侧栏编辑 / 自动更新，以及 22 个 orw_* 工具](docs/shots/features.png)
 
 上图是能力总览；下面只列**上图没说清、但用起来需要知道**的部分。
 
 其余要点：
 
-- **22 个模型工具**（便于复制/检索）：`rw_info`、`rw_connect`、`rw_machines`、`rw_pick_workspace`、`rw_list_dir`、`rw_stat`、`rw_read_file`、`rw_write_file`、`rw_edit`、`rw_append`、`rw_mkdir`、`rw_remove`、`rw_move`、`rw_exec`、`rw_search`、`rw_download`、`rw_upload`、`rw_sync`、`rw_push`、`rw_forward`、`rw_disconnect`、`rw_deploy_probe`。
+- **22 个模型工具**（便于复制/检索）：`orw_info`、`orw_connect`、`orw_machines`、`orw_pick_workspace`、`orw_list_dir`、`orw_stat`、`orw_read_file`、`orw_write_file`、`orw_edit`、`orw_append`、`orw_mkdir`、`orw_remove`、`orw_move`、`orw_exec`、`orw_search`、`orw_download`、`orw_upload`、`orw_sync`、`orw_push`、`orw_forward`、`orw_disconnect`、`orw_deploy_probe`。
 - **把远端机器的 DSH 界面挂到本机**（`0.8.36+`）—— 不用在远端开任何端口：插件主动 SSH 连过去，在远端**只监听 `127.0.0.1`** 地起一个 `dsh web`，再把端口经隧道搬回本机的一个 loopback 端口。地址带一次性登录令牌，只在本机这次跳转里用一次。
-- **连不上时一键体检与部署**（`0.8.36+`）—— **连不上大多不是插件的问题，而是远端 dsh 的版本或环境不对**。体检（只读）会报出平台/node/npm/dsh 版本、**原生模块能否启动**、代理与 npm 源，并给出修复建议；「部署并验证」把它装到远端**私有目录**（不写系统目录、不改 PATH、不覆盖你在用的版本，删目录即回滚）并逐步校验。按钮**不再需要先体检**——直接点即可（`0.8.40+`），部署过程自己会重新体检。失败还能交给内置的 `dsh-remote-deploy` 技能排查。
+- **连不上时一键体检与部署**（`0.8.36+`）—— **连不上大多不是插件的问题，而是远端 dsh 的版本或环境不对**。体检（只读）会报出平台/node/npm/dsh 版本、**原生模块能否启动**、代理与 npm 源，并给出修复建议；「部署并验证」把它装到远端**私有目录**（不写系统目录、不改 PATH、不覆盖你在用的版本，删目录即回滚）并逐步校验。按钮**不再需要先体检**——直接点即可（`0.8.40+`），部署过程自己会重新体检。失败还能交给内置的 `dsh-openssh-remote-deploy` 技能排查。
 - **远端跨平台** —— 文件访问走 SFTP 协议层（不依赖 POSIX shell），Linux/macOS/Windows 远端都能列/读/写/搜索/同步。
 - **Windows 主机** —— 自动探测平台并定位 Git Bash，命令经 `bash -s` 走 stdin 执行，不受引号/反斜杠转义困扰（`config.shell` 可指定或设 `native` 关闭）；`C:\Users\dev` 与 `/c/Users/dev` 两种写法都接受。
-- **长任务异步化** —— `rw_sync`/`rw_push` 传 `async: true` 返回 `taskId`，可查询进度/结果/取消。
-- **数据跟随 Harness 根目录** —— 机器清单与镜像在 `$DSH_HOME/remote-workspaces`；0.6 之前的数据首次启动自动迁移。
+- **长任务异步化** —— `orw_sync`/`orw_push` 传 `async: true` 返回 `taskId`，可查询进度/结果/取消。
+- **数据跟随 Harness 根目录** —— 机器清单与镜像在 `$DSH_HOME/openssh-remote-workspaces`；0.6 之前的数据首次启动自动迁移。
 - **不改动 `dsh-workspace` 官方代码** —— 全部作为普通插件实现。
 
 ## 安装
 
 ### DSH 版本兼容性
 
-同时支持 `0.1.x` 与 `0.2.x` 两条 DSH 线。DSH 会在导入 bundle **之前**校验所有 `@deepseek-ai/dsh-*` 的 peer 范围，**任一条不匹配就整包丢弃**（没有设置页、没有 `rw_*` 工具）：
+同时支持 `0.1.x` 与 `0.2.x` 两条 DSH 线。DSH 会在导入 bundle **之前**校验所有 `@deepseek-ai/dsh-*` 的 peer 范围，**任一条不匹配就整包丢弃**（没有设置页、没有 `orw_*` 工具）：
 
 ```
-dsh: skipping profile bundle "dsh-remote": Error: Plugin dsh-remote@… is incompatible …
+dsh: skipping profile bundle "dsh-openssh-remote": Error: Plugin dsh-openssh-remote@… is incompatible …
 ```
 
 caret 在 `0.x` 上会锁死小版本线（`^0.1.x` 容不下 `0.2.x`，反之亦然），所以自 **0.8.29** 起改为跨线区间 `>=0.1.0-rc.6 <0.3.0`。**低于 0.8.29 请在升级 DSH 前先升级本插件**。
@@ -70,7 +72,7 @@ caret 在 `0.x` 上会锁死小版本线（`^0.1.x` 容不下 `0.2.x`，反之�
 
 对 [DeepSeek 官方 Desktop](https://github.com/deepseek-ai/deepseek-harness) 的适配（以 `0.1.5-rc.2` Host 协议验证，不修改 Harness 核心）：
 
-- 经 `ctx.connection.fetch` 注册 `/api/dsh-remote/*`，由 Desktop 的 `dsh-app:` 通道承载，不启动 Web Server。
+- 经 `ctx.connection.fetch` 注册 `/api/dsh-openssh-remote/*`，由 Desktop 的 `dsh-app:` 通道承载，不启动 Web Server。
 - 经 `sidebarRightTabs` 提供原生「远程文件」入口，不把远端路径传给本地预览器。
 - `dsh-better-sidebar` 不再内置；官方 Desktop 用原生右侧栏，不需要它。
 
@@ -79,25 +81,25 @@ caret 在 `0.x` 上会锁死小版本线（`^0.1.x` 容不下 `0.2.x`，反之�
 ### 已发布的 Web bundle
 
 ```bash
-dsh plugin add dsh-remote
+dsh plugin add dsh-openssh-remote
 ```
 
-自 **v0.8.18** 起只安装并挂载自身；Web 侧边栏（[dsh-better-sidebar](https://www.npmjs.com/package/dsh-better-sidebar)）改为可选。需要 Web 版远程文件浏览/编辑时再单独装它；不装时 `rw_*` 工具、设置页、同步、审计与转发均照常工作。
+自 **v0.8.18** 起只安装并挂载自身；Web 侧边栏（[dsh-better-sidebar](https://www.npmjs.com/package/dsh-better-sidebar)）改为可选。需要 Web 版远程文件浏览/编辑时再单独装它；不装时 `orw_*` 工具、设置页、同步、审计与转发均照常工作。
 
-> **从 0.7.2–0.8.17 升级：** 内嵌侧边栏会消失，旧 profile 里 `id: dsh-remote-sidebar` 的覆盖可以删除。
+> **从 0.7.2–0.8.17 升级：** 内嵌侧边栏会消失，旧 profile 里 `id: dsh-openssh-remote-sidebar` 的覆盖可以删除。
 
-（或 `npm install dsh-remote`，再在 `cordis.patch.yml` 加 `- id: dsh-remote / name: dsh-remote`。）
+（或 `npm install dsh-openssh-remote`，再在 `cordis.patch.yml` 加 `- id: dsh-openssh-remote / name: dsh-openssh-remote`。）
 
 ## 快速上手
 
 1. **加一台机器** —— 设置 → 远程工作区 → 填 host/port/user + 密码或 key → 设为当前。
-   > **保存 ≠ 激活**：保存只是备用连接；只有「设为当前」（或 Agent 调 `rw_connect`）才进入会话的 remote context。
+   > **保存 ≠ 激活**：保存只是备用连接；只有「设为当前」（或 Agent 调 `orw_connect`）才进入会话的 remote context。
 2. **选工作区** —— 点侧边栏/会话的 **Add workspace**：
    - **本机** → 系统文件夹选择（或手输路径）→ 本地工作区。宿主没有可用系统对话框时改用插件内置浏览器。
    - **远程** → 选机器 → 浏览到远程目录（或输入 `/path`）→ 「设为远程工作区」⇒ 创建并收养本地镜像工作区。
-3. **让 Agent 工作** —— 当作普通工作区使用，例如 `rw_read_file` / `rw_write_file` / `rw_edit` / `rw_exec` / `rw_search` / `rw_sync` / `rw_push` / `rw_forward`（完整列表见上文）。
+3. **让 Agent 工作** —— 当作普通工作区使用，例如 `orw_read_file` / `orw_write_file` / `orw_edit` / `orw_exec` / `orw_search` / `orw_sync` / `orw_push` / `orw_forward`（完整列表见上文）。
 
-> **Remote context 是 session 级的**：只有当前 session 的工作区是某个远程镜像时，system prompt 才注入「Remote workspace」段落；普通本地 session 不受影响，模型也不会主动调 `rw_*`。
+> **Remote context 是 session 级的**：只有当前 session 的工作区是某个远程镜像时，system prompt 才注入「Remote workspace」段落；普通本地 session 不受影响，模型也不会主动调 `orw_*`。
 
 ## 在本地打开远程机器上的 DSH 界面
 
@@ -131,14 +133,14 @@ dsh plugin add dsh-remote
 1. **体检（只读）** —— 探测远端平台/node/npm/dsh 版本/**原生模块能否启动**/是否认识
    `--no-open`/代理与 npm 源，给出结论与修复建议。**不写任何东西**，可以随便点。
 2. **部署并验证** —— 只在上一步判定「需要且可以自动装」时才出现。它会装到远端
-   **私有目录**（默认 `~/.dsh-remote/dsh`）：**不写系统目录、不改 PATH、不覆盖你在用的版本**，
+   **私有目录**（默认 `~/.dsh-openssh-remote/dsh`）：**不写系统目录、不改 PATH、不覆盖你在用的版本**，
    删掉那个目录即完全回滚。装完逐步校验（二进制 / 原生模块 / `web` 子命令），
    成功后**按机器记住**这条 dsh 路径，之后连接就用它。
-3. **让 AI 排查** —— 只在失败后出现。它会创建一个会话，让内置的 `dsh-remote-deploy`
+3. **让 AI 排查** —— 只在失败后出现。它会创建一个会话，让内置的 `dsh-openssh-remote-deploy`
    技能去处理确定性流程覆盖不到的长尾（没有 npm、要 sudo、代理、内网镜像源、Windows 远端等）。
    **只有你点它才会创建**，因为这会消耗模型额度。
 
-相关配置：`webInstallPrefix`（装哪，默认 `$HOME/.dsh-remote/dsh`）、
+相关配置：`webInstallPrefix`（装哪，默认 `$HOME/.dsh-openssh-remote/dsh`）、
 `webInstallVersion`（装哪个版本，默认 `0.1.5-rc.2`——第一个在 Linux 上能起 web 的版本）、
 `webInstallRegistry`（npm 源；**留空则沿用远端自己的配置**，不会覆盖你的内网镜像）。
 
@@ -148,8 +150,8 @@ dsh plugin add dsh-remote
 
 ```yaml
 # 示例：请换成你自己的机器
-- id: dsh-remote
-  name: dsh-remote
+- id: dsh-openssh-remote
+  name: dsh-openssh-remote
   config:
     host: 203.0.113.10   # 或你的真实主机 / hostname
     port: 22
@@ -168,9 +170,9 @@ DSH 的 `dsh` 可能不在某些 shell 的 PATH（比如 Windows PowerShell 里�
 
 ```bash
 # 安装（从 npm 拉到 profile）
-dsh plugin --profile web add dsh-remote
+dsh plugin --profile web add dsh-openssh-remote
 # 同一效果：当 `dsh` 不在 PATH 时用 npx
-npx --yes @deepseek-ai/dsh plugin --profile web add dsh-remote
+npx --yes @deepseek-ai/dsh plugin --profile web add dsh-openssh-remote
 
 # 确认已装
 dsh plugin --profile web list
@@ -181,8 +183,8 @@ dsh --profile web
 npx --yes @deepseek-ai/dsh --profile web   # 访问 http://127.0.0.1:3080
 
 # 迭代用本地源码替换 npm 版（便于改 dsh 插件代码后即测）
-npx --yes @deepseek-ai/dsh plugin --profile web add D:/path/to/dsh-remote
-npx --yes @deepseek-ai/dsh plugin --profile web remove dsh-remote   # 恢复用发行版
+npx --yes @deepseek-ai/dsh plugin --profile web add D:/path/to/dsh-openssh-remote
+npx --yes @deepseek-ai/dsh plugin --profile web remove dsh-openssh-remote   # 恢复用发行版
 ```
 
 启动成功后，设置 →「远程工作区」会出现；「Add workspace」流程会带「本机 / 远程」两个 tab（见上方效果图）。
@@ -227,15 +229,15 @@ scripts/dev-run.sh --status    # 是否在运行
 | `keyboardInteractive` | bool | `false` | 允许 keyboard-interactive 认证（OTP/MFA）并复用配置的密码 |
 | `proxy` | object | — | 跳板机：`{ host, port?, username?, password?, privateKeyPath? }` |
 | `autoPush` | bool | `false` | 镜像内文件被编辑后自动推回远端（watcher，带防抖） |
-| `auditLog` | bool | `true` | 把执行的命令追加到 `$DSH_HOME/remote-workspaces/audit.log` |
+| `auditLog` | bool | `true` | 把执行的命令追加到 `$DSH_HOME/openssh-remote-workspaces/audit.log` |
 | `encoding` | string | `utf-8` | 远程文件读写的文本编码（如 `gbk`） |
 | `fileReference` | bool | `true` | 远程 `@` 补全：远程会话的 `@` 列出**远端**目录树（issue #39）；关闭则只有本地镜像 |
 | `fileReferenceMaxResults` | int | `20` | 一次 `@` 查询最多返回多少候选 |
 | `fileReferenceMaxEntries` | int | `3000` | 一棵远程工作区索引最多保留多少条目 |
 | `fileReferenceExcludedDirectories` | string[] | `[.git, node_modules, dist, build, out, coverage, target, .next, .nuxt, .turbo, .venv, __pycache__, .pytest_cache, .mypy_cache, .gradle]` | 远程 `@` 遍历跳过的目录名 |
 | `fileReferenceTimeoutMs` | int | `4000` | 一次远程索引遍历的墙钟预算（超时用已扫到的部分结果，不让光标等） |
-| `searchTimeoutMs` | int | `60000` | `rw_search` 的协作式预算（ms）：既作为工具声明的 `timeoutMs` 交给 DSH 的 timeout-policy，也是搜索自身的墙钟上限；到点返回部分结果并标 `TRUNCATED`（issue #44）。 |
-| `searchMaxEntries` | int | `50000` | `rw_search` 在返回部分结果前最多扫描多少个文件。 |
+| `searchTimeoutMs` | int | `60000` | `orw_search` 的协作式预算（ms）：既作为工具声明的 `timeoutMs` 交给 DSH 的 timeout-policy，也是搜索自身的墙钟上限；到点返回部分结果并标 `TRUNCATED`（issue #44）。 |
+| `searchMaxEntries` | int | `50000` | `orw_search` 在返回部分结果前最多扫描多少个文件。 |
 | `updateMode` | string | `auto` | 自更新模式：`auto`=加载时及每 6 小时检查并自动应用、`manual`=仅在手动检查时查、`off`=完全不查。**0.8.27 起默认 `auto`**——之所以现在才安全，是因为 0.8.24 补上了宿主半热切换 |
 | `updateCheckIntervalMs` | int | 21600000（6h） | `auto` 模式检查 npm 的间隔（下限 60000） |
 | `updateAutoReload` | bool | `true` | 更新落地后自动热切换宿主半；`false` 则留到下次启动，设置页会显示 `pendingReload` |
@@ -243,7 +245,7 @@ scripts/dev-run.sh --status    # 是否在运行
 | `webAttachCommand` | string | `dsh` | 在远端启动 `dsh web` 用的命令；远端 `dsh` 不在 SSH 登录 PATH 时改这里 |
 | `webAttachDshHome` | string | `''` | 远端启动时导出的 `DSH_HOME`；留空则复用远端用户自己的 harness home |
 | `webAttachWaitSeconds` | int | `45` | 等待远端 `dsh web` 打印启动令牌的秒数 |
-| `webInstallPrefix` | string | `''` | 自动部署装到远端的哪个目录；留空用 `$HOME/.dsh-remote/dsh`（不写系统目录、不改 PATH） |
+| `webInstallPrefix` | string | `''` | 自动部署装到远端的哪个目录；留空用 `$HOME/.dsh-openssh-remote/dsh`（不写系统目录、不改 PATH） |
 | `webInstallVersion` | string | `0.1.5-rc.2` | 自动部署安装的 dsh 版本；默认值是第一个在 Linux 上能启动 web 的版本 |
 | `webInstallRegistry` | string | `''` | 安装用的 npm 源；**留空沿用远端自己的配置**，不会覆盖内网镜像 |
 
@@ -257,7 +259,7 @@ scripts/dev-run.sh --status    # 是否在运行
 
 ## 常见问题 / 排查
 
-**`@` 能列出远程文件，但内置读文件工具打不开** —— harness 自带工具看到的是**本地镜像**，要等 `rw_sync` 下载后才有内容。读远程文件请用 `rw_read_file` 或侧栏远程文件 tab。
+**`@` 能列出远程文件，但内置读文件工具打不开** —— harness 自带工具看到的是**本地镜像**，要等 `orw_sync` 下载后才有内容。读远程文件请用 `orw_read_file` 或侧栏远程文件 tab。
 
 **主机指纹变了** —— `/remote forget-key`（或设置页 → 机器 → 重新信任）。
 
@@ -265,11 +267,11 @@ scripts/dev-run.sh --status    # 是否在运行
 
 **连不上内网机器** —— 填「跳板机」主机（也可先把跳板机本身配成一台机器）。
 
-**`rw_sync`/`rw_push` 报冲突** —— 两边都改过的文件会被跳过并列出（绝不静默覆盖）；手动合并后重试，或用 `force=true` 以一边为准。
+**`orw_sync`/`orw_push` 报冲突** —— 两边都改过的文件会被跳过并列出（绝不静默覆盖）；手动合并后重试，或用 `force=true` 以一边为准。
 
 **Windows 远程** —— 全部走 SFTP，不依赖 POSIX shell；中文文件用 `encoding=gbk`。
 
-**镜像里缺目录** —— 默认 ignore 会跳过 `.git`/`node_modules` 等；在 `$DSH_HOME/remote-workspaces/.dsh-remote-ignore` 调整（gitignore 语法）。
+**镜像里缺目录** —— 默认 ignore 会跳过 `.git`/`node_modules` 等；在 `$DSH_HOME/openssh-remote-workspaces/.dsh-openssh-remote-ignore` 调整（gitignore 语法）。
 
 **保存远程文件报 409** —— 打开后远端已被改动，重新读取再编辑。
 
@@ -295,7 +297,7 @@ MIT
 
 ## 参与贡献
 
-欢迎贡献，请先阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)。使用问题、环境配置、「支持 XX 吗」这类讨论请走 [讨论区](https://github.com/flymysql/dsh-remote/discussions)；可复现的缺陷请提 [Issue](https://github.com/flymysql/dsh-remote/issues)。
+欢迎贡献，请先阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)。使用问题、环境配置、「支持 XX 吗」这类讨论请走 [讨论区](https://github.com/flymysql/dsh-openssh-remote/discussions)；可复现的缺陷请提 [Issue](https://github.com/flymysql/dsh-openssh-remote/issues)。
 
 感谢以下已合并 PR 的贡献者：
 

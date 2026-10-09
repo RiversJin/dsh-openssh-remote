@@ -1,5 +1,5 @@
 // Sidebar HTTP routes must bind to the session's machine (Desktop multi-machine
-// release blocker). rw_* already do this; /ls /read /write /fs used to use the
+// release blocker). orw_* already do this; /ls /read /write /fs used to use the
 // active-machine pool instead.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -9,8 +9,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 function makeHome() {
-  const home = mkdtempSync(path.join(tmpdir(), 'dsh-remote-fs-'))
-  const root = path.join(home, 'remote-workspaces')
+  const home = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-fs-'))
+  const root = path.join(home, 'openssh-remote-workspaces')
   mkdirSync(root, { recursive: true })
   const machines = [
     { id: 'm-linux', name: 'linuxbox', host: '127.0.0.11', port: 1, username: 'lucas', password: 'pw-linux' },
@@ -20,7 +20,7 @@ function makeHome() {
   const mirror = (host, user, port, base, remotePath) => {
     const dir = path.join(root, `${host}-${user}-${port}`, base)
     mkdirSync(dir, { recursive: true })
-    writeFileSync(path.join(dir, '.dsh-remote-meta.json'), JSON.stringify({ host, port, username: user, remotePath }))
+    writeFileSync(path.join(dir, '.dsh-openssh-remote-meta.json'), JSON.stringify({ host, port, username: user, remotePath }))
     return dir
   }
   return {
@@ -94,11 +94,11 @@ test('GET /ls?sessionId hits THIS session host, not the active machine', async (
   }
   try {
     const { routes } = await loadPlugin(home, sessions)
-    const linux = await call(routes, '/dsh-remote/ls', {
-      url: '/dsh-remote/ls?path=' + encodeURIComponent('/home/lucas/proj') + '&sessionId=sess-linux',
+    const linux = await call(routes, '/dsh-openssh-remote/ls', {
+      url: '/dsh-openssh-remote/ls?path=' + encodeURIComponent('/home/lucas/proj') + '&sessionId=sess-linux',
     })
-    const win = await call(routes, '/dsh-remote/ls', {
-      url: '/dsh-remote/ls?path=' + encodeURIComponent('C:\\work\\tool') + '&sessionId=sess-win',
+    const win = await call(routes, '/dsh-openssh-remote/ls', {
+      url: '/dsh-openssh-remote/ls?path=' + encodeURIComponent('C:\\work\\tool') + '&sessionId=sess-win',
     })
     assert.equal(linux.rejected, null)
     assert.equal(win.rejected, null)
@@ -120,9 +120,9 @@ test('POST /read|/write|/fs with a LOCAL sessionId refuse instead of using the a
   try {
     const { routes } = await loadPlugin(home, sessions)
     const cases = [
-      ['/dsh-remote/read', { method: 'POST', body: { path: '/etc/hostname', sessionId: 'local-1' } }],
-      ['/dsh-remote/write', { method: 'POST', body: { path: '/tmp/x', content: 'x', sessionId: 'local-1' } }],
-      ['/dsh-remote/fs', { method: 'POST', body: { op: 'mkdir', path: '/tmp/n', sessionId: 'local-1' } }],
+      ['/dsh-openssh-remote/read', { method: 'POST', body: { path: '/etc/hostname', sessionId: 'local-1' } }],
+      ['/dsh-openssh-remote/write', { method: 'POST', body: { path: '/tmp/x', content: 'x', sessionId: 'local-1' } }],
+      ['/dsh-openssh-remote/fs', { method: 'POST', body: { op: 'mkdir', path: '/tmp/n', sessionId: 'local-1' } }],
     ]
     for (const [routePath, opts] of cases) {
       const r = await call(routes, routePath, opts)
@@ -141,7 +141,7 @@ test('picker /ls without sessionId still uses the active-machine pool', async ()
   const { home } = makeHome()
   try {
     const { routes } = await loadPlugin(home, { get: () => null })
-    const r = await call(routes, '/dsh-remote/ls', { url: '/dsh-remote/ls?path=/' })
+    const r = await call(routes, '/dsh-openssh-remote/ls', { url: '/dsh-openssh-remote/ls?path=/' })
     // Active machine is m-win (127.0.0.22). No session hint → that host.
     const msg = JSON.stringify(r.json) + r.raw
     assert.match(msg, /127\.0\.0\.22/)

@@ -1,6 +1,6 @@
 // Regression tests for issue #30 — "every failure is just an empty HTTP 400".
 //
-// Root cause pinned here: `/dsh-remote/test-connect` and `/dsh-remote/connect`
+// Root cause pinned here: `/dsh-openssh-remote/test-connect` and `/dsh-openssh-remote/connect`
 // read a JSON body into a `const` declared INSIDE their try block, then the
 // catch block referenced that const. A try-scoped const is invisible in catch,
 // so the catch itself threw `ReferenceError: body is not defined` before it
@@ -20,11 +20,11 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { persistPassword } from '../lib/credential.js'
 
-const HOME_ROOT = () => path.join(process.env.DSH_HOME, 'remote-workspaces')
+const HOME_ROOT = () => path.join(process.env.DSH_HOME, 'openssh-remote-workspaces')
 
 function makeHome() {
-  const home = mkdtempSync(path.join(tmpdir(), 'dsh-remote-routes-'))
-  mkdirSync(path.join(home, 'remote-workspaces'), { recursive: true })
+  const home = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-routes-'))
+  mkdirSync(path.join(home, 'openssh-remote-workspaces'), { recursive: true })
   return home
 }
 
@@ -87,7 +87,7 @@ test('test-connect: a failed probe answers 200 + JSON reason, it never rejects',
   const home = makeHome()
   try {
     const { routes } = await loadPlugin(home)
-    const r = await call(routes, '/dsh-remote/test-connect', { body: DEAD })
+    const r = await call(routes, '/dsh-openssh-remote/test-connect', { body: DEAD })
 
     assert.equal(r.rejected, null, 'the handler must not reject (issue #30)')
     assert.equal(r.status, 200)
@@ -105,7 +105,7 @@ test('test-connect: a malformed JSON body is reported, not swallowed into an emp
   const home = makeHome()
   try {
     const { routes } = await loadPlugin(home)
-    const r = await call(routes, '/dsh-remote/test-connect', { body: '{"host": ', raw: true })
+    const r = await call(routes, '/dsh-openssh-remote/test-connect', { body: '{"host": ', raw: true })
 
     assert.equal(r.rejected, null)
     assert.equal(r.status, 200)
@@ -121,7 +121,7 @@ test('connect: a failed connect answers JSON with a reason (500) instead of an e
   const home = makeHome()
   try {
     const { routes } = await loadPlugin(home)
-    const r = await call(routes, '/dsh-remote/connect', { body: DEAD })
+    const r = await call(routes, '/dsh-openssh-remote/connect', { body: DEAD })
 
     assert.equal(r.rejected, null, 'the handler must not reject (issue #30)')
     assert.equal(r.status, 500)
@@ -138,7 +138,7 @@ test('connect: a malformed JSON body answers 400 + JSON (still a readable reason
   const home = makeHome()
   try {
     const { routes } = await loadPlugin(home)
-    const r = await call(routes, '/dsh-remote/connect', { body: 'nope', raw: true })
+    const r = await call(routes, '/dsh-openssh-remote/connect', { body: 'nope', raw: true })
 
     assert.equal(r.rejected, null)
     assert.equal(r.status, 400)
@@ -154,14 +154,14 @@ test('machines: OpenSSH transport persists its alias and executable override', a
   const home = makeHome()
   try {
     const { routes } = await loadPlugin(home)
-    const added = await call(routes, '/dsh-remote/machines', {
+    const added = await call(routes, '/dsh-openssh-remote/machines', {
       body: { action: 'add', host: 'build-alias', useSshConfig: true, transport: 'openssh', opensshPath: '/custom/ssh' },
     })
     assert.equal(added.status, 200)
     assert.equal(added.json.machine.transport, 'openssh')
     assert.equal(added.json.machine.opensshPath, '/custom/ssh')
     const id = added.json.machine.id
-    const updated = await call(routes, '/dsh-remote/machines', {
+    const updated = await call(routes, '/dsh-openssh-remote/machines', {
       body: { action: 'update', id, host: 'build-alias', useSshConfig: true },
     })
     assert.equal(updated.status, 200)
@@ -177,7 +177,7 @@ test('machines: OpenSSH transport rejects literal hosts without alias mode', asy
   const home = makeHome()
   try {
     const { routes } = await loadPlugin(home)
-    const r = await call(routes, '/dsh-remote/machines', {
+    const r = await call(routes, '/dsh-openssh-remote/machines', {
       body: { action: 'add', host: '192.0.2.1', transport: 'openssh', useSshConfig: false },
     })
     assert.equal(r.status, 400)
@@ -192,7 +192,7 @@ test('machines: a plaintext save keeps the password and reports no warning', asy
   const home = makeHome()
   try {
     const { routes } = await loadPlugin(home)
-    const r = await call(routes, '/dsh-remote/machines', {
+    const r = await call(routes, '/dsh-openssh-remote/machines', {
       body: { action: 'add', host: '10.1.2.3', port: 22, username: 'u', password: 'pw', encryptPassword: false },
     })
 

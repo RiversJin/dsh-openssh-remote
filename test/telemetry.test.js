@@ -30,7 +30,7 @@ import {
 // 需要真机验证端点时才用显式脚本，不要在单测里做。
 
 function tempHome() {
-  return mkdtempSync(path.join(tmpdir(), 'dsh-remote-tel-'))
+  return mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-tel-'))
 }
 
 test('installId creates a stable UUID inside DSH_HOME (not the plugin dir)', () => {
@@ -67,7 +67,7 @@ test('installId is re-read from disk across processes (survives reinstall)', () 
 test('installId ignores a corrupt id file and mints a fresh one', () => {
   const home = tempHome()
   try {
-    writeFileSync(path.join(home, '.dsh-remote-install-id'), 'not-a-uuid\n', 'utf8')
+    writeFileSync(path.join(home, '.dsh-openssh-remote-install-id'), 'not-a-uuid\n', 'utf8')
     const id = installId(home)
     assert.match(id, /^[0-9a-f]{8}-/i)
     assert.notEqual(id, 'not-a-uuid')
@@ -84,7 +84,7 @@ test('pseudonym is a stable 32-hex HMAC of the install id', () => {
     assert.match(p, /^[0-9a-f]{32}$/)
     assert.equal(p, pseudonym(home), 'must be stable within an install')
     // 与服务端实现一致：HMAC-SHA256(salt, id) 截断 32 hex
-    assert.equal(p, createHmac('sha256', 'dsh-remote/telemetry/v1').update(id).digest('hex').slice(0, 32))
+    assert.equal(p, createHmac('sha256', 'dsh-openssh-remote/telemetry/v1').update(id).digest('hex').slice(0, 32))
     // ★ 隐私：伪名不得等于原始 id（否则服务端可跨插件关联）
     assert.notEqual(p, id)
     assert.ok(!p.includes(id.slice(0, 8)))

@@ -2,7 +2,7 @@
 //
 // test/binding.test.js pins the reverse-lookup in isolation. This file pins the
 // property that actually matters: when two concurrent sessions are bound to
-// DIFFERENT machines, the registered rw_* tools connect to each session's own
+// DIFFERENT machines, the registered orw_* tools connect to each session's own
 // host — no matter which machine is "active" and no matter what another session
 // did in between.
 //
@@ -19,8 +19,8 @@ import path from 'node:path'
 
 /** Build an isolated DSH_HOME with a machine registry and two mirrors. */
 function makeHome() {
-  const home = mkdtempSync(path.join(tmpdir(), 'dsh-remote-route-'))
-  const root = path.join(home, 'remote-workspaces')
+  const home = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-route-'))
+  const root = path.join(home, 'openssh-remote-workspaces')
   mkdirSync(root, { recursive: true })
 
   const machines = [
@@ -32,7 +32,7 @@ function makeHome() {
   const mirror = (host, user, port, base, remotePath) => {
     const dir = path.join(root, `${host}-${user}-${port}`, base)
     mkdirSync(dir, { recursive: true })
-    writeFileSync(path.join(dir, '.dsh-remote-meta.json'), JSON.stringify({ host, port, username: user, remotePath }))
+    writeFileSync(path.join(dir, '.dsh-openssh-remote-meta.json'), JSON.stringify({ host, port, username: user, remotePath }))
     return dir
   }
   return {
@@ -84,8 +84,8 @@ test('two sessions on different machines each act on THEIR OWN host', async () =
     const { ctx, tools } = makeCtx({ get: () => null, list: () => [] })
     await apply(ctx, { ...CONFIG })
 
-    const exec = tools.get('rw_exec')
-    assert.ok(exec, 'rw_exec must be registered')
+    const exec = tools.get('orw_exec')
+    assert.ok(exec, 'orw_exec must be registered')
 
     // Both sessions run the same command. Each connect fails (the hosts are
     // reserved documentation addresses), but the FAILURE NAMES THE HOST it was
@@ -111,7 +111,7 @@ test('interleaving sessions does not redirect either one (the wrong-host regress
     const { apply } = await loadPlugin(home)
     const { ctx, tools } = makeCtx({ get: () => null, list: () => [] })
     await apply(ctx, { ...CONFIG })
-    const exec = tools.get('rw_exec')
+    const exec = tools.get('orw_exec')
 
     // Alternate A/B/A/B, the pattern that produced the wrong-host audit entry.
     const seen = []
@@ -139,7 +139,7 @@ test('a session-bound tool uses the mirror workspace, not the active machine wor
     // The active machine (currentId m-win) carries a DIFFERENT workspace.
     await apply(ctx, { ...CONFIG, host: '127.0.0.22', username: 'Administrator', workspace: 'C:\\work\\tool' })
 
-    const err = await tools.get('rw_exec').execute({ command: 'pwd' }, execFor(linuxCwd)).then(() => '', (e) => String(e.message))
+    const err = await tools.get('orw_exec').execute({ command: 'pwd' }, execFor(linuxCwd)).then(() => '', (e) => String(e.message))
     // The command must be routed to the linux machine despite the active one
     // being the windows box with its own workspace.
     assert.match(err, /127\.0\.0\.11/, `expected the session's own machine, got: ${err}`)
@@ -158,7 +158,7 @@ test('a LOCAL session refuses instead of falling back to the active machine', as
 
     // A cwd outside every mirror: silently borrowing the active machine here is
     // how a command reached an unintended host, so this must refuse.
-    const err = await tools.get('rw_exec')
+    const err = await tools.get('orw_exec')
       .execute({ command: 'rm -rf /tmp/x' }, execFor('/root/some/local/repo'))
       .then(() => null, (e) => String(e.message))
 
@@ -185,12 +185,12 @@ test('a LOCAL session is refused even when the ACTIVE machine has a workspace', 
 
     const localCwd = '/root/some/local/repo'
     const cases = [
-      ['rw_exec', { command: 'hostname' }],
-      ['rw_write_file', { path: '/tmp/evil', content: 'x' }],
-      ['rw_remove', { path: '/tmp/victim' }],
-      ['rw_move', { path: '/tmp/a', dest: '/tmp/b' }],
-      ['rw_read_file', { path: '/etc/hostname' }],
-      ['rw_list_dir', {}],
+      ['orw_exec', { command: 'hostname' }],
+      ['orw_write_file', { path: '/tmp/evil', content: 'x' }],
+      ['orw_remove', { path: '/tmp/victim' }],
+      ['orw_move', { path: '/tmp/a', dest: '/tmp/b' }],
+      ['orw_read_file', { path: '/etc/hostname' }],
+      ['orw_list_dir', {}],
     ]
     for (const [name, args] of cases) {
       const err = await tools.get(name).execute(args, execFor(localCwd)).then(() => null, (e) => String(e.message))
@@ -207,12 +207,12 @@ test('a LOCAL session is refused even when the ACTIVE machine has a workspace', 
 test('sessions on the SAME machine share one pool (connection reuse is preserved)', async () => {
   const { home } = makeHome()
   try {
-    const root = path.join(home, 'remote-workspaces')
+    const root = path.join(home, 'openssh-remote-workspaces')
     // Two workspaces on ONE machine → two sessions that must share a connection.
     const mk = (base, remotePath) => {
       const dir = path.join(root, '127.0.0.11-lucas-1', base)
       mkdirSync(dir, { recursive: true })
-      writeFileSync(path.join(dir, '.dsh-remote-meta.json'), JSON.stringify({ host: '127.0.0.11', port: 1, username: 'lucas', remotePath }))
+      writeFileSync(path.join(dir, '.dsh-openssh-remote-meta.json'), JSON.stringify({ host: '127.0.0.11', port: 1, username: 'lucas', remotePath }))
       return dir
     }
     const a = mk('svc-a', '/srv/a')

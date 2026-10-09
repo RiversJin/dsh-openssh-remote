@@ -1,4 +1,4 @@
-// Integration: drive the REAL /dsh-remote/web-attach route against a real host.
+// Integration: drive the REAL /dsh-openssh-remote/web-attach route against a real host.
 //
 // This is the layer the unit tests deliberately do not cover: the plugin's own
 // wiring (machines registry -> poolForMachine -> WebAttach -> real SSH) plus the
@@ -33,7 +33,7 @@ const check = (name, ok, detail = '') => {
 
 /** Isolated DSH_HOME with one machine registered and set current. */
 const home = mkdtempSync(path.join(tmpdir(), 'route-attach-'))
-const root = path.join(home, 'remote-workspaces')
+const root = path.join(home, 'openssh-remote-workspaces')
 mkdirSync(root, { recursive: true })
 const machineId = 'm-e2e'
 writeFileSync(path.join(root, 'machines.json'), JSON.stringify({
@@ -70,13 +70,13 @@ await mod.apply(ctx, {
   webAttachPortStart: Number(arg('localPort', '30940')),
 })
 
-const route = routes.get('/dsh-remote/web-attach')
-check('route /dsh-remote/web-attach is registered', !!route)
+const route = routes.get('/dsh-openssh-remote/web-attach')
+check('route /dsh-openssh-remote/web-attach is registered', !!route)
 
 function call(method, body) {
   const req = Readable.from(body === undefined ? [] : [Buffer.from(JSON.stringify(body))])
   req.method = method
-  req.url = '/dsh-remote/web-attach'
+  req.url = '/dsh-openssh-remote/web-attach'
   // No HTTP headers: an in-process caller (the Desktop carrier / tests). The
   // browser fence deliberately treats that as non-browser.
   req.headers = {}

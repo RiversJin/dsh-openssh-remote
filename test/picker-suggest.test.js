@@ -105,7 +105,7 @@ function mockApi(fn) {
   }
 }
 
-/** A /dsh-remote/ls response body. `names` ending in "/" are directories. */
+/** A /dsh-openssh-remote/ls response body. `names` ending in "/" are directories. */
 function listing(names, { machine, path = '/proj' } = {}) {
   return {
     path,
@@ -396,7 +396,7 @@ test('B6: continueSuggest is a navigation step — fresh fetch, all entries', as
 
 test('B1: commitPath and pickHome surface a failed switch and do not act', async () => {
   const mock = mockApi((method, path) => {
-    if (path === '/dsh-remote/current') return Promise.reject(new Error('switch failed'))
+    if (path === '/dsh-openssh-remote/current') return Promise.reject(new Error('switch failed'))
     return Promise.resolve({ localMirror: '/local/m', home: '/home/dev' })
   })
   const picker = makePicker(mock.api)
@@ -409,7 +409,7 @@ test('B1: commitPath and pickHome surface a failed switch and do not act', async
   picker.pickHome()
   await tick()
   assert.match(picker.ui.err, /switch failed/, 'pickHome must surface the switch error')
-  assert.deepEqual(mock.calls.map((c) => c.path).filter((p) => p !== '/dsh-remote/current'), [],
+  assert.deepEqual(mock.calls.map((c) => c.path).filter((p) => p !== '/dsh-openssh-remote/current'), [],
     'neither /mirror nor /home may run under the wrong machine')
 })
 
@@ -460,7 +460,7 @@ function lsRouteFor(poolConfig) {
 
 test('B2: /ls echoes the machine identity it was answered for (pool target)', async () => {
   const routes = lsRouteFor({ host: '10.0.0.1', port: 2222, username: 'dev', commandTimeoutMs: 5000, encoding: 'utf-8' })
-  const r = await call(routes['/dsh-remote/ls'], { url: '/dsh-remote/ls?path=/proj' })
+  const r = await call(routes['/dsh-openssh-remote/ls'], { url: '/dsh-openssh-remote/ls?path=/proj' })
   assert.equal(r.status, 200)
   assert.deepEqual(r.json.machine, { host: '10.0.0.1', port: 2222, username: 'dev' },
     'the picker validates this echo against the machine it intended')

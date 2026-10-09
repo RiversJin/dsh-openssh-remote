@@ -78,7 +78,7 @@ function loadClient(protocol = 'https:', platform = 'Linux x86_64') {
       localStorage,
       __ModuleLoader__: {
         load({ id, factory }) {
-          assert.equal(id, 'dsh-remote')
+          assert.equal(id, 'dsh-openssh-remote')
           plugin = factory((name) => {
             assert.equal(name, 'react', 'bundle requires only its declared React external')
             return React
@@ -193,21 +193,21 @@ test('native right-sidebar attaches late, opens a session-scoped remote file, an
     types.set(type.kind, type)
     return () => types.delete(type.kind)
   } })
-  assert.deepEqual([...types.keys()], ['dsh-remote/explorer', 'dsh-remote/file'])
-  assert.equal(types.get('dsh-remote/explorer').guide.length, 1)
-  assert.deepEqual([...types.get('dsh-remote/file').patterns], ['dsh-resource://dsh-remote/**'])
-  const explorer = host.registrations.get('sidebar.right.pane.tab:dsh-remote/explorer')
-  const file = host.registrations.get('sidebar.right.pane.tab:dsh-remote/file')
+  assert.deepEqual([...types.keys()], ['dsh-openssh-remote/explorer', 'dsh-openssh-remote/file'])
+  assert.equal(types.get('dsh-openssh-remote/explorer').guide.length, 1)
+  assert.deepEqual([...types.get('dsh-openssh-remote/file').patterns], ['dsh-resource://dsh-openssh-remote/**'])
+  const explorer = host.registrations.get('sidebar.right.pane.tab:dsh-openssh-remote/explorer')
+  const file = host.registrations.get('sidebar.right.pane.tab:dsh-openssh-remote/file')
   let address
   const child = explorer.render({ sessionId: 'session-one', useTabInfo: () => ({ tab: {
     visible: true, actions: { openResource(value) { address = value } },
   } }) })
   assert.equal(child.props.scope.sessionId, 'session-one')
   child.props.onOpenFile('/workspace/中文 #?.md')
-  assert.equal(address, 'dsh-resource://dsh-remote/session-one/%2Fworkspace%2F%E4%B8%AD%E6%96%87%20%23%3F.md')
+  assert.equal(address, 'dsh-resource://dsh-openssh-remote/session-one/%2Fworkspace%2F%E4%B8%AD%E6%96%87%20%23%3F.md')
   const reader = file.render({ sessionId: 'session-one', useTabInfo: () => ({ tab: { navigation: { address } } }) })
   assert.equal(reader.props.tab.path, '/workspace/中文 #?.md')
-  assert.equal(types.get('dsh-remote/file').title(address), '中文 #?.md')
+  assert.equal(types.get('dsh-openssh-remote/file').title(address), '中文 #?.md')
   host.services.remove('sidebarRightTabs')
   assert.equal(types.size, 0)
   assert.deepEqual([...host.registrations.keys()], [SETTINGS])
@@ -224,13 +224,13 @@ for (const protocol of ['https:', 'dsh-app:']) {
     bs.emit('test-session')
     await new Promise((resolve) => setImmediate(resolve))
     assert.equal(requests.length, 1)
-    assert.equal(requests[0].url, (protocol === 'dsh-app:' ? '/api' : '') + '/dsh-remote/resolve-mirror?sessionId=test-session')
+    assert.equal(requests[0].url, (protocol === 'dsh-app:' ? '/api' : '') + '/dsh-openssh-remote/resolve-mirror?sessionId=test-session')
   })
 }
 
 // Issue #32 regression: the remote explorer must not treat better-sidebar's
 // session-shared `expanded` array as its own state, and it must evict the
-// remote paths an older dsh-remote left there (that set is persisted, and the
+// remote paths an older dsh-openssh-remote left there (that set is persisted, and the
 // built-in local Files tree loads every entry through a LOCAL fs.realpath, so a
 // remote /home/... path became D:\home\... -> ENOENT).
 test('remote explorer owns its expansion and heals a polluted shared set', (t) => {
@@ -245,14 +245,14 @@ test('remote explorer owns its expansion and heals a polluted shared set', (t) =
   bs.updateTab = (id, patch) => updates.push({ id, patch })
   host.services.set('betterSidebar', bs)
 
-  const descriptor = bs.tabs.get('dsh-remote:explorer')
+  const descriptor = bs.tabs.get('dsh-openssh-remote:explorer')
   assert.ok(descriptor, 'explorer tab registers')
 
   // The framework hands the tab the SESSION-shared pair; a polluted set already
   // holds two remote paths.
   const shared = ['/home/os/IsaacLab', '/home/os/IsaacLab/source']
   const toggled = []
-  const tab = { id: 'tab-1', type: 'dsh-remote:explorer' }
+  const tab = { id: 'tab-1', type: 'dsh-openssh-remote:explorer' }
   const rendered = descriptor.component({
     ctx: host.ctx, tab, scope: { sessionId: 's1' }, visible: true,
     expanded: shared, onToggleDir: (p) => toggled.push(p),
@@ -268,12 +268,12 @@ test('remote explorer owns its expansion and heals a polluted shared set', (t) =
   assert.deepEqual([...updates.at(-1).patch.meta.remoteExpanded], ['/home/os/IsaacLab/lib'])
 
   // Healing (root-scoped): exactly the current remote root and its children.
-  const mirror = 'C:\\Users\\me\\.dsh\\remote-workspaces\\h-u-22\\IsaacLab'
+  const mirror = 'C:\\Users\\me\\.dsh\\openssh-remote-workspaces\\h-u-22\\IsaacLab'
   const polluted = [...toggled, ...['/home/os/IsaacLab', '/home/os/IsaacLab/source',
     '/home/other/dir', '/unrelated/local/dir', mirror]]
   const evicted = []
   const healing = descriptor.component({
-    ctx: host.ctx, tab: { id: 'tab-2', type: 'dsh-remote:explorer' },
+    ctx: host.ctx, tab: { id: 'tab-2', type: 'dsh-openssh-remote:explorer' },
     scope: { sessionId: 's1' }, visible: true,
     expanded: polluted, onToggleDir: (p) => evicted.push(p),
   })
@@ -302,15 +302,15 @@ test('windows hosts sweep every POSIX-absolute entry from the shared set', (t) =
   bs.openTab = () => {}
   bs.updateTab = () => {}
   host.services.set('betterSidebar', bs)
-  const descriptor = bs.tabs.get('dsh-remote:explorer')
+  const descriptor = bs.tabs.get('dsh-openssh-remote:explorer')
 
-  const mirror = 'C:\\Users\\me\\.dsh\\remote-workspaces\\h-u-22\\IsaacLab'
+  const mirror = 'C:\\Users\\me\\.dsh\\openssh-remote-workspaces\\h-u-22\\IsaacLab'
   const local = 'C:\\Users\\me\\projects'
   const shared = ['/home/os/IsaacLab', '/home/os/IsaacLab/source', '/srv/data',
     '/unrelated/local/dir', local, mirror]
   const evicted = []
   const owned = descriptor.component({
-    ctx: host.ctx, tab: { id: 'tab-w', type: 'dsh-remote:explorer' },
+    ctx: host.ctx, tab: { id: 'tab-w', type: 'dsh-openssh-remote:explorer' },
     scope: { sessionId: 's1' }, visible: true,
     expanded: shared, onToggleDir: (p) => evicted.push(p),
   })
@@ -331,7 +331,7 @@ test('activation migrates already-persisted sidebar state on Windows', (t) => {
   t.after(() => host.ctx.dispose())
 
   // A user who already hit issue #32: their persisted state holds remote paths.
-  const mirror = 'C:\\Users\\me\\.dsh\\remote-workspaces\\h-u-22\\IsaacLab'
+  const mirror = 'C:\\Users\\me\\.dsh\\openssh-remote-workspaces\\h-u-22\\IsaacLab'
   const state = {
     panelOpen: true, width: 420, activePane: 'p', nextTerminal: 1, nextBrowser: 1,
     expanded: ['/home/os/IsaacLab', '/home/os/IsaacLab/source', '/srv/data',
@@ -370,16 +370,16 @@ test('non-windows hosts keep POSIX paths (they are valid local paths there)', (t
   bs.openTab = () => {}
   bs.updateTab = () => {}
   host.services.set('betterSidebar', bs)
-  const descriptor = bs.tabs.get('dsh-remote:explorer')
+  const descriptor = bs.tabs.get('dsh-openssh-remote:explorer')
 
   const owned = descriptor.component({
-    ctx: host.ctx, tab: { id: 'tab-m', type: 'dsh-remote:explorer' },
+    ctx: host.ctx, tab: { id: 'tab-m', type: 'dsh-openssh-remote:explorer' },
     scope: { sessionId: 's1' }, visible: true,
     expanded: ['/Users/me/projects', '/home/os/IsaacLab'], onToggleDir: () => {},
   })
   const evicted = []
   const healing = descriptor.component({
-    ctx: host.ctx, tab: { id: 'tab-m2', type: 'dsh-remote:explorer' },
+    ctx: host.ctx, tab: { id: 'tab-m2', type: 'dsh-openssh-remote:explorer' },
     scope: { sessionId: 's1' }, visible: true,
     expanded: ['/Users/me/projects', '/home/os/IsaacLab'], onToggleDir: (p) => evicted.push(p),
   })
@@ -398,9 +398,9 @@ test('settings register at order 40 without sessions, workspace, or better-sideb
   assert.deepEqual([...host.services.values.keys()], ['slots', 'locale'])
   assert.deepEqual([...host.registrations.keys()], [SETTINGS])
   const settings = host.registrations.get(SETTINGS)
-  assert.equal(settings.meta.id, 'dsh-remote')
+  assert.equal(settings.meta.id, 'dsh-openssh-remote')
   assert.equal(settings.meta.order, 40)
-  assert.equal(settings.meta.label(), host.dictionaries.get('dsh-remote').en['settings.title'])
+  assert.equal(settings.meta.label(), host.dictionaries.get('dsh-openssh-remote').en['settings.title'])
   assert.equal(typeof settings.render().type, 'function', 'settings exposes a renderable component')
   assert.ok(host.injections.some((names) => names.length === 1 && names[0] === 'sessions'))
   assert.ok(host.injections.some((names) => names.length === 1 && names[0] === 'betterSidebar'))
@@ -452,7 +452,7 @@ test('optional better-sidebar attaches late and cleans up tabs and subscription 
   const settings = host.registrations.get(SETTINGS)
   const sidebar = betterSidebar()
   host.services.set('betterSidebar', sidebar)
-  assert.deepEqual([...sidebar.tabs.keys()], ['dsh-remote:explorer', 'dsh-remote:file'])
+  assert.deepEqual([...sidebar.tabs.keys()], ['dsh-openssh-remote:explorer', 'dsh-openssh-remote:file'])
   assert.equal(sidebar.subscribers.size, 1)
   host.services.remove('betterSidebar')
   assert.equal(sidebar.tabs.size, 0)
@@ -475,17 +475,17 @@ test('late sessions supply cwd and disposal restores host-side session fallback'
   const sidebar = betterSidebar()
   host.services.set('betterSidebar', sidebar)
   sidebar.emit('before')
-  assert.equal(requests.at(-1).url, '/dsh-remote/resolve-mirror?sessionId=before')
+  assert.equal(requests.at(-1).url, '/dsh-openssh-remote/resolve-mirror?sessionId=before')
   const sessionService = (cwd) => ({ list: { getSnapshot: () => ({ byId: { current: { cwd } } }) } })
   host.services.set('sessions', sessionService('mirror/first'))
   sidebar.emit('current')
-  assert.equal(requests.at(-1).url, '/dsh-remote/resolve-mirror?local=mirror%2Ffirst')
+  assert.equal(requests.at(-1).url, '/dsh-openssh-remote/resolve-mirror?local=mirror%2Ffirst')
   host.services.remove('sessions')
   sidebar.emit('current')
-  assert.equal(requests.at(-1).url, '/dsh-remote/resolve-mirror?sessionId=current', 'must not retain disposed sessions')
+  assert.equal(requests.at(-1).url, '/dsh-openssh-remote/resolve-mirror?sessionId=current', 'must not retain disposed sessions')
   host.services.set('sessions', sessionService('mirror/second'))
   sidebar.emit('current')
-  assert.equal(requests.at(-1).url, '/dsh-remote/resolve-mirror?local=mirror%2Fsecond')
+  assert.equal(requests.at(-1).url, '/dsh-openssh-remote/resolve-mirror?local=mirror%2Fsecond')
   assert.equal(host.registrations.get(SETTINGS), settings, 'sessions hotplug leaves settings mounted')
   // Let the stubbed fetch/json promises settle before test cleanup.
   await new Promise((resolve) => setImmediate(resolve))

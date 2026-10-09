@@ -1,4 +1,4 @@
-# Publish Guide — dsh-remote
+# Publish Guide — dsh-openssh-remote
 
 Current product: a **remote-work assistant** for DeepSeek Harness (multi-machine
 SSH, remote workspace picker, 21 `rw_*` tools, conflict-aware SFTP sync, port
@@ -48,8 +48,8 @@ while the CDN still 404s the tarball, which makes `npm install <pkg>@<ver>` repo
 `ETARGET: No matching version found`. Wait for the artifact, then verify for real:
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' https://registry.npmjs.org/dsh-remote/-/dsh-remote-<ver>.tgz
-npm install dsh-remote@<ver>   # in a scratch dir: the authoritative check
+curl -s -o /dev/null -w '%{http_code}\n' https://registry.npmjs.org/dsh-openssh-remote/-/dsh-openssh-remote-<ver>.tgz
+npm install dsh-openssh-remote@<ver>   # in a scratch dir: the authoritative check
 ```
 
 ## 4. Topics / discovery
@@ -66,13 +66,13 @@ can show a card image.
 ## 5. Install blurb (awesome lists)
 
 ```markdown
-## dsh-remote
+## dsh-openssh-remote
 
 Remote-work assistant for DeepSeek Harness: connect to SSH machines, pick a
 remote workspace, and let the agent operate there (list/read/edit/exec/sync)
 without exposing the harness on `0.0.0.0`.
 
-- **Repo**: https://github.com/flymysql/dsh-remote
-- **npm**: https://www.npmjs.com/package/dsh-remote
-- **Install**: `dsh plugin add dsh-remote`
+- **Repo**: https://github.com/RiversJin/dsh-openssh-remote
+- **npm**: https://www.npmjs.com/package/dsh-openssh-remote
+- **Install**: `dsh plugin add dsh-openssh-remote`
 ```

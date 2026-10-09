@@ -6,7 +6,7 @@
 //      我实现时踩过一个真缺陷：applyLang 对含子 data-zh 的容器也整体写 innerHTML，
 //      把子 span 连属性一起抹掉，表现为"切一次语言后标题永久卡住"。
 //   2) 站点是面向用户的文档，等于第二份"产品说明"，会和代码漂移。实测已经漂移过：
-//      工具名写了 4 个不存在的（rw_workspace/rw_list/rw_read/rw_write），
+//      工具名写了 4 个不存在的（orw_workspace/orw_list/orw_read/orw_write），
 //      auditLog 的默认值写成 false（真源是 true）。这些正是用户照着做的内容。
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -79,34 +79,34 @@ test('Chinese is the default when there is no stored preference', () => {
   }
 })
 
-test('documented rw_* tool names all exist in the plugin', () => {
-  // 实测漂移过：站点列了 rw_workspace / rw_list / rw_read / rw_write（都不存在，
-  // 真名是 rw_pick_workspace / rw_list_dir / rw_read_file / rw_write_file）。
+test('documented orw_* tool names all exist in the plugin', () => {
+  // 实测漂移过：站点列了 orw_workspace / orw_list / orw_read / orw_write（都不存在，
+  // 真名是 orw_pick_workspace / orw_list_dir / orw_read_file / orw_write_file）。
   const indexSrc = read('lib/index.js')
-  const real = new Set([...indexSrc.matchAll(/name:\s*'(rw_[a-z_]+)'/g)].map((m) => m[1]))
+  const real = new Set([...indexSrc.matchAll(/name:\s*'(orw_[a-z_]+)'/g)].map((m) => m[1]))
 
   const documented = new Set()
   for (const p of PAGES) {
-    for (const m of read(p).matchAll(/<code>(rw_[a-z_]+)<\/code>/g)) documented.add(m[1])
-    // 正文里的 `N 个 rw_* 工具` / `N rw_* tools` 也是要维护的断言，而且比工具
+    for (const m of read(p).matchAll(/<code>(orw_[a-z_]+)<\/code>/g)) documented.add(m[1])
+    // 正文里的 `N 个 orw_* 工具` / `N orw_* tools` 也是要维护的断言，而且比工具
     // 列表更容易漏改（列了工具却没改数字，读者会以为少了工具）。所以把页面里
     // 出现的每个计数都拿来跟真实数量比对，而不是在这里硬编码一个数字 ——
     // 硬编码的数字只能证明"作者当时改过测试"，证明不了文档是对的。
-    for (const m of read(p).matchAll(/(\d+)\s*(?:个\s*<code>rw_|<code>rw_|个 rw_| rw_)/g)) {
+    for (const m of read(p).matchAll(/(\d+)\s*(?:个\s*<code>orw_|<code>orw_|个 orw_| orw_)/g)) {
       const claimed = Number(m[1])
-      // 只认显然是在说 rw_* 数量的那些数字（避免把别的计数误判）。
+      // 只认显然是在说 orw_* 数量的那些数字（避免把别的计数误判）。
       if (claimed >= 5 && claimed <= 200) {
         assert.equal(claimed, real.size,
-          `${p}: 页面声称 ${claimed} 个 rw_* 工具，实际 ${real.size} 个`)
+          `${p}: 页面声称 ${claimed} 个 orw_* 工具，实际 ${real.size} 个`)
       }
     }
   }
   const ghosts = [...documented].filter((n) => !real.has(n))
-  assert.deepEqual(ghosts, [], `pages document rw_* tools that do not exist: ${ghosts.join(', ')}`)
+  assert.deepEqual(ghosts, [], `pages document orw_* tools that do not exist: ${ghosts.join(', ')}`)
 
   // 反过来：每个真实工具都应该被站点列出来（漏列等于少一个卖点）。
   const missing = [...real].filter((n) => !documented.has(n))
-  assert.deepEqual(missing, [], `pages omit real rw_* tools: ${missing.join(', ')}`)
+  assert.deepEqual(missing, [], `pages omit real orw_* tools: ${missing.join(', ')}`)
 })
 
 test('the DAU figure never silently skips a day that has data', () => {

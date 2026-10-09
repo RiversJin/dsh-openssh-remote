@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# dsh-remote —— 开发/沙箱模式（默认迭代方式）
+# dsh-openssh-remote —— 开发/沙箱模式（默认迭代方式）
 #
-# 为什么需要沙箱：产品 profile（DSH Desktop）里的 dsh-remote 声明为
+# 为什么需要沙箱：产品 profile（DSH Desktop）里的 dsh-openssh-remote 声明为
 # `^0.5.10`，任何 npm / dsh plugin 重装都会把手工部署的文件覆盖回发行版
 # （v0.6.4 曾被重装回 0.5.10 顶掉的实证）。所以日常开发**禁止直接改产品
 # profile**，一律在本沙箱里迭代：
@@ -9,7 +9,7 @@
 #   · 隔离 DSH_HOME（dev-harness/harness）—— 数据、profile、session 全独立，
 #     绝不碰产品 DSH_HOME。
 #   · profile 用硬链接拷贝产品 profile（快、省空间），再把已装的
-#     node_modules/dsh-remote/lib 覆盖为**源码 lib/ 的拷贝**——每次启动都会
+#     node_modules/dsh-openssh-remote/lib 覆盖为**源码 lib/ 的拷贝**——每次启动都会
 #     重新覆盖，改源码 → 重启沙箱即生效。
 #     （为什么不用 symlink：Node ESM 依赖按 realpath 解析，symlink 会把
 #     @deepseek-ai/schemastery 等解析到仓库根目录去，直接加载失败。
@@ -58,7 +58,7 @@ NODE="$APP/app/node_modules/node/bin/node"
 BIN="$APP/app/node_modules/@deepseek-ai/dsh/lib/bin.js"
 PATCH="$APP/dsh-desktop.patch.yml"
 PROFILE_DIR="$DEV_HOME/profiles/$PROFILE"
-INSTALL_DIR="$PROFILE_DIR/node_modules/dsh-remote"
+INSTALL_DIR="$PROFILE_DIR/node_modules/dsh-openssh-remote"
 
 require_app() {
   if [ ! -f "$BIN" ]; then
@@ -93,7 +93,7 @@ do_stop() {
   fi
 }
 
-# 覆盖已装 dsh-remote/lib 为源码最新拷贝（连同清单/补丁）
+# 覆盖已装 dsh-openssh-remote/lib 为源码最新拷贝（连同清单/补丁）
 # 注意：写入前先 unlink（rm -f），绝不允许通过硬链接就地覆写产品文件
 # （cp -al 之后写入会顺着硬链接改到产品——v0.6.5 开发时真踩过）。
 sync_lib() {
@@ -117,28 +117,28 @@ build_profile() {
   if ! cp -al "$PROD_HOME/profiles/$PROFILE" "$PROFILE_DIR" 2>/dev/null; then
     cp -a "$PROD_HOME/profiles/$PROFILE" "$PROFILE_DIR"
   fi
-  # 彻底解耦 dsh-remote：删掉硬链接目录，重建为独立目录再放源码拷贝，
+  # 彻底解耦 dsh-openssh-remote：删掉硬链接目录，重建为独立目录再放源码拷贝，
   # 这样后续 sync_lib 的所有写入都不会碰到产品文件。
   rm -rf "$INSTALL_DIR"
   mkdir -p "$INSTALL_DIR"
   sync_lib
   # 守卫：确认沙箱 manifest 与产品不再是同一 inode（防硬链接写入）
-  local prod_pkg="$PROD_HOME/profiles/$PROFILE/node_modules/dsh-remote/package.json"
+  local prod_pkg="$PROD_HOME/profiles/$PROFILE/node_modules/dsh-openssh-remote/package.json"
   if [ -f "$prod_pkg" ]; then
     local a b
     a="$(stat -f %i "$INSTALL_DIR/package.json")"
     b="$(stat -f %i "$prod_pkg")"
     if [ "$a" = "$b" ]; then
-      echo "❌ 守卫失败：沙箱与产品 dsh-remote/package.json 同 inode，中止。" >&2
+      echo "❌ 守卫失败：沙箱与产品 dsh-openssh-remote/package.json 同 inode，中止。" >&2
       exit 1
     fi
   fi
   # 数据种子：machines / known_hosts 从产品拷入（只读源，沙箱独立写）
-  mkdir -p "$DEV_HOME/remote-workspaces"
+  mkdir -p "$DEV_HOME/openssh-remote-workspaces"
   for f in machines.json known_hosts.json; do
-    if [ ! -f "$DEV_HOME/remote-workspaces/$f" ] && [ -f "$PROD_HOME/remote-workspaces/$f" ]; then
-      cp "$PROD_HOME/remote-workspaces/$f" "$DEV_HOME/remote-workspaces/$f"
-      echo "   已种子数据 remote-workspaces/$f"
+    if [ ! -f "$DEV_HOME/openssh-remote-workspaces/$f" ] && [ -f "$PROD_HOME/openssh-remote-workspaces/$f" ]; then
+      cp "$PROD_HOME/openssh-remote-workspaces/$f" "$DEV_HOME/openssh-remote-workspaces/$f"
+      echo "   已种子数据 openssh-remote-workspaces/$f"
     fi
   done
 }
@@ -179,8 +179,8 @@ do_start() {
   # 探针：验证插件 JSON 路由真的注册上了（不是只看健康行）
   sleep 1
   local code
-  code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/dsh-remote/machines" 2>/dev/null || echo '000')"
-  echo "   · 插件路由 /dsh-remote/machines → HTTP $code（200/404 均为插件已加载，401 需在页面内访问）"
+  code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/dsh-openssh-remote/machines" 2>/dev/null || echo '000')"
+  echo "   · 插件路由 /dsh-openssh-remote/machines → HTTP $code（200/404 均为插件已加载，401 需在页面内访问）"
 }
 
 case "$ACTION" in

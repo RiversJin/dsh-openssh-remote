@@ -1,6 +1,6 @@
 // Remote `@file` completion (issue #39).
 //
-// The bug: `@` in a dsh-remote session listed NOTHING. The harness's only
+// The bug: `@` in a dsh-openssh-remote session listed NOTHING. The harness's only
 // file-reference provider indexes the agent session's LOCAL cwd, and a remote
 // session's cwd is the local mirror — which `ensureMirror()` creates empty.
 //

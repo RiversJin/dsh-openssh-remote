@@ -2,7 +2,7 @@
 
 ## What this plugin does, from a security standpoint
 
-`dsh-remote` connects **out** from your machine to SSH hosts you register, and lets an agent run shell commands there as your user. It deliberately does **not** expose the DSH Web UI on a public interface — that design is intentional (see the README's Safety section).
+`dsh-openssh-remote` connects **out** from your machine to SSH hosts you register, and lets an agent run shell commands there as your user. It deliberately does **not** expose the DSH Web UI on a public interface — that design is intentional (see the README's Safety section).
 
 Practical implications you should be aware of:
 
@@ -19,11 +19,11 @@ Only the latest published version on npm receives fixes. If you're on an older v
 
 Please **do not** open a public issue.
 
-Report privately via GitHub's [private vulnerability reporting](https://github.com/flymysql/dsh-remote/security/advisories/new) on this repository. If that is unavailable to you, email **flyphp@outlook.com**.
+Report privately via GitHub's [private vulnerability reporting](https://github.com/RiversJin/dsh-openssh-remote/security/advisories/new) on this repository. If that is unavailable, contact the maintainer through the repository.
 
 Please include:
 
-- affected version (`npm ls dsh-remote`),
+- affected version (`npm ls dsh-openssh-remote`),
 - a description of the impact and the attacker model (who has to do what),
 - reproduction steps or a proof of concept,
 - any suggested fix.

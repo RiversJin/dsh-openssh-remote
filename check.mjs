@@ -1,4 +1,4 @@
-// dsh-remote 部署前闸门（Pre-deploy gate）
+// dsh-openssh-remote 部署前闸门（Pre-deploy gate）
 //
 // 在 ./sync.sh 部署前运行，拦截会"把自己搞崩"的源码问题。历史教训：
 // v0.6.1 曾把 slash 命令命名为 `remote.forget-key`，而 dsh-commands 框架
@@ -47,8 +47,8 @@ while ((m = otherRe.exec(src))) {
   }
 }
 
-// ── 3) 工具名必须 rw_ 前缀（避免与内置工具命名空间冲突）──────────────────
-const TOOL_NAME = /^rw_[a-z][a-z0-9_]*$/u
+// ── 3) 工具名必须 orw_ 前缀（避免与内置工具命名空间冲突）──────────────────
+const TOOL_NAME = /^orw_[a-z][a-z0-9_]*$/u
 const toolRe = /defineTool\(\{\s*name:\s*'([^']+)'/g
 let tTotal = 0
 while ((m = toolRe.exec(src))) {
@@ -60,8 +60,8 @@ while ((m = toolRe.exec(src))) {
 }
 console.log(`  tool-name lint: ${tTotal} defineTool(s) checked`)
 
-// ── 4) JSON 路由必须挂在 /dsh-remote/ 前缀下（防路由命名漂移）─────────────
-const ROUTE_PREFIX = /^\/dsh-remote\//u
+// ── 4) JSON 路由必须挂在 /dsh-openssh-remote/ 前缀下（防路由命名漂移）─────────────
+const ROUTE_PREFIX = /^\/dsh-openssh-remote\//u
 const routeRe = /path:\s*'(\/[^']*)'/g
 let rTotal = 0
 for (const { file: rf, src: rs } of libSrc) {
@@ -70,7 +70,7 @@ for (const { file: rf, src: rs } of libSrc) {
     rTotal++
     if (!ROUTE_PREFIX.test(m[1])) {
       fail++
-      console.log(`  ✗ ${rf}:${lineOf(rs, m.index)}: route path '${m[1]}' must start with /dsh-remote/`)
+      console.log(`  ✗ ${rf}:${lineOf(rs, m.index)}: route path '${m[1]}' must start with /dsh-openssh-remote/`)
     }
   }
 }

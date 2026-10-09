@@ -6,7 +6,7 @@
 // itself was healthy.
 //
 // The fix these tests pin: a session's remote target comes from its own
-// workspace mirror's `.dsh-remote-meta.json`, so it never depends on which
+// workspace mirror's `.dsh-openssh-remote-meta.json`, so it never depends on which
 // machine happens to be active, and two machines never share a pool key.
 
 import { test } from 'node:test'
@@ -16,14 +16,14 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { resolveMirror, poolKey } from '../lib/binding.js'
 
-const root = () => mkdtempSync(path.join(tmpdir(), 'dsh-remote-bind-'))
+const root = () => mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-bind-'))
 
 /** Create a mirror dir with its origin meta, as ensureMirror() does. */
 function mirror(rootDir, { host, port = 22, username, remotePath, base }) {
   const tag = [host, username, port].filter(Boolean).join('-').replace(/[^a-zA-Z0-9._-]/g, '_')
   const dir = path.join(rootDir, tag, base)
   mkdirSync(dir, { recursive: true })
-  writeFileSync(path.join(dir, '.dsh-remote-meta.json'), JSON.stringify({ host, port, username, remotePath }))
+  writeFileSync(path.join(dir, '.dsh-openssh-remote-meta.json'), JSON.stringify({ host, port, username, remotePath }))
   return dir
 }
 
@@ -94,10 +94,10 @@ test('resolveMirror: unparsable or host-less meta is skipped rather than guessed
   const d = root()
   const broken = path.join(d, 'host-user-22', 'broken')
   mkdirSync(broken, { recursive: true })
-  writeFileSync(path.join(broken, '.dsh-remote-meta.json'), '{ not json')
+  writeFileSync(path.join(broken, '.dsh-openssh-remote-meta.json'), '{ not json')
   const hostless = path.join(d, 'host-user-22', 'hostless')
   mkdirSync(hostless, { recursive: true })
-  writeFileSync(path.join(hostless, '.dsh-remote-meta.json'), JSON.stringify({ remotePath: '/tmp/x' }))
+  writeFileSync(path.join(hostless, '.dsh-openssh-remote-meta.json'), JSON.stringify({ remotePath: '/tmp/x' }))
 
   assert.equal(resolveMirror(broken, d).machine, null)
   assert.equal(resolveMirror(hostless, d).machine, null)

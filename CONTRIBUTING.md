@@ -1,11 +1,11 @@
-# Contributing to dsh-remote
+# Contributing to dsh-openssh-remote
 
 Thanks for taking the time to help. This is a small, focused plugin; the goal is to keep it predictable and safe to point at machines you actually care about.
 
 ## Ways to help
 
-- **Bug reports** — open an [issue](https://github.com/flymysql/dsh-remote/issues) with your OS, DSH version, `dsh-remote` version (`npm ls dsh-remote`), the remote host's OS, and the exact steps. Please scrub credentials and hostnames.
-- **Questions / setups / "does this work with X?"** — use [Discussions](https://github.com/flymysql/dsh-remote/discussions) instead of issues, so issues stay actionable.
+- **Bug reports** — open an [issue](https://github.com/RiversJin/dsh-openssh-remote/issues) with your OS, DSH version, `dsh-openssh-remote` version (`npm ls dsh-openssh-remote`), the remote host's OS, and the exact steps. Please scrub credentials and hostnames.
+- **Questions / setups / "does this work with X?"** — use [Discussions](https://github.com/RiversJin/dsh-openssh-remote/discussions) instead of issues, so issues stay actionable.
 - **Pull requests** — welcome. Small and focused beats large and sweeping.
 
 ## Before you open a PR

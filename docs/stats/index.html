@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>dsh-remote — 用量统计</title>
-<meta name="description" content="dsh-remote（DeepSeek Harness 远程工作助手插件）的日活 / 周活 / 月活统计，数据来自匿名心跳。"/>
+<title>dsh-openssh-remote — 用量统计</title>
+<meta name="description" content="dsh-openssh-remote（DeepSeek Harness 远程工作助手插件）的日活 / 周活 / 月活统计，数据来自匿名心跳。"/>
 <meta name="theme-color" content="#07070b"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>"/>
 <style>
@@ -73,7 +73,7 @@
 <header>
   <div class="top">
     <div>
-      <h1><span class="t" data-zh="dsh-remote 用量统计" data-en="dsh-remote usage">dsh-remote 用量统计</span><span class="t" data-zh="来自匿名心跳" data-en="from anonymous heartbeats">来自匿名心跳</span></h1>
+      <h1><span class="t" data-zh="dsh-openssh-remote 用量统计" data-en="dsh-openssh-remote usage">dsh-openssh-remote 用量统计</span><span class="t" data-zh="来自匿名心跳" data-en="from anonymous heartbeats">来自匿名心跳</span></h1>
       <div class="stamp" id="stamp">加载中…</div>
     </div>
     <div class="right">
@@ -142,8 +142,8 @@
   <span class="t" data-zh="数据来自匿名心跳 · MIT 许可" data-en="Generated from anonymous heartbeat data · MIT licensed">数据来自匿名心跳 · MIT 许可</span>
   <span>
     <a href="../"><span class="t" data-zh="主页" data-en="home">主页</span></a> ·
-    <a href="https://github.com/flymysql/dsh-remote">GitHub</a> ·
-    <a href="https://www.npmjs.com/package/dsh-remote">npm</a>
+    <a href="https://github.com/flymysql/dsh-openssh-remote">GitHub</a> ·
+    <a href="https://www.npmjs.com/package/dsh-openssh-remote">npm</a>
   </span>
 </footer>
 
@@ -153,7 +153,7 @@
 // ── 语言：默认中文；英文仅在用户显式切换后使用 ──────────────────────────────
 // 之所以用 data-zh/data-en 属性而不是"英文为主、中文折叠"：需求是**优先中文**，
 // 所以中文必须是无脚本、无 localStorage 时的默认渲染结果（首屏不闪英文）。
-const LANG_KEY = 'dsh-remote-stats-lang'
+const LANG_KEY = 'dsh-openssh-remote-stats-lang'
 function applyLang (lang) {
   const zh = lang !== 'en'
   document.documentElement.lang = zh ? 'zh-CN' : 'en'
@@ -166,7 +166,7 @@ function applyLang (lang) {
   }
   document.getElementById('lang-zh').setAttribute('aria-pressed', String(zh))
   document.getElementById('lang-en').setAttribute('aria-pressed', String(!zh))
-  document.title = zh ? 'dsh-remote — 用量统计' : 'dsh-remote — usage stats'
+  document.title = zh ? 'dsh-openssh-remote — 用量统计' : 'dsh-openssh-remote — usage stats'
 }
 let LANG = 'zh'
 try { LANG = localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'zh' } catch { /* 隐私模式 */ }

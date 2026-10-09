@@ -42,7 +42,7 @@ function syntaxError(shBin, script) {
 
 test('the environment probe is POSIX-valid', (t) => {
   if (!sh) return t.skip('no POSIX sh on this host; cannot syntax-check remote commands')
-  for (const spec of [{}, { prefix: '/home/dev/.dsh-remote/dsh' }, { prefix: '/tmp/a b/c' }]) {
+  for (const spec of [{}, { prefix: '/home/dev/.dsh-openssh-remote/dsh' }, { prefix: '/tmp/a b/c' }]) {
     const err = syntaxError(sh, buildProbeCommand(spec))
     assert.equal(err, null, `invalid shell for ${JSON.stringify(spec)}:\n${err}`)
   }
@@ -52,7 +52,7 @@ test('every install step is POSIX-valid', (t) => {
   if (!sh) return t.skip('no POSIX sh on this host; cannot syntax-check remote commands')
   const facts = { platform: 'Linux', arch: 'x64', npm: 'npm' }
   for (const spec of [
-    { facts, prefix: '/home/dev/.dsh-remote/dsh' },
+    { facts, prefix: '/home/dev/.dsh-openssh-remote/dsh' },
     { facts, prefix: '/tmp/prefix with space' },
     { facts, prefix: '/p', version: '9.9.9', registry: 'https://npm.example.com/' },
   ]) {

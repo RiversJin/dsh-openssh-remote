@@ -1,6 +1,6 @@
 // Regression: SshPool.setTarget with an UNCHANGED target must be a no-op.
 //
-// The workspace picker posts /dsh-remote/current before every /ls; that route
+// The workspace picker posts /dsh-openssh-remote/current before every /ls; that route
 // funnels into applyActiveMachine → pool.setTarget. The old unconditional
 // close() made every autocomplete keystroke kill the live SSH connection and
 // re-run platform detection (the "slow remote path autocomplete" bug).
@@ -73,7 +73,7 @@ test('setTarget changes transport, alias, or executable by reconnecting', () => 
 
 test('setTarget ignores unspecified fields (undefined ≠ change)', () => {
   const { pool, stats } = warmPool()
-  // Partial call with equal values (what rw_connect / /connect send).
+  // Partial call with equal values (what orw_connect / /connect send).
   pool.setTarget({ host: 'example.test', port: 22, username: 'dev', workspace: '/ws' })
   assert.equal(stats.ended, 0, 'a partial call with equal values must not close')
   pool.setTarget({ host: undefined, port: undefined, password: undefined })

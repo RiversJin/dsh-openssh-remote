@@ -224,7 +224,7 @@
   },
   "heartbeatError": null,
   "npm": {
-    "package": "dsh-remote",
+    "package": "dsh-openssh-remote",
     "checkedAt": "2026-10-09T06:06:18.878Z",
     "latest": "0.8.41",
     "lastWeek": 2671,

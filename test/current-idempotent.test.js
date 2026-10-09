@@ -1,4 +1,4 @@
-// Regression: POST /dsh-remote/current for the ALREADY-current machine must be
+// Regression: POST /dsh-openssh-remote/current for the ALREADY-current machine must be
 // idempotent — no registry rewrite, no credential re-read, no pool re-point.
 // The picker used to post this before every /ls, so every autocomplete
 // keystroke rewrote machines.json and re-applied the machine.
@@ -15,8 +15,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 function makeHome() {
-  const home = mkdtempSync(path.join(tmpdir(), 'dsh-remote-current-'))
-  const root = path.join(home, 'remote-workspaces')
+  const home = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-current-'))
+  const root = path.join(home, 'openssh-remote-workspaces')
   mkdirSync(root, { recursive: true })
   const machines = [
     { id: 'm-linux', name: 'linuxbox', host: '127.0.0.11', port: 1, username: 'lucas', password: 'pw-linux' },
@@ -55,11 +55,11 @@ async function loadPlugin(home) {
 }
 
 async function postCurrent(routes, id) {
-  const route = routes.get('/dsh-remote/current')
-  assert.ok(route, 'route /dsh-remote/current must be registered')
+  const route = routes.get('/dsh-openssh-remote/current')
+  assert.ok(route, 'route /dsh-openssh-remote/current must be registered')
   const req = Readable.from([Buffer.from(JSON.stringify({ id }))])
   req.method = 'POST'
-  req.url = '/dsh-remote/current'
+  req.url = '/dsh-openssh-remote/current'
   const res = {
     statusCode: 0,
     payload: '',

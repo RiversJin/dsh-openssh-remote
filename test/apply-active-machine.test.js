@@ -4,7 +4,7 @@
 // and lib/registry.js applyMachine mutates that object IN PLACE before
 // pool.setTarget is called — so a config-vs-config diff is always EQUAL (the
 // dead no-op check introduced by 5246082). Consequence: switching machines via
-// POST /dsh-remote/current kept the OLD ssh2 client and stale platform cache
+// POST /dsh-openssh-remote/current kept the OLD ssh2 client and stale platform cache
 // and commands executed on the OLD host while the registry reported the NEW
 // one (the wrong-host hazard of issue #25).
 //
@@ -12,7 +12,7 @@
 // pool.config, mutated applyMachine-style BEFORE setTarget is called with
 // values read from that same config, with the pre-mutation snapshot as the diff
 // baseline (the fixed signature). The plugin-level tests pin the production
-// wiring through POST /dsh-remote/current. Written FIRST and captured RED
+// wiring through POST /dsh-openssh-remote/current. Written FIRST and captured RED
 // against the un-fixed code (strict TDD).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -112,11 +112,11 @@ test('clearActiveMachine shape: "active remote = none" disconnects the shared po
   assert.equal(pool.config.host, '', 'the shared config must be zeroed')
 })
 
-// ── plugin-level: the production wiring through POST /dsh-remote/current ────
+// ── plugin-level: the production wiring through POST /dsh-openssh-remote/current ────
 
 function makeHome() {
-  const home = mkdtempSync(path.join(tmpdir(), 'dsh-remote-apply-'))
-  const root = path.join(home, 'remote-workspaces')
+  const home = mkdtempSync(path.join(tmpdir(), 'dsh-openssh-remote-apply-'))
+  const root = path.join(home, 'openssh-remote-workspaces')
   mkdirSync(root, { recursive: true })
   const machines = [
     { id: 'm-linux', name: 'linuxbox', host: '127.0.0.11', port: 1, username: 'lucas', password: 'pw-linux' },
@@ -155,11 +155,11 @@ async function loadPlugin(home) {
 }
 
 async function postCurrent(routes, id) {
-  const route = routes.get('/dsh-remote/current')
-  assert.ok(route, 'route /dsh-remote/current must be registered')
+  const route = routes.get('/dsh-openssh-remote/current')
+  assert.ok(route, 'route /dsh-openssh-remote/current must be registered')
   const req = Readable.from([Buffer.from(JSON.stringify({ id }))])
   req.method = 'POST'
-  req.url = '/dsh-remote/current'
+  req.url = '/dsh-openssh-remote/current'
   const res = {
     statusCode: 0,
     payload: '',
@@ -185,7 +185,7 @@ SshPool.prototype.setTarget = function (...args) {
 SshPool.prototype.exec = function (cmd, ...rest) {
   if (obs && !obs.pool) obs.pool = this
   const p = origExec.call(this, cmd, ...rest)
-  if (obs && obs.onRestoreSettled && String(cmd).includes('dsh-remote-restore')) {
+  if (obs && obs.onRestoreSettled && String(cmd).includes('dsh-openssh-remote-restore')) {
     const done = obs.onRestoreSettled
     obs.onRestoreSettled = null
     p.then(done, done)
@@ -213,7 +213,7 @@ function makeObs() {
 }
 
 // The boot-restore path (lib/index.js) applies the stored current machine and
-// probes it with `echo dsh-remote-restore`; waiting for that probe to settle
+// probes it with `echo dsh-openssh-remote-restore`; waiting for that probe to settle
 // guarantees the restore apply has fully completed before the test acts.
 async function afterBootRestore(o) {
   const settled = new Promise((resolve) => { o.onRestoreSettled = resolve })
