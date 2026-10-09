@@ -279,7 +279,7 @@ Current boundary: POSIX remotes with `python3` only. Commands and core file oper
 
 **`@` lists remote files but the built-in read tool cannot open them** — the harness's own file tools see the **local mirror**, which stays empty until `orw_sync` downloads it. Read remote files with `orw_read_file` or the sidebar remote tab.
 
-**Host key changed** — `/remote forget-key` (or Settings → machine → trust again).
+**Host key changed** — `/openssh-remote-forget-key` (or Settings → machine → trust again).
 
 **"Authentication failed"** — check the username/password/key path; fill in the passphrase for an encrypted key; enable keyboard-interactive when the host requires OTP.
 

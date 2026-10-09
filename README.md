@@ -261,7 +261,7 @@ scripts/dev-run.sh --status    # 是否在运行
 
 **`@` 能列出远程文件，但内置读文件工具打不开** —— harness 自带工具看到的是**本地镜像**，要等 `orw_sync` 下载后才有内容。读远程文件请用 `orw_read_file` 或侧栏远程文件 tab。
 
-**主机指纹变了** —— `/remote forget-key`（或设置页 → 机器 → 重新信任）。
+**主机指纹变了** —— `/openssh-remote-forget-key`（或设置页 → 机器 → 重新信任）。
 
 **连接报「认证失败」** —— 检查用户名/密码/私钥路径；加密私钥要填 Passphrase；需要动态码时勾选 keyboard-interactive。
 

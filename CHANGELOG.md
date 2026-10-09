@@ -2,6 +2,13 @@
 
 All notable changes to **dsh-remote**.
 
+## 0.1.3 — 2026-10-09 (OpenSSH fork)
+
+- Namespace slash commands as `/openssh-remote`, `/openssh-remote-forget-key`, and `/openssh-remote-ignore`. The original `/remote*` names collide with an enabled `dsh-remote`, aborting plugin activation before API routes register. Add a coexistence regression test.
+- Keep `@deepseek-ai/dsh-tools` as a host-provided peer only. Installing a second copy into a Desktop profile shadows the bundled tool service and gives Agent Loop a different scheduler Symbol, breaking all tool calls with `Cannot read properties of undefined (reading 'prepare')`.
+- Add a package compatibility guard against shipping Harness service runtimes as production dependencies.
+- When recovering a 0.1.1 installation, reinstall the profile dependencies to prune its extra `dsh-tools` copy, then restart Desktop; changing only the plugin manifest does not repair an already loaded service.
+
 ## 0.8.41 — 2026-10-09
 ### 工作区备份能力整体下线
 

@@ -33,6 +33,16 @@ import { fileURLToPath } from 'node:url'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const pkg = JSON.parse(readFileSync(path.join(here, '..', 'package.json'), 'utf8'))
 
+test('published plugin does not install a second Harness service runtime', () => {
+  // Desktop resolves profile-local services before its bundled services.
+  // A second dsh-tools has a different TOOL_RUNTIME_SCHEDULER Symbol and
+  // breaks every tool call in the bundled Agent Loop, even at equal versions.
+  for (const name of Object.keys({ ...pkg.dependencies, ...pkg.optionalDependencies })) {
+    assert.ok(!/^@deepseek-ai\/(?:dsh(?:-|$)|cordis$)/.test(name),
+      `${name} must remain a host-provided peer, not a shipped dependency`)
+  }
+})
+
 // semver 只作为 devDependency 存在；装不到就跳过（不让 CI 因缺依赖而红）。
 let semver
 try {

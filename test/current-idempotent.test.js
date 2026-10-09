@@ -70,6 +70,34 @@ async function postCurrent(routes, id) {
   return { status: res.statusCode, json: JSON.parse(res.payload) }
 }
 
+test('coexists with legacy remote commands and still registers settings routes', async () => {
+  const { home } = makeHome()
+  const previousHome = process.env.DSH_HOME
+  process.env.DSH_HOME = home
+  try {
+    const mod = await import('../lib/index.js')
+    const { ctx, routes } = makeCtx()
+    const legacy = ['remote', 'remote-forget-key', 'remote-ignore']
+    const commands = new Map(legacy.map((name) => [name, { name }]))
+    const get = ctx.get
+    ctx.get = (key) => key === 'commands' ? {
+      register(command) {
+        assert.ok(!commands.has(command.name), `duplicate command: ${command.name}`)
+        commands.set(command.name, command)
+      },
+    } : get(key)
+    await mod.apply(ctx, { ...CONFIG })
+    assert.ok(routes.has('/dsh-openssh-remote/status'))
+    assert.ok(routes.has('/dsh-openssh-remote/ssh-config'))
+    assert.ok(commands.has('openssh-remote'))
+    for (const name of legacy) assert.deepEqual(commands.get(name), { name })
+  } finally {
+    if (previousHome === undefined) delete process.env.DSH_HOME
+    else process.env.DSH_HOME = previousHome
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
 test('POST /current for the already-current machine never rewrites machines.json', async () => {
   const { home, machinesFile } = makeHome()
   try {
