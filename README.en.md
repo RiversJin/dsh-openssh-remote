@@ -230,6 +230,7 @@ Deploying to a product profile is a separate, explicit action (`./sync.sh`) for 
 | `host` | string | `''` | default SSH host (else start disconnected) |
 | `port` | int | `22` | default SSH port |
 | `username` | string | `''` | default SSH user |
+| `opensshPath` | string | `''` | global default path/command for the system OpenSSH executable; empty uses `ssh` from PATH. A machine-level setting may override it |
 | `password` | string | `''` | default SSH password (non-empty overrides key) |
 | `privateKeyPath` | string | `''` | private key path (used only when explicitly provided) |
 | `passphrase` | string | `''` | passphrase for an encrypted private key |
@@ -265,6 +266,12 @@ Deploying to a product profile is a separate, explicit action (`./sync.sh`) for 
 | `webInstallRegistry` | string | `''` | npm registry for the install; **empty keeps the remote's own config**, so an internal mirror is never overridden |
 
 > The authoritative list is the `Config` schema in `lib/index.js`; this table mirrors it.
+
+### System OpenSSH transport (experimental)
+
+Each machine can select `System OpenSSH` under advanced settings. This mode passes the original `~/.ssh/config` Host alias to the system SSH client, which is useful for Kerberos/GSSAPI, complex ProxyJump/ProxyCommand chains, and enterprise SSH policy. An empty machine-level executable uses the global `opensshPath`, then `ssh` from PATH.
+
+Current boundary: POSIX remotes with `python3` only. Commands and core file operations work; port forwarding and Remote DSH Web UI attach are not supported yet. Node `ssh2` remains the default transport, and legacy machine records never switch automatically.
 
 ## FAQ / troubleshooting
 

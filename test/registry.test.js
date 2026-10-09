@@ -105,6 +105,19 @@ test('applyMachine overrides the live config fields', () => {
   assert.equal(cfg.username, 'root')
   assert.equal(cfg.workspace, '/home/root/proj')
   assert.equal(cfg.proxy.host, 'jump')
+  assert.equal(cfg.transport, 'ssh2', 'legacy machines default to ssh2')
+})
+
+test('applyMachine applies OpenSSH transport and machine/global executable precedence', () => {
+  const globalOnly = {}
+  applyMachine(globalOnly, { host: '192.0.2.1', sshAlias: 'alias', useSshConfig: true, transport: 'openssh' }, { opensshPath: '/global/ssh' })
+  assert.equal(globalOnly.transport, 'openssh')
+  assert.equal(globalOnly.host, '192.0.2.1')
+  assert.equal(globalOnly.sshAlias, 'alias', 'the original alias survives resolved HostName/IP')
+  assert.equal(globalOnly.opensshPath, '/global/ssh')
+  const overridden = {}
+  applyMachine(overridden, { host: 'alias', useSshConfig: true, transport: 'openssh', opensshPath: '/machine/ssh' }, { opensshPath: '/global/ssh' })
+  assert.equal(overridden.opensshPath, '/machine/ssh')
 })
 
 test('applyMachine keeps existing workspace when machine has none', () => {

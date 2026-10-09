@@ -23,6 +23,14 @@ import {
   explainLaunchFailure, WebAttach, TAIL_MARKER, PID_MARKER,
 } from '../lib/web-attach.js'
 
+test('OpenSSH transport is rejected with an explicit capability message', async () => {
+  const attach = new WebAttach({ net: {} })
+  await assert.rejects(
+    () => attach.open({ pool: { connect: async () => ({ systemOpenSsh: true }) } }),
+    /not supported by the OpenSSH transport yet/,
+  )
+})
+
 // ── startup-line parsing ────────────────────────────────────────────────────
 
 test('parses the launch line into a consistent (token, port) pair', () => {

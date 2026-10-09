@@ -150,6 +150,44 @@ test('connect: a malformed JSON body answers 400 + JSON (still a readable reason
   }
 })
 
+test('machines: OpenSSH transport persists its alias and executable override', async () => {
+  const home = makeHome()
+  try {
+    const { routes } = await loadPlugin(home)
+    const added = await call(routes, '/dsh-remote/machines', {
+      body: { action: 'add', host: 'build-alias', useSshConfig: true, transport: 'openssh', opensshPath: '/custom/ssh' },
+    })
+    assert.equal(added.status, 200)
+    assert.equal(added.json.machine.transport, 'openssh')
+    assert.equal(added.json.machine.opensshPath, '/custom/ssh')
+    const id = added.json.machine.id
+    const updated = await call(routes, '/dsh-remote/machines', {
+      body: { action: 'update', id, host: 'build-alias', useSshConfig: true },
+    })
+    assert.equal(updated.status, 200)
+    assert.equal(updated.json.machine.transport, 'openssh', 'an older client update must not erase transport')
+    assert.equal(updated.json.machine.opensshPath, '/custom/ssh', 'an older client update must not erase the executable override')
+  } finally {
+    delete process.env.DSH_HOME
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('machines: OpenSSH transport rejects literal hosts without alias mode', async () => {
+  const home = makeHome()
+  try {
+    const { routes } = await loadPlugin(home)
+    const r = await call(routes, '/dsh-remote/machines', {
+      body: { action: 'add', host: '192.0.2.1', transport: 'openssh', useSshConfig: false },
+    })
+    assert.equal(r.status, 400)
+    assert.match(r.json.error, /requires SSH-config alias mode/)
+  } finally {
+    delete process.env.DSH_HOME
+    rmSync(home, { recursive: true, force: true })
+  }
+})
+
 test('machines: a plaintext save keeps the password and reports no warning', async () => {
   const home = makeHome()
   try {

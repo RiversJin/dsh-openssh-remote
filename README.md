@@ -212,6 +212,7 @@ scripts/dev-run.sh --status    # 是否在运行
 | `host` | string | `''` | 默认 SSH 主机（空=断开） |
 | `port` | int | `22` | 默认 SSH 端口 |
 | `username` | string | `''` | 默认 SSH 用户 |
+| `opensshPath` | string | `''` | 系统 OpenSSH 可执行文件的全局默认路径/命令名；空值使用 PATH 中的 `ssh`。机器级设置可覆盖 |
 | `password` | string | `''` | 默认 SSH 密码（非空覆盖 key） |
 | `privateKeyPath` | string | `''` | 私钥路径（仅在显式提供时使用） |
 | `passphrase` | string | `''` | 加密私钥的 passphrase |
@@ -247,6 +248,12 @@ scripts/dev-run.sh --status    # 是否在运行
 | `webInstallRegistry` | string | `''` | 安装用的 npm 源；**留空沿用远端自己的配置**，不会覆盖内网镜像 |
 
 > 权威清单是 `lib/index.js` 里的 `Config` schema，本表与之一致。
+
+### 系统 OpenSSH transport（实验性）
+
+每台机器可在高级设置里选择 `System OpenSSH`。该模式把原始 `~/.ssh/config` Host 别名交给系统 SSH 客户端，适合 Kerberos/GSSAPI、复杂 ProxyJump/ProxyCommand 或企业 SSH 策略；机器级「OpenSSH 可执行文件」为空时依次使用全局 `opensshPath`、PATH 中的 `ssh`。
+
+当前边界：仅支持带 `python3` 的 POSIX 远端；命令与核心文件操作可用，端口转发和「远程 DSH 界面」暂不支持。默认 transport 仍是 Node `ssh2`，旧机器配置不会自动切换。
 
 ## 常见问题 / 排查
 

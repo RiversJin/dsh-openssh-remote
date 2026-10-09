@@ -313,6 +313,22 @@ test('B2: re-connecting WITHOUT a passphrase keeps the stored one (and never clo
   })
 })
 
+test('B3: legacy rw_connect arguments preserve an existing OpenSSH alias machine', async () => {
+  const machine = {
+    id: 'm-open', name: 'company', host: 'company-alias', port: 22, username: 'ops',
+    password: '', privateKeyPath: '', workspace: '/work', useSshConfig: true,
+    transport: 'openssh', opensshPath: '/missing/test-ssh',
+  }
+  await withPlugin({ list: [machine], currentId: null }, async ({ tools, machinesFile }) => {
+    // Deliberately omit useSshConfig/transport/opensshPath, as an older caller does.
+    await tools.get('rw_connect').execute({ host: 'company-alias', port: 22, username: 'ops' }, {}).catch(() => {})
+    const rec = JSON.parse(readFileSync(machinesFile, 'utf8')).list[0]
+    assert.equal(rec.useSshConfig, true)
+    assert.equal(rec.transport, 'openssh')
+    assert.equal(rec.opensshPath, '/missing/test-ssh')
+  })
+})
+
 // ── end-to-end through the test-connect route (pool + classification) ───────
 
 test('B3: /test-connect with an encrypted key + no passphrase returns the friendly credentials error (no crash)', async () => {

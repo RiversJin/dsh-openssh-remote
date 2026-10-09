@@ -52,6 +52,25 @@ test('setTarget with a changed password closes (credential change ⇒ reconnect)
   assert.equal(pool.config.password, 'newpw')
 })
 
+test('setTarget explicitly clears a removed proxy and reconnects', () => {
+  const cfg = { ...baseConfig(), proxy: { host: 'jump', port: 22 } }
+  const pool = new SshPool(cfg, { knownHostsFile: () => '' })
+  let ended = 0
+  pool.client = { end() { ended++ } }
+  pool.setTarget({ proxy: null })
+  assert.equal(ended, 1)
+  assert.equal(pool.config.proxy, null)
+})
+
+test('setTarget changes transport, alias, or executable by reconnecting', () => {
+  const { pool, stats } = warmPool()
+  pool.setTarget({ transport: 'openssh', sshAlias: 'example-alias', opensshPath: '/custom/ssh' })
+  assert.equal(stats.ended, 1)
+  assert.equal(pool.config.transport, 'openssh')
+  assert.equal(pool.config.sshAlias, 'example-alias')
+  assert.equal(pool.openSsh.executable, '/custom/ssh')
+})
+
 test('setTarget ignores unspecified fields (undefined ≠ change)', () => {
   const { pool, stats } = warmPool()
   // Partial call with equal values (what rw_connect / /connect send).
