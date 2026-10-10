@@ -55,6 +55,13 @@ function dependencies(initial = []) {
 function loadClient(protocol = 'https:', platform = 'Linux x86_64') {
   let plugin
   const requests = []
+  let fetchResponder = async () => ({ ok: true, json: async () => ({}) })
+  const documentListeners = new Map()
+  const document = {
+    addEventListener(type, fn) { if (!documentListeners.has(type)) documentListeners.set(type, new Set()); documentListeners.get(type).add(fn) },
+    removeEventListener(type, fn) { documentListeners.get(type)?.delete(fn) },
+    dispatch(type, event) { for (const fn of documentListeners.get(type) || []) fn(event) },
+  }
   // Effects are recorded (and run on demand by `runEffects`) so a component
   // body's React.useEffect logic is testable without a real reconciler.
   const effects = []
@@ -89,13 +96,18 @@ function loadClient(protocol = 'https:', platform = 'Linux x86_64') {
     navigator: { languages: ['en'], platform },
     URL,
     console,
+    document,
     fetch: async (url, options) => {
       requests.push({ url, options })
-      return { ok: true, json: async () => ({}) }
+      return fetchResponder(url, options)
     },
   }, { filename: 'lib/client.js' })
   assert.ok(plugin, 'classic module loader receives the plugin')
-  return { plugin, requests, effects, runEffects: () => effects.forEach((fn) => fn()), store, localStorage }
+  return {
+    plugin, requests, effects, document,
+    setFetchResponder(fn) { fetchResponder = fn },
+    runEffects: () => effects.forEach((fn) => fn()), store, localStorage,
+  }
 }
 
 function createHost(seats = [SETTINGS]) {
@@ -193,9 +205,10 @@ test('native right-sidebar attaches late, opens a session-scoped remote file, an
     types.set(type.kind, type)
     return () => types.delete(type.kind)
   } })
-  assert.deepEqual([...types.keys()], ['dsh-openssh-remote/explorer', 'dsh-openssh-remote/file'])
+  assert.deepEqual([...types.keys()], ['dsh-openssh-remote/explorer', 'dsh-openssh-remote/file', 'dsh-openssh-remote/directory'])
   assert.equal(types.get('dsh-openssh-remote/explorer').guide.length, 1)
   assert.deepEqual([...types.get('dsh-openssh-remote/file').patterns], ['dsh-resource://dsh-openssh-remote/**'])
+  assert.deepEqual([...types.get('dsh-openssh-remote/directory').patterns], ['dsh-resource://dsh-openssh-remote-dir/**'])
   const explorer = host.registrations.get('sidebar.right.pane.tab:dsh-openssh-remote/explorer')
   const file = host.registrations.get('sidebar.right.pane.tab:dsh-openssh-remote/file')
   let address
@@ -211,6 +224,63 @@ test('native right-sidebar attaches late, opens a session-scoped remote file, an
   host.services.remove('sidebarRightTabs')
   assert.equal(types.size, 0)
   assert.deepEqual([...host.registrations.keys()], [SETTINGS])
+})
+
+test('remote chat path links open the session-scoped remote sidebar, never local files', async (t) => {
+  const client = loadClient('dsh-app:')
+  const host = createHost()
+  t.after(() => host.ctx.dispose())
+  const openedTabs = []
+  const openedResources = []
+  const subscribers = new Set()
+  const bs = {
+    registerTab() { return () => {} },
+    getSnapshot() { return { sessionId: 'session-remote' } },
+    subscribeState(fn) { subscribers.add(fn); return () => subscribers.delete(fn) },
+    openTab(seed) { openedTabs.push(seed) },
+  }
+  client.setFetchResponder(async (url, options) => {
+    if (String(url).includes('/resolve-mirror')) return { ok: true, json: async () => ({ remotePath: '/data00/rivers' }) }
+    if (String(url).includes('/fs')) {
+      const body = JSON.parse(options.body)
+      return { ok: true, status: 200, json: async () => ({ ok: true, type: body.path.endsWith('/eic') ? 'dir' : 'file' }) }
+    }
+    return { ok: true, status: 200, json: async () => ({}) }
+  })
+  client.plugin.apply(host.ctx)
+  host.services.set('betterSidebar', bs)
+  host.services.set('sidebarRight', { openResource(address) { openedResources.push(address) } })
+  await new Promise((resolve) => setImmediate(resolve))
+
+  const click = (href, overrides = {}) => {
+    let prevented = false
+    const anchor = { getAttribute(name) { return name === 'href' ? href : null } }
+    client.document.dispatch('click', {
+      button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false,
+      defaultPrevented: false,
+      target: { closest() { return anchor } },
+      preventDefault() { prevented = true }, stopPropagation() {},
+      ...overrides,
+    })
+    return () => prevented
+  }
+
+  const dirPrevented = click('/data00/rivers/eic')
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(dirPrevented(), true)
+  assert.equal(openedResources[0], 'dsh-resource://dsh-openssh-remote-dir/session-remote/%2Fdata00%2Frivers/%2Fdata00%2Frivers%2Feic')
+
+  const filePrevented = click('/data00/rivers/eic/README.md')
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(filePrevented(), true)
+  assert.equal(openedResources[1], 'dsh-resource://dsh-openssh-remote/session-remote/%2Fdata00%2Frivers%2Feic%2FREADME.md')
+
+  const outsidePrevented = click('/etc/passwd')
+  const modifiedPrevented = click('/data00/rivers/eic/README.md', { metaKey: true })
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(outsidePrevented(), false, 'paths outside the session remote root stay with the host')
+  assert.equal(modifiedPrevented(), false, 'modified clicks bypass takeover')
+  assert.equal(openedResources.length, 2)
 })
 
 for (const protocol of ['https:', 'dsh-app:']) {

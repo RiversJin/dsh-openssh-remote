@@ -2,6 +2,12 @@
 
 All notable changes to **dsh-remote**.
 
+## 0.1.5 — 2026-10-10 (OpenSSH fork)
+
+- Route absolute remote-path links in remote-session chat messages into the existing remote right-sidebar instead of DSH's local file preview. Directory links open a session-scoped remote Explorer; file links open the session-scoped remote file viewer.
+- Add a read-only, session-bound `stat` operation for safely distinguishing remote directories from files before opening them.
+- Leave local sessions, paths outside the current remote workspace, and modifier-key clicks entirely to the host's normal link handling.
+
 ## 0.1.4 — 2026-10-10 (OpenSSH fork)
 
 - Keep the workspace directory picker open when the user clicks blank space inside its panel. The panel now shields `pointerdown`, `mousedown`, and `click`, while backdrop dismissal only accepts an event whose target is the backdrop itself.

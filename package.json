@@ -1,6 +1,6 @@
 {
   "name": "dsh-openssh-remote",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "OpenSSH-first remote workspace plugin for DeepSeek Harness, with SSH config and Kerberos/GSSAPI support plus an ssh2 fallback.",
   "license": "MIT",
   "author": "Rivers <11208747+RiversJin@users.noreply.github.com>",

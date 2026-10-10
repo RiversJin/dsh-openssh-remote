@@ -51,12 +51,28 @@ function routesFor(sftp, binding) {
 }
 
 test('native resource addresses are session-scoped', () => {
-  assert.match(src, /dsh-resource:\/\/dsh-openssh-remote\/' \+ encodeURIComponent\(sessionId\)/)
+  assert.match(src, /REMOTE_RESOURCE_HOST = 'dsh-openssh-remote'/)
+  assert.match(src, /REMOTE_DIR_RESOURCE_HOST = 'dsh-openssh-remote-dir'/)
+  assert.match(src, /encodeURIComponent\(sessionId\)/)
+  assert.match(src, /encodeURIComponent\(path\)/)
   assert.match(src, /withSessionBody\(\{ path, content: draft/)
   assert.match(src, /expectedMtime: data && data.mtime/)
   assert.match(src, /withSessionQuery\('\/dsh-openssh-remote\/ls\?path='/)
   assert.match(src, /withSessionQuery\('\/dsh-openssh-remote\/status'/)
   assert.match(src, /scope: \{ sessionId: props\.sessionId \}/)
+})
+
+test('session-scoped stat distinguishes remote directories, files, and missing paths', async () => {
+  const fs = new MemFs()
+  seed(fs, { 'proj/dir/a.txt': 'x', 'proj/file.txt': 'y' })
+  const routes = routesFor(makeSftp(fs), { ws: '/proj', host: '10.0.0.1', username: 'dev', port: 22, bound: true, mirrorDir: '/tmp/m' })
+  const route = routes['/dsh-openssh-remote/fs']
+  const dir = await call(route, { body: { op: 'stat', path: '/proj/dir', sessionId: 's1' } })
+  const file = await call(route, { body: { op: 'stat', path: '/proj/file.txt', sessionId: 's1' } })
+  const missing = await call(route, { body: { op: 'stat', path: '/proj/nope', sessionId: 's1' } })
+  assert.equal(dir.status, 200); assert.equal(dir.json.type, 'dir')
+  assert.equal(file.status, 200); assert.equal(file.json.type, 'file')
+  assert.equal(missing.status, 404)
 })
 
 test('sidebar write 409 on mtime mismatch, then save after re-read (Desktop edit path)', async () => {
