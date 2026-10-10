@@ -466,6 +466,14 @@ test('optional better-sidebar attaches late and cleans up tabs and subscription 
   assert.equal(sidebar.subscribers.size, 0)
 })
 
+test('directory picker closes only from the backdrop and shields panel pointer events', () => {
+  // The directory-flow host may dismiss on pointerdown/mousedown before React's
+  // click handler runs. Guard both the backdrop target and every early phase.
+  assert.match(source, /e\.target === e\.currentTarget && !busy && !mkdirPrompt/)
+  assert.match(source, /onPointerDown: stopModalEvent, onMouseDown: stopModalEvent, onClick: stopModalEvent/)
+  assert.match(source, /onClick: cancelFromBackdrop/)
+})
+
 test('late sessions supply cwd and disposal restores host-side session fallback', async (t) => {
   const { plugin, requests } = loadClient()
   const host = createHost()

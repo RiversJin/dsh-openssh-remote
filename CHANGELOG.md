@@ -2,6 +2,11 @@
 
 All notable changes to **dsh-remote**.
 
+## 0.1.4 — 2026-10-10 (OpenSSH fork)
+
+- Keep the workspace directory picker open when the user clicks blank space inside its panel. The panel now shields `pointerdown`, `mousedown`, and `click`, while backdrop dismissal only accepts an event whose target is the backdrop itself.
+- Add a client lifecycle regression guard for directory-flow hosts that implement outside-click dismissal before React's `click` phase.
+
 ## 0.1.3 — 2026-10-09 (OpenSSH fork)
 
 - Namespace slash commands as `/openssh-remote`, `/openssh-remote-forget-key`, and `/openssh-remote-ignore`. The original `/remote*` names collide with an enabled `dsh-remote`, aborting plugin activation before API routes register. Add a coexistence regression test.
